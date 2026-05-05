@@ -17,10 +17,8 @@ const navItems = {
   ],
   admin_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
     { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
-    { href: '/laporan', label: 'Laporan', icon: 'chart' },
   ],
   admin: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -64,6 +62,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     const getUser = async () => {
       try {
+        // Coba ambil dari Supabase Auth dulu
         const { data: { user: authUser } } = await supabase.auth.getUser()
         
         if (authUser) {
@@ -82,6 +81,34 @@ export default function DashboardLayout({ children }) {
               full_name: profileData.nama,
               username: profileData.nama?.toLowerCase().replace(/\s+/g, '_')
             })
+          }
+        } else {
+          // Fallback ke local session jika auth tidak ada
+          const localSession = localStorage.getItem('simdir_session')
+          console.log('Layout - Local session:', localSession)
+          if (localSession) {
+            try {
+              const sessionData = JSON.parse(atob(localSession))
+              console.log('Layout - Session data:', sessionData)
+              setUser({
+                id: sessionData.id,
+                email: sessionData.email,
+                user_metadata: {
+                  username: sessionData.username,
+                  role: sessionData.role
+                }
+              })
+              setProfile({
+                id: sessionData.id,
+                username: sessionData.username,
+                full_name: sessionData.username,
+                nama: sessionData.username,
+                role: sessionData.role
+              })
+              console.log('Layout - Profile set with role:', sessionData.role)
+            } catch (e) {
+              console.error('Invalid local session:', e)
+            }
           }
         }
       } catch (err) {
@@ -112,6 +139,9 @@ export default function DashboardLayout({ children }) {
   const userRole = profile?.role || 'admin'
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const items = navItems[userRole] || navItems.admin
+
+  // Debug
+  console.log('Layout Render - userRole:', userRole, 'profile:', profile, 'user:', user)
 
   return (
     <div className="app-shell">

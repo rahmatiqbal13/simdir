@@ -51,8 +51,22 @@ export default function LoginPage() {
         throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
       }
 
+      // Trim password untuk menghilangkan whitespace
+      const inputPassword = formData.password.trim()
+      const dbPassword = userData.password.trim()
+      
+      // Debug: Log password comparison (remove in production)
+      console.log('Debug Login:', {
+        username: userData.username,
+        dbPassword: dbPassword,
+        dbPasswordLength: dbPassword.length,
+        inputPassword: inputPassword,
+        inputPasswordLength: inputPassword.length,
+        match: dbPassword === inputPassword
+      })
+
       // Verifikasi password
-      if (userData.password !== formData.password) {
+      if (dbPassword !== inputPassword) {
         throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
       }
 
@@ -60,15 +74,24 @@ export default function LoginPage() {
         throw new Error('Akun Anda telah dinonaktifkan')
       }
 
-      // Login ke Supabase Auth
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: userData.email,
-        password: formData.password
-      })
-
-      if (authError) {
-        // Jika user belum ada di auth, buat dulu
-        if (authError.message.includes('Invalid login credentials')) {
+      // Coba login ke Supabase Auth (opsional - untuk fitur real-time dsb)
+      let authSuccess = false
+      try {
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: userData.email,
+          password: formData.password
+        })
+        
+        if (!authError) {
+          authSuccess = true
+        }
+      } catch (authErr) {
+        console.log('Auth login failed (non-critical):', authErr.message)
+      }
+      
+      // Jika auth gagal, coba signup
+      if (!authSuccess) {
+        try {
           const { error: signUpError } = await supabase.auth.signUp({
             email: userData.email,
             password: formData.password,
@@ -81,39 +104,44 @@ export default function LoginPage() {
             }
           })
           
-          if (signUpError) throw signUpError
-          
-          // Login lagi setelah signup
-          const { error: loginError } = await supabase.auth.signInWithPassword({
-            email: userData.email,
-            password: formData.password
-          })
-          
-          if (loginError) throw loginError
-        } else {
-          throw authError
+          if (!signUpError) {
+            authSuccess = true
+          }
+        } catch (signUpErr) {
+          console.log('Auth signup failed (non-critical):', signUpErr.message)
         }
       }
 
-      // Update last login
-      await supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userData.id)
+      // Update last login (tidak critical)
+      try {
+        await supabase
+          .from('users')
+          .update({ last_login: new Date().toISOString() })
+          .eq('id', userData.id)
+      } catch (e) {
+        console.log('Update last_login failed (non-critical):', e)
+      }
 
       // Set cookie untuk middleware
+      const sessionPayload = {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role
+      }
+      
+      console.log('Login Success - Saving session:', sessionPayload)
+      
       await fetch('/api/auth/local-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          sessionData: btoa(JSON.stringify({
-            id: userData.id,
-            username: userData.username,
-            email: userData.email,
-            role: userData.role
-          }))
+          sessionData: btoa(JSON.stringify(sessionPayload))
         })
       })
+      
+      // Also save to localStorage for client-side
+      localStorage.setItem('simdir_session', btoa(JSON.stringify(sessionPayload)))
 
       window.location.href = '/dashboard'
       

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { createBrowserClient } from '@supabase/ssr';
 
 // Data bulan
 const BULAN_LIST = [
@@ -19,12 +20,6 @@ const BULAN_LIST = [
 ];
 
 const TAHUN_LIST = [2024, 2025, 2026, 2027];
-
-const UNIT_KERJA_LIST = [
-  'USC', 'PUI Keolahragaan', 'PUI Disabilitas', 'PUI Seni Budaya',
-  'Kolam Renang', 'Driving Golf', 'ULABK', 'SSFC',
-  'PUIPT Seni Budaya Majapahitan', 'PUIPT DIC', 'PUIPT SERC'
-];
 
 const formatRupiah = (num) => {
   if (!num || isNaN(num)) return 'Rp 0';
@@ -142,7 +137,9 @@ function FilterSection({
   filterBulan, setFilterBulan,
   filterTahun, setFilterTahun,
   filterUnit, setFilterUnit,
-  onGenerateReport
+  unitKerjaList,
+  onGenerateReport,
+  loading
 }) {
   return (
     <div className="card mb-6">
@@ -247,8 +244,8 @@ function FilterSection({
               style={{ width: '100%' }}
             >
               <option value="">Semua Unit</option>
-              {UNIT_KERJA_LIST.map(u => (
-                <option key={u} value={u}>{u}</option>
+              {unitKerjaList.map(u => (
+                <option key={u.id} value={u.nama}>{u.nama}</option>
               ))}
             </select>
           </div>
@@ -260,8 +257,8 @@ function FilterSection({
             className="btn btn-ghost"
             onClick={() => {
               setFilterPeriode('bulanan');
-              setFilterBulan('5');
-              setFilterTahun('2026');
+              setFilterBulan(String(new Date().getMonth() + 1));
+              setFilterTahun(String(new Date().getFullYear()));
               setFilterUnit('');
             }}
           >
@@ -270,11 +267,17 @@ function FilterSection({
             </svg>
             Reset Filter
           </button>
-          <button className="btn btn-primary" onClick={onGenerateReport}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-            </svg>
-            Generate Laporan
+          <button className="btn btn-primary" onClick={onGenerateReport} disabled={loading}>
+            {loading ? (
+              <span>Loading...</span>
+            ) : (
+              <>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                </svg>
+                Generate Laporan
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -284,6 +287,8 @@ function FilterSection({
 
 // ============ KOMPONEN CHART BAR SEDERHANA ============
 function SimpleBarChart({ data }) {
+  if (!data || data.length === 0) return <div className="muted text-center py-4">Tidak ada data</div>;
+  
   const maxValue = Math.max(...data.map(d => d.value));
   
   return (
@@ -444,34 +449,91 @@ function PreviewModal({ show, onClose, filterPeriode, filterBulan, filterTahun, 
 export default function LaporanPage() {
   // Filter states
   const [filterPeriode, setFilterPeriode] = useState('bulanan');
-  const [filterBulan, setFilterBulan] = useState('5');
-  const [filterTahun, setFilterTahun] = useState('2026');
+  const [filterBulan, setFilterBulan] = useState(String(new Date().getMonth() + 1));
+  const [filterTahun, setFilterTahun] = useState(String(new Date().getFullYear()));
   const [filterUnit, setFilterUnit] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   
+  // Data states
+  const [programData, setProgramData] = useState([]);
+  const [unitKerjaList, setUnitKerjaList] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
   const userRole = 'super_admin';
-  const canAccess = ['super_admin', 'admin_keuangan'].includes(userRole);
+  const canAccess = userRole === 'super_admin';
 
-  // Data program (simulasi)
-  const programData = [
-    { id: 1, nama: 'Peningkatan tata kelola unit kerja', unit_kerja: 'USC', tahun: 2026, pagu: 150000000, total_spj: 125000000 },
-    { id: 2, nama: 'Pemeliharaan fasilitas olahraga', unit_kerja: 'Kolam Renang', tahun: 2026, pagu: 75000000, total_spj: 65000000 },
-    { id: 3, nama: 'Pengelolaan olahraga pendidikan', unit_kerja: 'PUI Keolahragaan', tahun: 2026, pagu: 100000000, total_spj: 80000000 },
-    { id: 4, nama: 'Pengembangan atlet muda', unit_kerja: 'SSFC', tahun: 2026, pagu: 200000000, total_spj: 175000000 },
-    { id: 5, nama: 'Turnamen golf nasional', unit_kerja: 'Driving Golf', tahun: 2026, pagu: 500000000, total_spj: 425000000 },
-    { id: 6, nama: 'Pengadaan peralatan seni', unit_kerja: 'PUI Seni Budaya', tahun: 2026, pagu: 80000000, total_spj: 45000000 },
-  ];
+  // Initialize Supabase client
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
-  // Filter data berdasarkan unit kerja
+  // Fetch data from Supabase
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Fetch unit kerja list
+      const { data: units, error: unitError } = await supabase
+        .from('unit_kerja')
+        .select('id, nama')
+        .order('nama');
+      
+      if (unitError) throw unitError;
+      setUnitKerjaList(units || []);
+
+      // Fetch program data from view
+      const { data: programs, error: programError } = await supabase
+        .from('laporan_serapan_program')
+        .select('*')
+        .eq('tahun', parseInt(filterTahun));
+      
+      if (programError) {
+        console.error('Program error:', programError);
+        throw programError;
+      }
+      
+      // Transform data - handle both snake_case and potential field name variations
+      const transformedData = (programs || []).map(p => ({
+        id: p.id,
+        nama: p.nama,
+        unit_kerja: p.unit_kerja,
+        tahun: p.tahun,
+        pagu: parseFloat(p.pagu) || 0,
+        total_spj: parseFloat(p.total_spj || p.total_alokasi || 0) || 0
+      }));
+      
+      setProgramData(transformedData);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError('Gagal memuat data. Silakan coba lagi.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Filter data berdasarkan unit kerja dan tahun
   const filteredData = useMemo(() => {
-    if (!filterUnit) return programData;
-    return programData.filter(p => p.unit_kerja === filterUnit);
-  }, [filterUnit]);
+    let data = programData.filter(p => p.tahun === parseInt(filterTahun));
+    
+    if (filterUnit) {
+      data = data.filter(p => p.unit_kerja === filterUnit);
+    }
+    
+    return data;
+  }, [programData, filterUnit, filterTahun]);
 
   // Hitung totals
   const totals = useMemo(() => {
-    const pagu = filteredData.reduce((s, p) => s + p.pagu, 0);
-    const spj = filteredData.reduce((s, p) => s + p.total_spj, 0);
+    const pagu = filteredData.reduce((s, p) => s + (p.pagu || 0), 0);
+    const spj = filteredData.reduce((s, p) => s + (p.total_spj || 0), 0);
     const sisa = pagu - spj;
     const serapan = pagu > 0 ? Math.round((spj / pagu) * 100) : 0;
     return { pagu, spj, sisa, serapan };
@@ -480,21 +542,24 @@ export default function LaporanPage() {
   // Data rekap per unit
   const rekapUnit = useMemo(() => {
     const units = {};
-    programData.forEach(p => {
-      if (!units[p.unit_kerja]) {
-        units[p.unit_kerja] = { pagu: 0, spj: 0 };
-      }
-      units[p.unit_kerja].pagu += p.pagu;
-      units[p.unit_kerja].spj += p.total_spj;
-    });
+    programData
+      .filter(p => p.tahun === parseInt(filterTahun))
+      .forEach(p => {
+        if (!units[p.unit_kerja]) {
+          units[p.unit_kerja] = { pagu: 0, spj: 0 };
+        }
+        units[p.unit_kerja].pagu += (p.pagu || 0);
+        units[p.unit_kerja].spj += (p.total_spj || 0);
+      });
+    
     return Object.entries(units).map(([unit, data]) => ({
       unit,
       pagu: data.pagu,
       spj: data.spj,
       sisa: data.pagu - data.spj,
       serapan: data.pagu > 0 ? Math.round((data.spj / data.pagu) * 100) : 0
-    }));
-  }, []);
+    })).sort((a, b) => b.serapan - a.serapan);
+  }, [programData, filterTahun]);
 
   // Data untuk chart
   const chartData = useMemo(() => {
@@ -517,6 +582,46 @@ export default function LaporanPage() {
     );
   }
 
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
+        <div className="loading-spinner" style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ 
+            width: '40px', 
+            height: '40px', 
+            border: '3px solid var(--surface-3)', 
+            borderTop: '3px solid var(--primary)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 1rem'
+          }} />
+          <style>{`
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+          `}</style>
+          <p className="muted">Memuat data laporan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <h3>Terjadi Kesalahan</h3>
+        <p>{error}</p>
+        <button className="btn btn-primary mt-4" onClick={fetchData}>
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Header */}
@@ -527,7 +632,7 @@ export default function LaporanPage() {
             Pantau dan analisis penggunaan anggaran program kerja
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowPreview(true)}>
+        <button className="btn btn-primary" onClick={() => setShowPreview(true)} disabled={filteredData.length === 0}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="6 9 6 2 18 2 18 9" /><path d="M10 13a2 2 0 0 0 4 0v-2" />
             <path d="M18 9H6a4 4 0 0 0-4 4v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-7a4 4 0 0 0-4-4z" />
@@ -546,162 +651,177 @@ export default function LaporanPage() {
         setFilterTahun={setFilterTahun}
         filterUnit={filterUnit}
         setFilterUnit={setFilterUnit}
-        onGenerateReport={() => alert('Laporan berhasil di-generate!')}
+        unitKerjaList={unitKerjaList}
+        onGenerateReport={fetchData}
+        loading={loading}
       />
 
-      {/* Stats Overview */}
-      <div className="stats-grid mb-6">
-        <StatCard
-          title="Total Pagu Anggaran"
-          value={formatRupiah(totals.pagu)}
-          subtitle={`${filteredData.length} program kerja`}
-          variant="default"
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-            </svg>
-          }
-        />
-        <StatCard
-          title="Total SPJ"
-          value={formatRupiah(totals.spj)}
-          subtitle={`${totals.serapan}% dari pagu`}
-          variant="success"
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          }
-        />
-        <StatCard
-          title="Sisa Anggaran"
-          value={formatRupiah(totals.sisa)}
-          subtitle={totals.sisa > 0 ? 'Belum terpakai' : 'Over budget'}
-          variant={totals.sisa > 0 ? 'warning' : 'danger'}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          }
-        />
-        <StatCard
-          title="Status Serapan"
-          value={`${totals.serapan}%`}
-          subtitle={<StatusBadge percentage={totals.serapan} />}
-          variant={totals.serapan >= 80 ? 'success' : totals.serapan >= 50 ? 'warning' : 'danger'}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-            </svg>
-          }
-        />
-      </div>
-
-      {/* Main Content Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-        {/* Tabel Program */}
-        <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>Ringkasan Program Kerja</h3>
-            <span className="muted" style={{ fontSize: '0.75rem' }}>{filteredData.length} program</span>
-          </div>
-          <div className="card-body" style={{ padding: 0 }}>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Program Kerja</th>
-                    <th className="text-right">Pagu</th>
-                    <th className="text-right">SPJ</th>
-                    <th className="text-center">%</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredData.map((item, idx) => {
-                    const pct = item.pagu > 0 ? Math.round((item.total_spj / item.pagu) * 100) : 0;
-                    return (
-                      <tr key={item.id}>
-                        <td>{idx + 1}</td>
-                        <td>
-                          <strong style={{ fontSize: '0.8125rem' }}>{item.nama}</strong>
-                          <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>{item.unit_kerja}</p>
-                        </td>
-                        <td className="text-right">{formatRupiah(item.pagu)}</td>
-                        <td className="text-right">{formatRupiah(item.total_spj)}</td>
-                        <td style={{ width: '100px' }}>
-                          <ProgressBar value={pct} max={100} />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  <tr className="total-row">
-                    <td colSpan={2}><strong>TOTAL</strong></td>
-                    <td className="text-right"><strong>{formatRupiah(totals.pagu)}</strong></td>
-                    <td className="text-right"><strong>{formatRupiah(totals.spj)}</strong></td>
-                    <td></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+      {filteredData.length === 0 ? (
+        <div className="empty-state card">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
+            <path d="M9 17v-2a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" /><path d="M9 11V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+          </svg>
+          <h3>Tidak Ada Data</h3>
+          <p className="muted">Tidak ditemukan data program kerja untuk filter yang dipilih.</p>
         </div>
-
-        {/* Sidebar: Chart & Rekap */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Chart */}
-          <div className="card">
-            <div className="card-header">
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 Serapan Unit</h3>
-            </div>
-            <div className="card-body">
-              <SimpleBarChart data={chartData} />
-            </div>
+      ) : (
+        <>
+          {/* Stats Overview */}
+          <div className="stats-grid mb-6">
+            <StatCard
+              title="Total Pagu Anggaran"
+              value={formatRupiah(totals.pagu)}
+              subtitle={`${filteredData.length} program kerja`}
+              variant="default"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+                  <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              }
+            />
+            <StatCard
+              title="Total SPJ"
+              value={formatRupiah(totals.spj)}
+              subtitle={`${totals.serapan}% dari pagu`}
+              variant="success"
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              }
+            />
+            <StatCard
+              title="Sisa Anggaran"
+              value={formatRupiah(totals.sisa)}
+              subtitle={totals.sisa > 0 ? 'Belum terpakai' : 'Over budget'}
+              variant={totals.sisa > 0 ? 'warning' : 'danger'}
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+              }
+            />
+            <StatCard
+              title="Status Serapan"
+              value={`${totals.serapan}%`}
+              subtitle={<StatusBadge percentage={totals.serapan} />}
+              variant={totals.serapan >= 80 ? 'success' : totals.serapan >= 50 ? 'warning' : 'danger'}
+              icon={
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              }
+            />
           </div>
 
-          {/* Rekap Unit Cards */}
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>Rekap per Unit</h3>
-              <span className="muted" style={{ fontSize: '0.75rem' }}>{rekapUnit.length} unit</span>
+          {/* Main Content Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+            {/* Tabel Program */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, fontSize: '1rem' }}>Ringkasan Program Kerja</h3>
+                <span className="muted" style={{ fontSize: '0.75rem' }}>{filteredData.length} program</span>
+              </div>
+              <div className="card-body" style={{ padding: 0 }}>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Program Kerja</th>
+                        <th className="text-right">Pagu</th>
+                        <th className="text-right">SPJ</th>
+                        <th className="text-center">%</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredData.map((item, idx) => {
+                        const pct = item.pagu > 0 ? Math.round((item.total_spj / item.pagu) * 100) : 0;
+                        return (
+                          <tr key={item.id}>
+                            <td>{idx + 1}</td>
+                            <td>
+                              <strong style={{ fontSize: '0.8125rem' }}>{item.nama}</strong>
+                              <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>{item.unit_kerja}</p>
+                            </td>
+                            <td className="text-right">{formatRupiah(item.pagu)}</td>
+                            <td className="text-right">{formatRupiah(item.total_spj)}</td>
+                            <td style={{ width: '100px' }}>
+                              <ProgressBar value={pct} max={100} />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      <tr className="total-row">
+                        <td colSpan={2}><strong>TOTAL</strong></td>
+                        <td className="text-right"><strong>{formatRupiah(totals.pagu)}</strong></td>
+                        <td className="text-right"><strong>{formatRupiah(totals.spj)}</strong></td>
+                        <td></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-            <div className="card-body" style={{ padding: '0.75rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {rekapUnit.slice(0, 5).map((item, idx) => (
-                  <div 
-                    key={item.unit} 
-                    style={{ 
-                      padding: '0.75rem', 
-                      background: 'var(--surface-2)', 
-                      borderRadius: 'var(--radius)',
-                      borderLeft: `3px solid ${item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'}`
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <strong style={{ fontSize: '0.8125rem' }}>{item.unit}</strong>
-                      <span 
-                        className="badge" 
+
+            {/* Sidebar: Chart & Rekap */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              {/* Chart */}
+              <div className="card">
+                <div className="card-header">
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 Serapan Unit</h3>
+                </div>
+                <div className="card-body">
+                  <SimpleBarChart data={chartData} />
+                </div>
+              </div>
+
+              {/* Rekap Unit Cards */}
+              <div className="card">
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Rekap per Unit</h3>
+                  <span className="muted" style={{ fontSize: '0.75rem' }}>{rekapUnit.length} unit</span>
+                </div>
+                <div className="card-body" style={{ padding: '0.75rem' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {rekapUnit.slice(0, 5).map((item) => (
+                      <div 
+                        key={item.unit} 
                         style={{ 
-                          fontSize: '0.625rem',
-                          background: item.serapan >= 80 ? 'var(--success-bg)' : item.serapan >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)',
-                          color: item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'
+                          padding: '0.75rem', 
+                          background: 'var(--surface-2)', 
+                          borderRadius: 'var(--radius)',
+                          borderLeft: `3px solid ${item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'}`
                         }}
                       >
-                        {item.serapan}%
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
-                      <span className="muted">{formatRupiah(item.spj)}</span>
-                      <span className="muted">dari {formatRupiah(item.pagu)}</span>
-                    </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                          <strong style={{ fontSize: '0.8125rem' }}>{item.unit}</strong>
+                          <span 
+                            className="badge" 
+                            style={{ 
+                              fontSize: '0.625rem',
+                              background: item.serapan >= 80 ? 'var(--success-bg)' : item.serapan >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)',
+                              color: item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'
+                            }}
+                          >
+                            {item.serapan}%
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
+                          <span className="muted">{formatRupiah(item.spj)}</span>
+                          <span className="muted">dari {formatRupiah(item.pagu)}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Preview Modal */}
       <PreviewModal 

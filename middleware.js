@@ -99,6 +99,13 @@ export async function middleware(request) {
     // Role-based access control
     // ============================================
     
+    // Kelola Agenda - super_admin, admin, pimpinan (NOT admin_keuangan)
+    if (pathname.startsWith('/(dashboard)/kelola-agenda') || pathname.startsWith('/dashboard/kelola-agenda')) {
+      if (!['super_admin', 'admin', 'pimpinan'].includes(role)) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+    }
+
     // Surat - only super_admin and pimpinan
     if (pathname.startsWith('/(dashboard)/surat') || pathname.startsWith('/dashboard/surat')) {
       if (!['super_admin', 'pimpinan'].includes(role)) {
@@ -120,9 +127,9 @@ export async function middleware(request) {
       }
     }
 
-    // Laporan - super_admin, admin_keuangan only
+    // Laporan - super_admin only
     if (pathname.startsWith('/(dashboard)/laporan') || pathname.startsWith('/dashboard/laporan')) {
-      if (!['super_admin', 'admin_keuangan'].includes(role)) {
+      if (role !== 'super_admin') {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
     }

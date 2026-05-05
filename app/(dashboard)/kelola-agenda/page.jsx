@@ -16,14 +16,41 @@ const UNIT_KERJA_LIST = [
   { value: 'PUIPT Seni Budaya Majapahitan', label: 'PUIPT Seni Budaya Majapahitan' },
   { value: 'PUIPT DIC', label: 'PUIPT DIC' },
   { value: 'PUIPT SERC', label: 'PUIPT SERC' },
+  { value: 'Unesa', label: 'Unesa' },
+  { value: 'lainnya', label: 'Lainnya (Input Manual)' }
 ]
 
 const PIC_LIST = [
-  { value: 'Budi Santoso', label: 'Budi Santoso' },
-  { value: 'Siti Rahayu', label: 'Siti Rahayu' },
-  { value: 'Dr. Purnomo', label: 'Dr. Purnomo' },
-  { value: 'Ahmad Hidayat', label: 'Ahmad Hidayat' },
-  { value: 'Dewi Lestari', label: 'Dewi Lestari' },
+  { value: 'Dr. Mochamad Purnomo, S.Pd., M.Kes.', label: 'Dr. Mochamad Purnomo, S.Pd., M.Kes.' },
+  { value: 'Dr. Donny Ardy Kusuma, S.Pd., M.Kes.', label: 'Dr. Donny Ardy Kusuma, S.Pd., M.Kes.' },
+  { value: 'Aulia Putri Srie Wardani, S.Gz., M.Sc.', label: 'Aulia Putri Srie Wardani, S.Gz., M.Sc.' },
+  { value: 'Muhammad Dzul Fikri, S.Or., M.Pd.', label: 'Muhammad Dzul Fikri, S.Or., M.Pd.' },
+  { value: 'Moh. Fathur Rohman, S.Pd., M.Pd.', label: 'Moh. Fathur Rohman, S.Pd., M.Pd.' },
+  { value: 'Bhekti Lestari, S.Pd., M.Kes.', label: 'Bhekti Lestari, S.Pd., M.Kes.' },
+  { value: 'Afif Rusdiawan, S.Pd., M.Kes.', label: 'Afif Rusdiawan, S.Pd., M.Kes.' },
+  { value: 'Prof. Dr. Budiyanto, M.Pd.', label: 'Prof. Dr. Budiyanto, M.Pd.' },
+  { value: 'Acep Ovel Novari Beny, M.Pd.', label: 'Acep Ovel Novari Beny, M.Pd.' },
+  { value: 'Khofidotur Rofiah, S.Pd., M.Pd.', label: 'Khofidotur Rofiah, S.Pd., M.Pd.' },
+  { value: 'Dr. Trisakti, M.Si.', label: 'Dr. Trisakti, M.Si.' },
+  { value: 'Muhamad Ro\'is Abidin, S.Pd., M.Pd.', label: 'Muhamad Ro\'is Abidin, S.Pd., M.Pd.' },
+  { value: 'Raden Roro Maha Kalyana Mitta Anggoro, S.Pd., M.Pd.', label: 'Raden Roro Maha Kalyana Mitta Anggoro, S.Pd., M.Pd.' },
+  { value: 'Rahmat Iqbal Rizaldi Pratama, S.Kom.', label: 'Rahmat Iqbal Rizaldi Pratama, S.Kom.' },
+  { value: 'Richard Jannuar Ade Irawan W, S.Ak.', label: 'Richard Jannuar Ade Irawan W, S.Ak.' },
+  { value: 'Ayub Baharuddin, S.Pd.', label: 'Ayub Baharuddin, S.Pd.' },
+  { value: 'Alfina Diva Pratiwi', label: 'Alfina Diva Pratiwi' },
+  { value: 'Fajar', label: 'Fajar' },
+  { value: 'Heri Purnomo', label: 'Heri Purnomo' },
+  { value: 'Ananta Wirajaya', label: 'Ananta Wirajaya' },
+  { value: 'Said Ahmadi', label: 'Said Ahmadi' },
+  { value: 'Purnomo', label: 'Purnomo' },
+  { value: 'Sayyid', label: 'Sayyid' },
+  { value: 'Ceko', label: 'Ceko' },
+  { value: 'Raya', label: 'Raya' },
+  { value: 'Melly', label: 'Melly' },
+  { value: 'Majid', label: 'Majid' },
+  { value: 'Adi', label: 'Adi' },
+  { value: 'Yusuf', label: 'Yusuf' },
+  { value: 'lainnya', label: 'Lainnya (Input Manual)' }
 ]
 
 const PIMPINAN_LIST = [
@@ -487,6 +514,7 @@ function AgendaModal({ item, onSave, onClose }) {
   const [jenis, setJenis] = useState(item?.jenis || 'internal')
   const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
+  const [showManualUnitKerja, setShowManualUnitKerja] = useState(false)
   const [form, setForm] = useState({
     judul: item?.judul || '',
     tanggal_mulai: item?.tanggal_mulai || '',
@@ -496,12 +524,13 @@ function AgendaModal({ item, onSave, onClose }) {
     lokasi: item?.lokasi || '',
     link_meeting: item?.link_meeting || '',
     deskripsi: item?.deskripsi || '',
-    unit_kerja: item?.jenis === 'internal' ? item?.penyelenggara : 'USC',
+    unit_kerja: item?.jenis === 'internal' ? (UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : 'lainnya') : '',
+    unit_kerja_manual: item?.jenis === 'internal' && !UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : '',
     penyelenggara_eksternal: item?.jenis === 'eksternal' ? item.penyelenggara.replace('External - ', '') : '',
     pimpinan_select: item?.jenis === 'pimpinan' && PIMPINAN_LIST.some(p => p.value === item.penyelenggara) ? item.penyelenggara : '',
     pimpinan_manual: item?.jenis === 'pimpinan' && !PIMPINAN_LIST.some(p => p.value === item.penyelenggara) ? item.penyelenggara : '',
     disposisi_staff: item?.disposisi || '',
-    pic_select: item?.pic && !item?.pic.startsWith('Manual: ') ? item.pic : '',
+    pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
   })
   const [error, setError] = useState('')
@@ -521,13 +550,19 @@ function AgendaModal({ item, onSave, onClose }) {
       setError('Tanggal mulai tidak boleh lebih besar dari tanggal selesai')
       return
     }
+    if (jenis === 'internal' && form.unit_kerja === 'lainnya' && !form.unit_kerja_manual.trim()) {
+      setError('Nama unit kerja manual wajib diisi')
+      return
+    }
 
-    const picValue = form.pic_select === 'manual'
+    const picValue = form.pic_select === 'lainnya'
       ? `Manual: ${form.pic_manual}`
       : form.pic_select
 
     const getPenyelenggara = () => {
-      if (jenis === 'internal') return form.unit_kerja
+      if (jenis === 'internal') {
+        return form.unit_kerja === 'lainnya' ? form.unit_kerja_manual : form.unit_kerja
+      }
       if (jenis === 'eksternal') return `External - ${form.penyelenggara_eksternal}`
       if (jenis === 'pimpinan') {
         return form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select
@@ -536,19 +571,19 @@ function AgendaModal({ item, onSave, onClose }) {
     }
 
     const newItem = {
-      id: item?.id || Date.now().toString(),
+      ...(item?.id && { id: item.id }), // Hanya sertakan ID jika edit
       judul: form.judul,
       tanggal_mulai: form.tanggal_mulai,
       tanggal_selesai: form.tanggal_selesai,
-      waktu_mulai: form.waktu_mulai || undefined,
-      waktu_selesai: form.waktu_selesai || undefined,
+      waktu_mulai: form.waktu_mulai || null,
+      waktu_selesai: form.waktu_selesai || null,
       lokasi: form.lokasi,
-      link_meeting: form.link_meeting || undefined,
+      link_meeting: form.link_meeting || null,
       jenis,
       penyelenggara: getPenyelenggara(),
       deskripsi: form.deskripsi,
-      disposisi: jenis === 'pimpinan' && form.disposisi_staff ? form.disposisi_staff : undefined,
-      pic: jenis === 'pimpinan' ? undefined : picValue,
+      disposisi: jenis === 'pimpinan' && form.disposisi_staff ? form.disposisi_staff : null,
+      pic: jenis === 'pimpinan' ? null : picValue,
     }
     onSave(newItem)
   }
@@ -670,14 +705,30 @@ function AgendaModal({ item, onSave, onClose }) {
                  jenis === 'pimpinan' ? 'Nama Pimpinan/Instansi' : 'Nama Penyelenggara'}
               </label>
               {jenis === 'internal' ? (
-                <select 
-                  value={form.unit_kerja}
-                  onChange={e => setForm({ ...form, unit_kerja: e.target.value })}
-                >
-                  {UNIT_KERJA_LIST.map(unit => (
-                    <option key={unit.value} value={unit.value}>{unit.label}</option>
-                  ))}
-                </select>
+                <>
+                  <select 
+                    value={form.unit_kerja}
+                    onChange={(e) => {
+                      setForm({ ...form, unit_kerja: e.target.value })
+                      setShowManualUnitKerja(e.target.value === 'lainnya')
+                    }}
+                    required
+                  >
+                    <option value="">-- Pilih Unit Kerja --</option>
+                    {UNIT_KERJA_LIST.map(unit => (
+                      <option key={unit.value} value={unit.value}>{unit.label}</option>
+                    ))}
+                  </select>
+                  {showManualUnitKerja && (
+                    <input 
+                      style={{ marginTop: '0.5rem' }}
+                      value={form.unit_kerja_manual}
+                      onChange={e => setForm({ ...form, unit_kerja_manual: e.target.value })}
+                      placeholder="Masukkan nama unit kerja"
+                      required
+                    />
+                  )}
+                </>
               ) : jenis === 'pimpinan' ? (
                 <>
                   <select 
@@ -763,14 +814,13 @@ function AgendaModal({ item, onSave, onClose }) {
                       value={form.pic_select}
                       onChange={(e) => {
                         setForm({ ...form, pic_select: e.target.value })
-                        setShowManualPic(e.target.value === 'manual')
+                        setShowManualPic(e.target.value === 'lainnya')
                       }}
                     >
                       <option value="">-- Pilih --</option>
                       {PIC_LIST.map(pic => (
                         <option key={pic.value} value={pic.value}>{pic.label}</option>
                       ))}
-                      <option value="manual">Input Manual</option>
                     </select>
                   </div>
                   {showManualPic && (

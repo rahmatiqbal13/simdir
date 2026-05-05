@@ -1,16 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import { usePencairan } from '@/context/PencairanContext'
 
-// Data pencairan untuk referensi
-const PENCairan_DATA = {
-  '1': { nama: 'TUPK Maret 2026', program: 'Peningkatan tata kelola unit kerja', tanggal: '2026-03-15', jumlah: 50000000 },
-  '2': { nama: 'TUP 1 April', program: 'Pemeliharaan fasilitas olahraga', tanggal: '2026-04-01', jumlah: 25000000 },
-  '3': { nama: 'Honorarium Pelatih Q1', program: 'Pengembangan atlet muda', tanggal: '2026-03-31', jumlah: 60000000 },
-  '4': { nama: 'Biaya Turnamen Regional', program: 'Pengembangan atlet muda', tanggal: '2026-04-10', jumlah: 15000000 },
-  '5': { nama: 'Pengadaan Peralatan Golf', program: 'Turnamen golf nasional', tanggal: '2026-04-15', jumlah: 75000000 },
-}
+// Data pencairan akan di-fetch dari Supabase
 
 const formatRupiah = (num) => {
   if (!num || isNaN(num)) return 'Rp 0'
@@ -440,8 +434,33 @@ function RekapUnitKerja({ data, totals }) {
 // ============ HALAMAN UTAMA ============
 export default function SpjPage() {
   const params = useParams()
-  const pencairanId = params?.id || '5'
-  const pencairan = PENCairan_DATA[pencairanId] || PENCairan_DATA['5']
+  const pencairanId = params?.id || ''
+  const { getPencairanById, loading: loadingPencairan } = usePencairan()
+  
+  const [pencairan, setPencairan] = useState(null)
+  const [pencairanLoading, setPencairanLoading] = useState(true)
+  
+  // Fetch pencairan data
+  useEffect(() => {
+    const loadPencairan = async () => {
+      if (!pencairanId) {
+        setPencairanLoading(false)
+        return
+      }
+      
+      setPencairanLoading(true)
+      const result = await getPencairanById(pencairanId)
+      
+      if (result.success) {
+        setPencairan(result.data)
+      } else {
+        console.error('Error loading pencairan:', result.error)
+      }
+      setPencairanLoading(false)
+    }
+    
+    loadPencairan()
+  }, [pencairanId, getPencairanById])
 
   const [headers, setHeaders] = useState([
     { 
@@ -561,6 +580,32 @@ export default function SpjPage() {
         details: [...h.details, { id: `d${Date.now()}`, nilai_anggaran: 0, nomor_rka: '', nominal: 0 }] 
       }
     }))
+  }
+
+  // Loading state
+  if (pencairanLoading || loadingPencairan) {
+    return (
+      <div className="empty-state">
+        <div className="loading-spinner" style={{ marginBottom: '1rem' }}></div>
+        <h3>Memuat data pencairan...</h3>
+      </div>
+    )
+  }
+
+  // Error state - pencairan not found
+  if (!pencairan) {
+    return (
+      <div className="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <h3>Data pencairan tidak ditemukan</h3>
+        <p>ID pencairan tidak valid atau data telah dihapus</p>
+        <a href="/pencairan" className="btn btn-primary mt-4">
+          Kembali ke Daftar Pencairan
+        </a>
+      </div>
+    )
   }
 
   return (

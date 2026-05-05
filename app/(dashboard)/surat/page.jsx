@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSurat } from '@/context/SuratContext';
 
 const JENIS_SURAT = [
   { value: 'undangan', label: 'Undangan' },
@@ -26,99 +27,38 @@ export default function SuratPage() {
   const [jenisFilter, setJenisFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { 
+    suratMasuk, 
+    suratKeluar, 
+    loading, 
+    addSuratMasuk, 
+    addSuratKeluar, 
+    updateSurat, 
+    deleteSurat,
+    getStats 
+  } = useSurat();
+  
   const userRole = 'super_admin';
-
   const canEdit = userRole === 'super_admin';
   const canView = ['super_admin', 'pimpinan'].includes(userRole);
 
-  // Sample data - Surat Masuk dengan field tambahan: tertuju, tanggal_surat, tanggal_diterima
-  const [suratMasuk, setSuratMasuk] = useState([
-    { 
-      id: '1', 
-      nomor_surat: '001/USC/2026', 
-      asal: 'Kemendikbud', 
-      tertuju: 'Kepala USC',
-      tanggal_surat: '2026-04-10',
-      tanggal_diterima: '2026-04-15', 
-      perihal: 'Undangan Rapat Koordinasi', 
-      jenis: 'undangan', 
-      lampiran: true 
-    },
-    { 
-      id: '2', 
-      nomor_surat: '002/USC/2026', 
-      asal: 'Dinas PU', 
-      tertuju: 'Bagian Administrasi',
-      tanggal_surat: '2026-04-15',
-      tanggal_diterima: '2026-04-18', 
-      perihal: 'Permohonan Data Fasilitas', 
-      jenis: 'permohonan', 
-      lampiran: false 
-    },
-    { 
-      id: '3', 
-      nomor_surat: '003/USC/2026', 
-      asal: 'Rektorat Unesa', 
-      tertuju: 'Seluruh Karyawan',
-      tanggal_surat: '2026-04-18',
-      tanggal_diterima: '2026-04-20', 
-      perihal: 'Pemberitahuan Libur Nasional', 
-      jenis: 'pemberitahuan', 
-      lampiran: true 
-    },
-  ]);
-
-  // Sample data - Surat Keluar dengan field tambahan: unit_kerja_peminta, pemohon, penanda_tangan
-  const [suratKeluar, setSuratKeluar] = useState([
-    { 
-      id: '1', 
-      nomor_surat: '001/KET/2026', 
-      tujuan: 'Kemendikbud', 
-      tanggal: '2026-04-20', 
-      unit_kerja_peminta: 'USC',
-      pemohon: 'Budi Santoso',
-      penanda_tangan: 'Dr. Purnomo',
-      perihal: 'Balasan Undangan Rapat', 
-      jenis: 'undangan', 
-      lampiran: true 
-    },
-    { 
-      id: '2', 
-      nomor_surat: '002/KET/2026', 
-      tujuan: 'Dinas Pendidikan', 
-      tanggal: '2026-04-22', 
-      unit_kerja_peminta: 'PUI Keolahragaan',
-      pemohon: 'Siti Rahayu',
-      penanda_tangan: 'Ahmad Hidayat',
-      perihal: 'Permohonan Izin Kegiatan', 
-      jenis: 'permohonan', 
-      lampiran: true 
-    },
-  ]);
-
   const currentList = activeTab === 'masuk' ? suratMasuk : suratKeluar;
-  const setCurrentList = activeTab === 'masuk' ? setSuratMasuk : setSuratKeluar;
 
-  // Stats
-  const stats = useMemo(() => {
-    return {
-      masuk: suratMasuk.length,
-      keluar: suratKeluar.length,
-      total: suratMasuk.length + suratKeluar.length,
-      withLampiran: [...suratMasuk, ...suratKeluar].filter(s => s.lampiran).length,
-    };
-  }, [suratMasuk, suratKeluar]);
+  // Stats from context
+  const stats = getStats();
 
   // Filter
   const filteredList = useMemo(() => {
     return currentList.filter(item => {
       const matchesSearch = 
-        item.nomor_surat.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.perihal.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.asal || item.tujuan).toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.tertuju || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.pemohon || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.penanda_tangan || '').toLowerCase().includes(searchQuery.toLowerCase());
+        item.nomor_surat?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.perihal?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.asal || item.tujuan)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.tertuju || '')?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.pemohon || '')?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.penanda_tangan || '')?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter;
       return matchesSearch && matchesJenis;
     });
@@ -149,26 +89,30 @@ export default function SuratPage() {
     return labels[jenis] || 'Lainnya';
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Apakah Anda yakin ingin menghapus surat ini?')) {
-      setCurrentList(currentList.filter(s => s.id !== id));
+      const result = await deleteSurat(id, activeTab);
+      if (!result.success) {
+        alert('Error: ' + result.error);
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    
     const formData = new FormData(e.target);
     const baseItem = {
-      id: editingItem?.id || Date.now().toString(),
       nomor_surat: formData.get('nomor_surat'),
       perihal: formData.get('perihal'),
       jenis: formData.get('jenis') || 'lainnya',
       lampiran: formData.get('lampiran') ? true : false,
     };
 
-    let newItem;
+    let suratData;
     if (activeTab === 'masuk') {
-      newItem = {
+      suratData = {
         ...baseItem,
         asal: formData.get('asal'),
         tertuju: formData.get('tertuju'),
@@ -176,7 +120,7 @@ export default function SuratPage() {
         tanggal_diterima: formData.get('tanggal_diterima'),
       };
     } else {
-      newItem = {
+      suratData = {
         ...baseItem,
         tujuan: formData.get('tujuan'),
         tanggal: formData.get('tanggal'),
@@ -186,12 +130,24 @@ export default function SuratPage() {
       };
     }
 
+    let result;
     if (editingItem) {
-      setCurrentList(currentList.map(s => s.id === editingItem.id ? newItem : s));
+      result = await updateSurat(editingItem.id, suratData, activeTab);
     } else {
-      setCurrentList([...currentList, newItem]);
+      if (activeTab === 'masuk') {
+        result = await addSuratMasuk(suratData);
+      } else {
+        result = await addSuratKeluar(suratData);
+      }
     }
-    closeModal();
+
+    setIsSubmitting(false);
+    
+    if (result.success) {
+      closeModal();
+    } else {
+      alert('Error: ' + result.error);
+    }
   };
 
   const handleAdd = () => {
@@ -228,6 +184,16 @@ export default function SuratPage() {
   }
 
   const hasFilters = searchQuery || jenisFilter !== 'all';
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <div className="loading-spinner" style={{ marginBottom: '1rem' }}></div>
+        <h3>Memuat data surat...</h3>
+      </div>
+    );
+  }
 
   return (
     <div className="surat-page">
@@ -450,7 +416,7 @@ export default function SuratPage() {
                   ) : (
                     <>
                       <td><span className="asal-tujuan">{item.tujuan}</span></td>
-                      <td className="text-sm">{formatDate(item.tanggal)}</td>
+                      <td className="text-sm">{formatDate(item.tanggal_keluar || item.tanggal)}</td>
                       <td><span className="unit-kerja-badge">{item.unit_kerja_peminta || '-'}</span></td>
                       <td><span className="pemohon-text">{item.pemohon || '-'}</span></td>
                     </>
@@ -619,12 +585,18 @@ export default function SuratPage() {
                 </div>
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn btn-ghost" onClick={closeModal}>Batal</button>
-                <button type="submit" className="btn btn-primary">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  Simpan
+                <button type="button" className="btn btn-ghost" onClick={closeModal} disabled={isSubmitting}>Batal</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <span>Menyimpan...</span>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Simpan
+                    </>
+                  )}
                 </button>
               </div>
             </form>

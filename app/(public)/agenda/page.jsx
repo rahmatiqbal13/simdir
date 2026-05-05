@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
+import { supabase } from '@/lib/supabase/client'
 
 // Helper functions
 const formatDate = (date) => {
@@ -47,227 +48,7 @@ const getCountdown = (tanggalMulai) => {
   }
 }
 
-// Sample data
-const sampleAgenda = [
-  { 
-    id: '1', 
-    judul: 'Rapat Evaluasi Program Q1', 
-    tanggal_mulai: '2026-05-20', 
-    tanggal_selesai: '2026-05-20', 
-    lokasi: 'Ruang Rapat Utama USC', 
-    jenis: 'internal',
-    penyelenggara: 'USC',
-    deskripsi: 'Evaluasi capaian program kerja triwulan pertama tahun 2026',
-    pic: 'Budi Santoso'
-  },
-  { 
-    id: '2', 
-    judul: 'Workshop Keuangan Internal', 
-    tanggal_mulai: '2026-05-22', 
-    tanggal_selesai: '2026-05-23', 
-    lokasi: 'Aula USC Lt. 2', 
-    jenis: 'internal',
-    penyelenggara: 'PUI Keolahragaan',
-    deskripsi: 'Pelatihan manajemen keuangan untuk admin unit kerja',
-    pic: 'Siti Rahayu'
-  },
-  { 
-    id: '3', 
-    judul: 'Turnamen Golf Nasional 2026', 
-    tanggal_mulai: '2026-05-25', 
-    tanggal_selesai: '2026-05-28', 
-    lokasi: 'Lapangan Golf Driving Range', 
-    jenis: 'eksternal',
-    penyelenggara: 'PGSI (Persatuan Golf Seluruh Indonesia)',
-    deskripsi: 'Turnamen golf nasional dengan peserta dari seluruh Indonesia.',
-    pic: 'Dr. Purnomo'
-  },
-  { 
-    id: '4', 
-    judul: 'Pelatihan SPJ untuk Unit Kerja', 
-    tanggal_mulai: '2026-05-18', 
-    tanggal_selesai: '2026-05-18', 
-    waktu_mulai: '09:00',
-    waktu_selesai: '12:00',
-    lokasi: 'Ruang Training USC', 
-    jenis: 'internal',
-    penyelenggara: 'Kolam Renang',
-    deskripsi: 'Pelatihan pengisian SPJ untuk seluruh unit kerja.',
-    pic: 'Ahmad Hidayat'
-  },
-  { 
-    id: '5', 
-    judul: 'Webinar Nasional Olahraga Pendidikan', 
-    tanggal_mulai: '2026-06-01', 
-    tanggal_selesai: '2026-06-01', 
-    waktu_mulai: '13:00',
-    waktu_selesai: '15:30',
-    lokasi: 'Online via Zoom', 
-    link_meeting: 'https://zoom.us/j/9876543210',
-    jenis: 'eksternal',
-    penyelenggara: 'Kemenpora RI',
-    deskripsi: 'Webinar nasional tentang pengembangan olahraga pendidikan.',
-    pic: 'Prof. Ahmad'
-  },
-  { 
-    id: '6', 
-    judul: 'Rapat Koordinasi Bulanan', 
-    tanggal_mulai: '2026-05-15', 
-    tanggal_selesai: '2026-05-15', 
-    lokasi: 'Ruang Rapat Lt. 2', 
-    jenis: 'internal',
-    penyelenggara: 'SSFC',
-    deskripsi: 'Rapat koordinasi rutin bulanan seluruh unit kerja.',
-    pic: 'Dewi Lestari'
-  },
-  { 
-    id: '7', 
-    judul: 'Kompetisi Renang Antar Pelajar', 
-    tanggal_mulai: '2026-06-10', 
-    tanggal_selesai: '2026-06-12', 
-    lokasi: 'Kolam Renang USC', 
-    jenis: 'eksternal',
-    penyelenggara: 'Disdik Surabaya',
-    deskripsi: 'Kompetisi renang antar pelajar se-Surabaya.',
-    pic: 'Budi Santoso'
-  },
-  { 
-    id: '8', 
-    judul: 'Pelatihan Tim Softball', 
-    tanggal_mulai: '2026-05-30', 
-    tanggal_selesai: '2026-06-05', 
-    lokasi: 'Lapangan Softball SSFC', 
-    jenis: 'internal',
-    penyelenggara: 'SSFC',
-    deskripsi: 'Pelatihan intensif tim softball USC untuk persiapan kompetisi.',
-    pic: 'Siti Rahayu'
-  },
-  { 
-    id: '9', 
-    judul: 'Workshop Penulisan Proposal', 
-    tanggal_mulai: '2026-06-15', 
-    tanggal_selesai: '2026-06-15', 
-    lokasi: 'Ruang Rapat Lt. 3', 
-    jenis: 'internal',
-    penyelenggara: 'PUI Seni Budaya',
-    deskripsi: 'Workshop penulisan proposal pengabdian masyarakat.',
-    pic: 'Dr. Purnomo'
-  },
-  { 
-    id: '10', 
-    judul: 'Festival Seni Budaya Nusantara', 
-    tanggal_mulai: '2026-06-20', 
-    tanggal_selesai: '2026-06-22', 
-    lokasi: 'Lapangan USC', 
-    jenis: 'eksternal',
-    penyelenggara: 'Pemkot Surabaya',
-    deskripsi: 'Festival seni budaya dengan peserta dari seluruh Indonesia.',
-    pic: 'Budi Santoso'
-  },
-  { 
-    id: '11', 
-    judul: 'Rapat Anggaran Tahunan', 
-    tanggal_mulai: '2026-06-25', 
-    tanggal_selesai: '2026-06-25', 
-    lokasi: 'Ruang Rapat Utama', 
-    jenis: 'internal',
-    penyelenggara: 'USC',
-    deskripsi: 'Rapat pembahasan anggaran tahun 2027.',
-    pic: 'Ahmad Hidayat'
-  },
-  { 
-    id: '12', 
-    judul: 'Pameran Inovasi Teknologi', 
-    tanggal_mulai: '2026-07-05', 
-    tanggal_selesai: '2026-07-07', 
-    lokasi: 'Gedung PUIPT DIC', 
-    jenis: 'eksternal',
-    penyelenggara: 'PUIPT DIC',
-    deskripsi: 'Pameran inovasi teknologi hasil riset USC.',
-    pic: 'Dewi Lestari'
-  },
-  // Agenda Pimpinan
-  { 
-    id: '16', 
-    judul: 'Rapat Koordinasi dengan Rektor', 
-    tanggal_mulai: '2026-05-28', 
-    tanggal_selesai: '2026-05-28',
-    waktu_mulai: '10:00',
-    waktu_selesai: '12:00', 
-    lokasi: 'Ruang Rapat Rektorat', 
-    jenis: 'pimpinan',
-    penyelenggara: 'Rektor Unesa',
-    deskripsi: 'Koordinasi program kerja USC dengan Rektor.'
-  },
-  { 
-    id: '17', 
-    judul: 'Audiensi dengan Gubernur Jatim', 
-    tanggal_mulai: '2026-06-08', 
-    tanggal_selesai: '2026-06-08', 
-    lokasi: 'Gedung Negara Grahadi', 
-    jenis: 'pimpinan',
-    penyelenggara: 'Gubernur Jawa Timur',
-    disposisi: 'Dr. Purnomo',
-    deskripsi: 'Audiensi terkait kerjasama olahraga dan seni budaya. Dihadiri Dr. Purnomo mewakili Direktur.'
-  },
-  { 
-    id: '18', 
-    judul: 'Penandatanganan MoU dengan Kemenpora', 
-    tanggal_mulai: '2026-06-15', 
-    tanggal_selesai: '2026-06-15', 
-    lokasi: 'Kantor Kemenpora Jakarta', 
-    jenis: 'pimpinan',
-    penyelenggara: 'Kemenpora RI',
-    disposisi: 'Ahmad Hidayat',
-    deskripsi: 'Penandatanganan MoU kerjasama pembinaan atlet muda. Dihadiri Ahmad Hidayat mewakili Direktur.'
-  },
-  // Agenda yang sudah selesai
-  { 
-    id: '13', 
-    judul: 'Rapat Perencanaan Tahunan 2026', 
-    tanggal_mulai: '2026-01-15', 
-    tanggal_selesai: '2026-01-15', 
-    lokasi: 'Ruang Rapat Utama', 
-    jenis: 'internal',
-    penyelenggara: 'USC',
-    deskripsi: 'Rapat perencanaan program kerja tahun 2026.',
-    pic: 'Budi Santoso'
-  },
-  { 
-    id: '14', 
-    judul: 'Workshop Digital Marketing', 
-    tanggal_mulai: '2026-02-20', 
-    tanggal_selesai: '2026-02-21', 
-    lokasi: 'Aula USC', 
-    jenis: 'eksternal',
-    penyelenggara: 'External - Digital Agency',
-    deskripsi: 'Workshop strategi digital marketing untuk promosi program.',
-    pic: 'Siti Rahayu'
-  },
-  { 
-    id: '15', 
-    judul: 'Turnamen Bulutangkis Internal', 
-    tanggal_mulai: '2026-03-10', 
-    tanggal_selesai: '2026-03-12', 
-    lokasi: 'GOR USC', 
-    jenis: 'internal',
-    penyelenggara: 'PUI Keolahragaan',
-    deskripsi: 'Kompetisi bulutangkis antar staff USC.',
-    pic: 'Ahmad Hidayat'
-  },
-  // Agenda Pimpinan yang sudah selesai
-  { 
-    id: '19', 
-    judul: 'Kunjungan Menteri Pendidikan', 
-    tanggal_mulai: '2026-02-15', 
-    tanggal_selesai: '2026-02-15', 
-    lokasi: 'Kampus Unesa', 
-    jenis: 'pimpinan',
-    penyelenggara: 'Menteri Pendidikan',
-    disposisi: 'Budi Santoso',
-    deskripsi: 'Kunjungan kerja Menteri Pendidikan ke USC. Dihadiri Budi Santoso mewakili Direktur.'
-  },
-]
+// Data akan di-fetch dari Supabase
 
 const ITEMS_PER_VIEW = 4
 const ROTATE_INTERVAL = 10000 // 10 detik
@@ -673,12 +454,48 @@ function ProgressBar({ progress }) {
 
 // ============ HALAMAN UTAMA ============
 export default function AgendaPage() {
-  const [agenda] = useState(sampleAgenda)
+  const [agenda, setAgenda] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [currentTime, setCurrentTime] = useState(new Date())
+
+  // Fetch agenda from Supabase
+  useEffect(() => {
+    const loadAgenda = async () => {
+      try {
+        setLoading(true)
+        if (!supabase) {
+          setError('Supabase belum dikonfigurasi')
+          setLoading(false)
+          return
+        }
+
+        const { data, error: supabaseError } = await supabase
+          .from('agenda')
+          .select('*')
+          .order('tanggal_mulai', { ascending: true })
+
+        if (supabaseError) {
+          console.error('Error loading agenda:', supabaseError)
+          setError('Gagal memuat agenda')
+        } else {
+          setAgenda(data || [])
+          setError(null)
+        }
+      } catch (err) {
+        console.error('Error:', err)
+        setError('Terjadi kesalahan')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadAgenda()
+  }, [])
 
   // Update current time every minute for countdown
   useEffect(() => {
@@ -728,6 +545,12 @@ export default function AgendaPage() {
     }
   }, [agenda])
 
+  // Ref untuk tracking currentPage dalam interval
+  const currentPageRef = useRef(currentPage)
+  useEffect(() => {
+    currentPageRef.current = currentPage
+  }, [currentPage])
+
   // Auto-rotate
   useEffect(() => {
     if (isPaused || totalPages <= 1) return
@@ -735,7 +558,8 @@ export default function AgendaPage() {
     const interval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          setCurrentPage((page) => (page + 1) % totalPages)
+          const nextPage = (currentPageRef.current + 1) % totalPages
+          setCurrentPage(nextPage)
           return 0
         }
         return prev + (100 / (ROTATE_INTERVAL / 100))
@@ -755,6 +579,64 @@ export default function AgendaPage() {
     setCurrentPage(0)
     setProgress(0)
   }, [showCompleted])
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#f8fafc', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        <div style={{ 
+          width: '48px', 
+          height: '48px', 
+          borderRadius: '12px', 
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#0f172a',
+          fontWeight: 800,
+          fontSize: '1.5rem'
+        }}>
+          S
+        </div>
+        <p style={{ color: '#64748b' }}>Memuat agenda...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        background: '#f8fafc', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        <div style={{ 
+          width: '48px', 
+          height: '48px', 
+          borderRadius: '12px', 
+          background: '#fee2e2',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#dc2626',
+          fontWeight: 800,
+          fontSize: '1.5rem'
+        }}>
+          !
+        </div>
+        <p style={{ color: '#dc2626' }}>{error}</p>
+      </div>
+    )
+  }
 
   return (
     <div 

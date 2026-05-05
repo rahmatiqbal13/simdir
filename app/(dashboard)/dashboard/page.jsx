@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useAgenda, useProgramKerja } from '@/lib/hooks/useSupabase';
 
 // Format helpers
 const formatRupiah = (num) => {
@@ -17,6 +18,22 @@ const formatDate = (date) => {
     hour: '2-digit',
     minute: '2-digit'
   });
+};
+
+// Helper untuk status agenda
+const getAgendaStatus = (mulai, selesai) => {
+  const now = new Date()
+  const start = new Date(mulai)
+  const end = new Date(selesai)
+  
+  if (now > end) return 'completed'
+  if (now >= start && now <= end) return 'ongoing'
+  
+  const diffTime = start - now
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  
+  if (diffDays <= 3) return 'upcoming_soon'
+  return 'upcoming'
 };
 
 // ============ KOMPONEN WELCOME SECTION ============
@@ -342,8 +359,8 @@ function ActivityItem({ activity }) {
 
 // ============ HALAMAN UTAMA ============
 export default function DashboardPage() {
-  // User info (simulasi)
-  const userName = 'Administrator';
+  // User info
+  const [userName, setUserName] = useState('Administrator');
   const currentDate = new Date().toLocaleDateString('id-ID', { 
     weekday: 'long', 
     year: 'numeric', 
@@ -351,43 +368,93 @@ export default function DashboardPage() {
     day: 'numeric' 
   });
 
-  // Stats data
-  const stats = {
-    agenda: { value: 4, total: 8, trend: '+2', trendUp: true },
-    pagu: { value: 2587500000, trend: '+12%', trendUp: true },
-    spj: { value: 145000000, percentage: 24.7, trend: '-5%', trendUp: false },
-    sisa: { value: 2442500000 }
-  };
+  // Get user info from session
+  useEffect(() => {
+    try {
+      const sessionData = localStorage.getItem('simdir_session');
+      if (sessionData) {
+        const decoded = JSON.parse(atob(sessionData));
+        if (decoded.username) {
+          setUserName(decoded.username);
+        }
+      }
+    } catch (e) {
+      console.error('Error reading user session:', e);
+    }
+  }, []);
 
-  // Program data
-  const programs = [
-    { id_rka: '14406', nama: 'Pembelian barang operasional golf', unit: 'Driving Golf', pagu: 24000000, terpakai: 7680000 },
-    { id_rka: '14407', nama: 'Pemeliharaan fasilitas olahraga', unit: 'Kolam Renang', pagu: 18500000, terpakai: 3330000 },
-    { id_rka: '14408', nama: 'Pengelolaan olahraga pendidikan', unit: 'PUI-Olahraga', pagu: 35000000, terpakai: 15750000 },
-    { id_rka: '14409', nama: 'Pengembangan atlet muda', unit: 'SSFC', pagu: 200000000, terpakai: 140000000 },
-  ];
+  // Fetch data from Supabase
+  const { data: agendaData, loading: agendaLoading } = useAgenda();
+  const { data: programData, loading: programLoading } = useProgramKerja();
 
-  // Agenda data
-  const agendas = [
-    { judul: 'Rapat Evaluasi Program Q1', lokasi: 'Ruang Rapat Utama', tanggal: new Date(Date.now() + 86400000), status: 'upcoming' },
-    { judul: 'Workshop Keuangan', lokasi: 'Aula USC', tanggal: new Date(Date.now() + 172800000), status: 'upcoming' },
-    { judul: 'Pelatihan SPJ', lokasi: 'Ruang Training', tanggal: new Date(), status: 'ongoing' },
-  ];
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const activeAgenda = agendaData.filter(item => {
+      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai);
+      return status === 'upcoming' || status === 'upcoming_soon' || status === 'ongoing';
+    }).length;
 
-  // Activity data
+    const totalPagu = programData.reduce((sum, p) => sum + (p.pagu_anggaran || 0), 0);
+    
+    return {
+      agenda: { value: activeAgenda, total: agendaData.length, trend: '+0', trendUp: true },
+      pagu: { value: totalPagu, trend: '+0%', trendUp: true },
+      spj: { value: 0, percentage: 0, trend: '0%', trendUp: true },
+      sisa: { value: totalPagu }
+    };
+  }, [agendaData, programData]);
+
+  // Program data (top 4)
+  const programs = useMemo(() => {
+    return programData.slice(0, 4).map(p => ({
+      id_rka: p.id?.slice(0, 5) || '-',
+      nama: p.nama,
+      unit: 'Unit Kerja',
+      pagu: p.pagu_anggaran || 0,
+      terpakai: 0
+    }));
+  }, [programData]);
+
+  // Agenda data (top 3 upcoming)
+  const agendas = useMemo(() => {
+    return agendaData
+      .filter(item => {
+        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai);
+        return status === 'upcoming' || status === 'upcoming_soon';
+      })
+      .slice(0, 3)
+      .map(item => ({
+        judul: item.judul,
+        lokasi: item.lokasi || '-',
+        tanggal: new Date(item.tanggal_mulai),
+        status: 'upcoming'
+      }));
+  }, [agendaData]);
+
+  // Activity data (placeholder - could be fetched from activity_log)
   const activities = [
-    { type: 'agenda', message: 'Agenda "Rapat Evaluasi" ditambahkan oleh Admin', time: '2 jam lalu' },
-    { type: 'pencairan', message: 'Pencairan dana TUPK Maret disetujui', time: '5 jam lalu' },
-    { type: 'spj', message: 'SPJ baru diajukan oleh Kolam Renang', time: '1 hari lalu' },
-    { type: 'program', message: 'Program Kerja 2026 telah disetujui', time: '2 hari lalu' },
-    { type: 'agenda', message: 'Agenda "Workshop Keuangan" diperbarui', time: '3 hari lalu' },
+    { type: 'info', message: 'Data dashboard diperbarui secara real-time', time: 'Baru saja' },
   ];
 
   // Alerts data
-  const alerts = [
-    { type: 'warning', message: '3 SPJ masih menunggu verifikasi' },
-    { type: 'info', message: '5 program kerja akan berakhir bulan ini' },
-  ];
+  const alerts = useMemo(() => {
+    const alertList = [];
+    if (agendaData.length === 0) {
+      alertList.push({ type: 'info', message: 'Belum ada agenda yang ditambahkan' });
+    }
+    if (programData.length === 0) {
+      alertList.push({ type: 'info', message: 'Belum ada program kerja yang ditambahkan' });
+    }
+    return alertList.length > 0 ? alertList : [{ type: 'success', message: 'Semua data tersinkron dengan baik' }];
+  }, [agendaData, programData]);
+
+  if (agendaLoading || programLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <div>Memuat data dashboard...</div>
+      </div>
+    );
+  }
 
   return (
     <div>

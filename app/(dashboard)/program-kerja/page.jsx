@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useProgramKerja } from '@/context/ProgramKerjaContext'
 
 const UNIT_KERJA_LIST = [
   'USC', 'PUI Keolahragaan', 'PUI Disabilitas', 'PUI Seni Budaya',
@@ -53,15 +54,16 @@ function FilterBar({
   setSortBy,
   viewMode,
   setViewMode,
-  onExport
+  onExport,
+  totalItems
 }) {
   const [showFilters, setShowFilters] = useState(false)
 
   return (
-    <div className="card mb-4">
-      <div className="card-body">
+    <div className="card mb-4" style={{ overflow: 'visible' }}>
+      <div className="card-body" style={{ overflow: 'visible' }}>
         {/* Baris Pertama: Search dan Toggle View */}
-        <div className="toolbar" style={{ marginBottom: showFilters ? '1rem' : 0 }}>
+        <div className="toolbar" style={{ marginBottom: showFilters ? '1rem' : 0, position: 'relative', zIndex: 100 }}>
           <div className="filter-group filter-search" style={{ maxWidth: '24rem' }}>
             <svg className="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
@@ -86,6 +88,15 @@ function FilterBar({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Item Count */}
+            <span style={{ 
+              fontSize: '0.8125rem', 
+              color: 'var(--text-2)',
+              marginRight: '0.5rem'
+            }}>
+              {totalItems} program
+            </span>
+            
             <button
               onClick={() => setShowFilters(!showFilters)}
               className={`btn ${showFilters ? 'btn-primary' : 'ghost'}`}
@@ -139,17 +150,8 @@ function FilterBar({
               </button>
             </div>
 
-            <button
-              onClick={onExport}
-              className="btn btn-primary"
-              style={{ background: 'var(--success)' }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" />
-                <line x1="12" y1="15" x2="12" y2="3" />
-              </svg>
-              Export
-            </button>
+            {/* Export Dropdown */}
+            <ExportDropdown onExport={onExport} />
           </div>
         </div>
 
@@ -213,6 +215,143 @@ function FilterBar({
   )
 }
 
+// ============ KOMPONEN EXPORT DROPDOWN ============
+function ExportDropdown({ onExport }) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const exportOptions = [
+    { 
+      id: 'print', 
+      label: '🖨️ Print / PDF', 
+      desc: 'Cetak atau simpan sebagai PDF',
+      color: 'var(--primary)'
+    },
+    { 
+      id: 'csv', 
+      label: '📊 Export CSV', 
+      desc: 'Download file Excel (.csv)',
+      color: 'var(--success)'
+    },
+    { 
+      id: 'json', 
+      label: '💾 Export JSON', 
+      desc: 'Download data mentah (.json)',
+      color: 'var(--warning)'
+    }
+  ]
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="btn btn-primary"
+        style={{ 
+          background: 'var(--success)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        Export Data
+        <svg 
+          viewBox="0 0 24 24" 
+          fill="none" 
+          stroke="currentColor" 
+          strokeWidth="2" 
+          style={{ 
+            width: '1rem', 
+            height: '1rem',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s'
+          }}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div 
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            right: 0,
+            background: 'white',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            minWidth: '280px',
+            zIndex: 10000,
+            overflow: 'hidden'
+          }}
+        >
+          {exportOptions.map((option, idx) => (
+            <button
+              key={option.id}
+              onClick={() => {
+                onExport(option.id)
+                setIsOpen(false)
+              }}
+              style={{
+                width: '100%',
+                padding: '1rem 1.25rem',
+                textAlign: 'left',
+                background: 'white',
+                border: 'none',
+                borderBottom: idx < exportOptions.length - 1 ? '1px solid #e2e8f0' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.25rem'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#f1f5f9'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'white'
+              }}
+            >
+              <span style={{ 
+                fontWeight: 600, 
+                fontSize: '0.9375rem',
+                color: option.color,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}>
+                {option.label}
+              </span>
+              <span style={{ 
+                fontSize: '0.8125rem', 
+                color: '#64748b',
+                marginLeft: '1.5rem'
+              }}>
+                {option.desc}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ============ KOMPONEN PROGRESS BAR ============
 function ProgressBar({ value, max, showLabel = true }) {
   const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0
@@ -245,14 +384,15 @@ function ProgressBar({ value, max, showLabel = true }) {
 }
 
 // ============ KOMPONEN PROGRAM CARD ============
-function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
+function ProgramCard({ program, onEdit, onDelete, canEdit }) {
   const [expanded, setExpanded] = useState(false)
   const [showVariabel, setShowVariabel] = useState(false)
 
   const variabelItems = program.variabel || []
   const totalVariabel = useMemo(() => calculateTotal(variabelItems), [variabelItems])
-  const sisaPagu = program.pagu - totalVariabel
-  const serapan = program.pagu > 0 ? Math.round((totalVariabel / program.pagu) * 100) : 0
+  const paguAnggaran = program.pagu_anggaran || 0
+  const sisaPagu = paguAnggaran - totalVariabel
+  const serapan = paguAnggaran > 0 ? Math.round((totalVariabel / paguAnggaran) * 100) : 0
   const isOverBudget = sisaPagu < 0
 
   const getStatusBadge = () => {
@@ -278,13 +418,13 @@ function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
             <span className={`badge ${status.class}`}>{status.text}</span>
             <span className="muted" style={{ fontSize: '0.75rem' }}>{program.id_rka}</span>
           </div>
-          <strong style={{ fontSize: '1rem', display: 'block', marginBottom: '0.25rem' }}>{program.nama_program}</strong>
+          <strong style={{ fontSize: '1rem', display: 'block', marginBottom: '0.25rem' }}>{program.nama}</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              {program.unit_kerja}
+              {program.unit_kerja_id}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
@@ -298,14 +438,14 @@ function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
         <div style={{ textAlign: 'right' }}>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.25rem' }}>Pagu Anggaran</p>
           <p style={{ fontSize: '1.25rem', fontWeight: 700, color: isOverBudget ? 'var(--danger)' : 'var(--text)' }}>
-            {formatRupiah(program.pagu)}
+            {formatRupiah(paguAnggaran)}
           </p>
         </div>
       </div>
 
       {/* Progress Bar */}
       <div style={{ padding: '0 1.25rem', marginBottom: '0.75rem' }}>
-        <ProgressBar value={totalVariabel} max={program.pagu} />
+        <ProgressBar value={totalVariabel} max={paguAnggaran} />
       </div>
 
       {/* Expanded Content */}
@@ -315,7 +455,7 @@ function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
           <div className="rka-meta" style={{ marginBottom: '1rem' }}>
             <div>
               <span>Total Pagu</span>
-              <strong>{formatRupiah(program.pagu)}</strong>
+              <strong>{formatRupiah(paguAnggaran)}</strong>
             </div>
             <div>
               <span>Total Variabel</span>
@@ -365,7 +505,7 @@ function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
               items={variabelItems}
               onUpdate={(items) => onUpdateVariabel(program.id, items)}
               canEdit={canEdit}
-              pagu={program.pagu}
+              pagu={paguAnggaran}
             />
           )}
 
@@ -411,57 +551,234 @@ function ProgramCard({ program, onEdit, onDelete, onUpdateVariabel, canEdit }) {
 }
 
 // ============ KOMPONEN BIAYA VARIABEL ============
-function BiayaVariabelSection({ programId, items, onUpdate, canEdit, pagu }) {
+function BiayaVariabelSection({ programId, canEdit, pagu }) {
+  const { loadBiayaVariabel, addBiayaVariabel, updateBiayaVariabel, deleteBiayaVariabel } = useProgramKerja()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [newItem, setNewItem] = useState({ nama_variabel: '', jumlah: 1, harga_satuan: 0 })
+  const [newItem, setNewItem] = useState({ nama_variabel: '', jumlah: 1, harga_satuan: 0, satuan: '' })
+  const [errorMsg, setErrorMsg] = useState('')
 
-  const totalVariabel = useMemo(() => calculateTotal(items), [items])
-  const selisih = pagu - totalVariabel
-  const isOverBudget = selisih < 0
+  useEffect(() => {
+    loadItems()
+  }, [programId])
 
-  const handleAdd = () => {
-    if (!newItem.nama_variabel.trim()) return
-    onUpdate([...items, { ...newItem, id: `v${Date.now()}` }])
-    setNewItem({ nama_variabel: '', jumlah: 1, harga_satuan: 0 })
-    setShowForm(false)
+  const loadItems = async () => {
+    try {
+      setLoading(true)
+      const data = await loadBiayaVariabel(programId)
+      setItems(data)
+    } catch (err) {
+      console.error('Error loading biaya variabel:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleRemove = useCallback((id) => {
-    onUpdate(items.filter((i) => i.id !== id))
-  }, [items, onUpdate])
+  const totalVariabel = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.total || 0), 0)
+  }, [items])
+  
+  const sisaPagu = pagu - totalVariabel
+  const isOverBudget = sisaPagu < 0
+  const isFull = sisaPagu <= 0
+  const persentaseUsed = pagu > 0 ? (totalVariabel / pagu) * 100 : 0
+  
+  // Validasi sebelum tambah
+  const newItemTotal = (newItem.jumlah || 0) * (newItem.harga_satuan || 0)
+  const willExceed = (totalVariabel + newItemTotal) > pagu
 
-  const handleUpdate = useCallback((updated) => {
-    onUpdate(items.map((i) => i.id === updated.id ? updated : i))
-  }, [items, onUpdate])
+  const handleAdd = async () => {
+    if (!newItem.nama_variabel.trim()) {
+      setErrorMsg('Nama variabel wajib diisi')
+      return
+    }
+    
+    if (willExceed) {
+      setErrorMsg(`Gagal! Total akan melebihi pagu. Sisa pagu: ${formatRupiah(sisaPagu)}`)
+      return
+    }
+    
+    try {
+      await addBiayaVariabel(programId, newItem)
+      await loadItems()
+      setNewItem({ nama_variabel: '', jumlah: 1, harga_satuan: 0, satuan: '' })
+      setShowForm(false)
+      setErrorMsg('')
+    } catch (err) {
+      setErrorMsg('Gagal menambahkan: ' + err.message)
+    }
+  }
+
+  const handleRemove = async (id) => {
+    if (!confirm('Hapus item ini?')) return
+    try {
+      await deleteBiayaVariabel(id)
+      await loadItems()
+      setErrorMsg('')
+    } catch (err) {
+      alert('Gagal menghapus: ' + err.message)
+    }
+  }
+
+  const handleUpdate = async (updated) => {
+    // Cek apakah update akan melebihi pagu
+    const oldItem = items.find(i => i.id === updated.id)
+    const oldTotal = oldItem ? oldItem.total : 0
+    const newTotal = (updated.jumlah || 0) * (updated.harga_satuan || 0)
+    const totalAfterUpdate = totalVariabel - oldTotal + newTotal
+    
+    if (totalAfterUpdate > pagu) {
+      alert(`Gagal! Total akan melebihi pagu. Sisa yang bisa digunakan: ${formatRupiah(pagu - (totalVariabel - oldTotal))}`)
+      return
+    }
+    
+    try {
+      await updateBiayaVariabel(updated.id, updated)
+      await loadItems()
+      setErrorMsg('')
+    } catch (err) {
+      alert('Gagal mengupdate: ' + err.message)
+    }
+  }
+
+  // Warna progress bar berdasarkan persentase
+  const getProgressColor = () => {
+    if (persentaseUsed >= 100) return 'var(--danger)'
+    if (persentaseUsed >= 80) return 'var(--warning)'
+    return 'var(--success)'
+  }
 
   return (
-    <div className="variabel-section">
-      {/* Header */}
-      <div className="variabel-header">
-        <div className="variabel-title">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l3.58-3.58c.94-.94.94-2.48 0-3.42L9 5z" />
-            <path d="M6 9.01V9" /><path d="M15 5l6.3 6.3M14 7.58l-5.92 5.92" />
-          </svg>
-          <span>Rincian Biaya Variabel</span>
+    <div className="variabel-section" style={{ 
+      background: 'white', 
+      borderRadius: '12px', 
+      border: '1px solid var(--border)',
+      overflow: 'hidden'
+    }}>
+      {/* Header dengan Progress */}
+      <div style={{ 
+        padding: '1.25rem', 
+        background: isOverBudget ? 'var(--danger-bg)' : isFull ? 'var(--warning-bg)' : 'var(--surface-2)',
+        borderBottom: '1px solid var(--border)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem', color: 'var(--primary)' }}>
+              <path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l3.58-3.58c.94-.94.94-2.48 0-3.42L9 5z" />
+              <path d="M6 9.01V9" /><path d="M15 5l6.3 6.3M14 7.58l-5.92 5.92" />
+            </svg>
+            <span style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Rincian Biaya Variabel</span>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              padding: '0.125rem 0.5rem', 
+              background: isFull ? 'var(--danger)' : persentaseUsed >= 80 ? 'var(--warning)' : 'var(--success)',
+              color: 'white',
+              borderRadius: '999px'
+            }}>
+              {items.length} Item
+            </span>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginBottom: '0.25rem' }}>
+              Total Variabel
+            </div>
+            <div style={{ 
+              fontWeight: 700, 
+              fontSize: '1.125rem',
+              color: isOverBudget ? 'var(--danger)' : 'var(--text)'
+            }}>
+              {formatRupiah(totalVariabel)}
+            </div>
+          </div>
         </div>
-        <span className={isOverBudget ? 'text-danger font-semibold' : 'text-success font-semibold'}>
-          Total: {formatRupiah(totalVariabel)}
-        </span>
+
+        {/* Progress Bar Pagu */}
+        <div style={{ marginTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.375rem' }}>
+            <span style={{ color: 'var(--text-2)' }}>Penggunaan Pagu</span>
+            <span style={{ 
+              fontWeight: 600,
+              color: persentaseUsed >= 100 ? 'var(--danger)' : persentaseUsed >= 80 ? 'var(--warning)' : 'var(--success)'
+            }}>
+              {persentaseUsed.toFixed(1)}% ({formatRupiah(sisaPagu)} tersisa)
+            </span>
+          </div>
+          <div style={{ 
+            width: '100%', 
+            height: '8px', 
+            background: 'var(--surface-3)', 
+            borderRadius: '999px',
+            overflow: 'hidden'
+          }}>
+            <div style={{ 
+              width: `${Math.min(persentaseUsed, 100)}%`, 
+              height: '100%', 
+              background: getProgressColor(),
+              borderRadius: '999px',
+              transition: 'all 0.3s ease'
+            }} />
+          </div>
+        </div>
+
+        {/* Warning Message */}
+        {isFull && (
+          <div style={{ 
+            marginTop: '0.75rem',
+            padding: '0.5rem 0.75rem',
+            background: 'var(--danger-bg)',
+            border: '1px solid var(--danger)',
+            borderRadius: 'var(--radius)',
+            fontSize: '0.8125rem',
+            color: 'var(--danger)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Pagu sudah penuh! Tidak bisa menambah variabel lagi.
+          </div>
+        )}
+        {!isFull && persentaseUsed >= 80 && (
+          <div style={{ 
+            marginTop: '0.75rem',
+            padding: '0.5rem 0.75rem',
+            background: 'var(--warning-bg)',
+            border: '1px solid var(--warning)',
+            borderRadius: 'var(--radius)',
+            fontSize: '0.8125rem',
+            color: 'var(--warning)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            Pagu hampir habis! Sisa {formatRupiah(sisaPagu)}.
+          </div>
+        )}
       </div>
 
+      {/* Loading */}
+      {loading && (
+        <div style={{ textAlign: 'center', padding: '2rem' }}>Memuat data...</div>
+      )}
+
       {/* Table */}
-      {items.length > 0 ? (
-        <div className="table-wrap">
-          <table>
+      {!loading && items.length > 0 ? (
+        <div className="table-wrap" style={{ padding: '0 1rem' }}>
+          <table style={{ fontSize: '0.875rem' }}>
             <thead>
-              <tr>
-                <th style={{ width: '40px' }}>No</th>
-                <th>Nama Variabel</th>
-                <th style={{ width: '100px' }} className="text-right">Jumlah</th>
-                <th style={{ width: '140px' }} className="text-right">Harga Satuan</th>
-                <th style={{ width: '140px' }} className="text-right">Total</th>
-                {canEdit && <th style={{ width: '50px' }}></th>}
+              <tr style={{ background: 'var(--surface-2)' }}>
+                <th style={{ width: '40px', padding: '0.75rem' }}>No</th>
+                <th style={{ padding: '0.75rem' }}>Nama Variabel</th>
+                <th style={{ width: '100px', padding: '0.75rem', textAlign: 'center' }}>Jumlah</th>
+                <th style={{ width: '140px', padding: '0.75rem', textAlign: 'right' }}>Harga Satuan</th>
+                <th style={{ width: '140px', padding: '0.75rem', textAlign: 'right' }}>Total</th>
+                {canEdit && <th style={{ width: '50px', padding: '0.75rem' }}></th>}
               </tr>
             </thead>
             <tbody>
@@ -475,34 +792,69 @@ function BiayaVariabelSection({ programId, items, onUpdate, canEdit, pagu }) {
                   canEdit={canEdit} 
                 />
               ))}
-              <tr className="total-row">
-                <td colSpan={4} className="text-right"><strong>TOTAL</strong></td>
-                <td className={`text-right font-semibold ${isOverBudget ? 'text-danger' : ''}`}>
+              <tr style={{ background: 'var(--surface-3)', borderTop: '2px solid var(--border)' }}>
+                <td colSpan={4} className="text-right" style={{ padding: '0.875rem', fontWeight: 700, fontSize: '0.9375rem' }}>
+                  TOTAL BIAYA VARIABEL
+                </td>
+                <td className="text-right" style={{ 
+                  padding: '0.875rem', 
+                  fontWeight: 700, 
+                  fontSize: '1rem',
+                  color: isOverBudget ? 'var(--danger)' : 'var(--primary)'
+                }}>
                   {formatRupiah(totalVariabel)}
                 </td>
-                {canEdit && <td></td>}
+                {canEdit && <td style={{ padding: '0.875rem' }}></td>}
               </tr>
             </tbody>
           </table>
         </div>
       ) : (
-        <div className="empty-variabel">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="32" height="32">
-            <path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l3.58-3.58c.94-.94.94-2.48 0-3.42L9 5z" />
-          </svg>
-          <p>Belum ada rincian biaya variabel</p>
-        </div>
+        !loading && (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '2.5rem 1rem',
+            color: 'var(--text-2)',
+            background: 'var(--surface-2)',
+            margin: '1rem',
+            borderRadius: 'var(--radius)',
+            border: '2px dashed var(--border)'
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '48px', height: '48px', marginBottom: '0.75rem', opacity: 0.5 }}>
+              <path d="M9 5H2v7l6.29 6.29c.94.94 2.48.94 3.42 0l3.58-3.58c.94-.94.94-2.48 0-3.42L9 5z" />
+            </svg>
+            <p style={{ fontSize: '0.9375rem', fontWeight: 500 }}>Belum ada rincian biaya variabel</p>
+            <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>Klik "Tambah Variabel" untuk menambahkan</p>
+          </div>
+        )
       )}
 
       {/* Add Button / Form */}
       {canEdit && (
-        <div className="variabel-actions">
+        <div style={{ padding: '1rem', background: 'var(--surface-2)', borderTop: '1px solid var(--border)' }}>
+          {errorMsg && (
+            <div style={{ 
+              marginBottom: '0.75rem',
+              padding: '0.5rem 0.75rem',
+              background: 'var(--danger-bg)',
+              border: '1px solid var(--danger)',
+              borderRadius: 'var(--radius)',
+              fontSize: '0.8125rem',
+              color: 'var(--danger)'
+            }}>
+              {errorMsg}
+            </div>
+          )}
+          
           {showForm ? (
             <div className="variabel-form-inline">
               <input
                 className="table-input"
                 value={newItem.nama_variabel}
-                onChange={(e) => setNewItem({ ...newItem, nama_variabel: e.target.value })}
+                onChange={(e) => {
+                  setNewItem({ ...newItem, nama_variabel: e.target.value })
+                  setErrorMsg('')
+                }}
                 placeholder="Nama variabel (cth: Beli bola voli)"
                 autoFocus
                 style={{ flex: 1 }}
@@ -511,9 +863,19 @@ function BiayaVariabelSection({ programId, items, onUpdate, canEdit, pagu }) {
                 type="number"
                 className="table-input table-input-num"
                 value={newItem.jumlah}
-                onChange={(e) => setNewItem({ ...newItem, jumlah: parseInt(e.target.value) || 0 })}
+                onChange={(e) => {
+                  setNewItem({ ...newItem, jumlah: parseInt(e.target.value) || 0 })
+                  setErrorMsg('')
+                }}
                 placeholder="Qty"
                 min="1"
+                style={{ width: '70px' }}
+              />
+              <input
+                className="table-input table-input-num"
+                value={newItem.satuan}
+                onChange={(e) => setNewItem({ ...newItem, satuan: e.target.value })}
+                placeholder="Satuan"
                 style={{ width: '80px' }}
               />
               <input
@@ -525,15 +887,47 @@ function BiayaVariabelSection({ programId, items, onUpdate, canEdit, pagu }) {
                 min="0"
                 style={{ width: '120px' }}
               />
-              <button className="btn btn-primary" onClick={handleAdd}>Tambah</button>
-              <button className="btn btn-ghost" onClick={() => setShowForm(false)}>Batal</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleAdd}
+                disabled={willExceed}
+                style={{ opacity: willExceed ? 0.5 : 1 }}
+              >
+                Tambah
+              </button>
+              <button 
+                className="btn btn-ghost" 
+                onClick={() => {
+                  setShowForm(false)
+                  setErrorMsg('')
+                  setNewItem({ nama_variabel: '', jumlah: 1, harga_satuan: 0, satuan: '' })
+                }}
+              >
+                Batal
+              </button>
             </div>
           ) : (
-            <button className="ghost text-sm" onClick={() => setShowForm(true)}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <button 
+              className="btn btn-primary" 
+              onClick={() => {
+                if (isFull) {
+                  alert('Pagu sudah penuh! Tidak bisa menambah variabel lagi.')
+                  return
+                }
+                setShowForm(true)
+                setErrorMsg('')
+              }}
+              disabled={isFull}
+              style={{ 
+                width: '100%',
+                opacity: isFull ? 0.5 : 1,
+                cursor: isFull ? 'not-allowed' : 'pointer'
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', marginRight: '0.5rem' }}>
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
               </svg>
-              Tambah Variabel
+              {isFull ? 'Pagu Penuh - Tidak Bisa Menambah' : 'Tambah Variabel Baru'}
             </button>
           )}
         </div>
@@ -543,37 +937,46 @@ function BiayaVariabelSection({ programId, items, onUpdate, canEdit, pagu }) {
 }
 
 function BiayaVariabelRow({ item, onUpdate, onRemove, canEdit, index }) {
-  const total = (item.jumlah || 0) * (item.harga_satuan || 0)
-
   return (
-    <tr>
-      <td className="text-center text-muted">{index + 1}</td>
-      <td>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+      <td className="text-center text-muted" style={{ padding: '0.75rem' }}>{index + 1}</td>
+      <td style={{ padding: '0.75rem' }}>
         {canEdit ? (
           <input
             className="table-input"
             value={item.nama_variabel}
             onChange={(e) => onUpdate({ ...item, nama_variabel: e.target.value })}
             placeholder="Nama item"
+            style={{ width: '100%', minWidth: '150px' }}
           />
         ) : (
-          <span>{item.nama_variabel}</span>
+          <span style={{ fontWeight: 500 }}>{item.nama_variabel}</span>
         )}
       </td>
-      <td className="text-right">
+      <td className="text-center" style={{ padding: '0.75rem' }}>
         {canEdit ? (
-          <input
-            type="number"
-            className="table-input table-input-num"
-            value={item.jumlah}
-            onChange={(e) => onUpdate({ ...item, jumlah: parseInt(e.target.value) || 0 })}
-            min="0"
-          />
+          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', justifyContent: 'center' }}>
+            <input
+              type="number"
+              className="table-input table-input-num"
+              value={item.jumlah}
+              onChange={(e) => onUpdate({ ...item, jumlah: parseInt(e.target.value) || 0 })}
+              min="0"
+              style={{ width: '60px', textAlign: 'center' }}
+            />
+            <input
+              className="table-input table-input-num"
+              value={item.satuan}
+              onChange={(e) => onUpdate({ ...item, satuan: e.target.value })}
+              placeholder="Satuan"
+              style={{ width: '70px', textAlign: 'center' }}
+            />
+          </div>
         ) : (
-          item.jumlah
+          <span>{item.jumlah} {item.satuan}</span>
         )}
       </td>
-      <td className="text-right">
+      <td className="text-right" style={{ padding: '0.75rem' }}>
         {canEdit ? (
           <input
             type="number"
@@ -581,17 +984,25 @@ function BiayaVariabelRow({ item, onUpdate, onRemove, canEdit, index }) {
             value={item.harga_satuan}
             onChange={(e) => onUpdate({ ...item, harga_satuan: parseInt(e.target.value) || 0 })}
             min="0"
+            style={{ width: '120px', textAlign: 'right' }}
           />
         ) : (
-          formatRupiah(item.harga_satuan)
+          <span>{formatRupiah(item.harga_satuan)}</span>
         )}
       </td>
-      <td className="text-right font-semibold">{formatRupiah(total)}</td>
+      <td className="text-right" style={{ padding: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+        {formatRupiah(item.total || 0)}
+      </td>
       {canEdit && (
-        <td className="text-center">
-          <button className="ghost icon-only" onClick={() => onRemove(item.id)} title="Hapus">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        <td className="text-center" style={{ padding: '0.75rem' }}>
+          <button 
+            className="ghost icon-only" 
+            onClick={() => onRemove(item.id)} 
+            title="Hapus"
+            style={{ color: 'var(--danger)', padding: '0.25rem' }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+              <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
             </svg>
           </button>
         </td>
@@ -601,7 +1012,7 @@ function BiayaVariabelRow({ item, onUpdate, onRemove, canEdit, index }) {
 }
 
 // ============ KOMPONEN PROGRAM TABLE ============
-function ProgramTable({ programs, onEdit, onDelete, onUpdateVariabel, canEdit }) {
+function ProgramTable({ programs, onEdit, onDelete, canEdit }) {
   const [expandedId, setExpandedId] = useState(null)
 
   return (
@@ -622,8 +1033,9 @@ function ProgramTable({ programs, onEdit, onDelete, onUpdateVariabel, canEdit })
         <tbody>
           {programs.map((program) => {
             const totalVariabel = calculateTotal(program.variabel || [])
-            const sisaPagu = program.pagu - totalVariabel
-            const serapan = program.pagu > 0 ? Math.round((totalVariabel / program.pagu) * 100) : 0
+            const paguAnggaran = program.pagu_anggaran || 0
+            const sisaPagu = paguAnggaran - totalVariabel
+            const serapan = paguAnggaran > 0 ? Math.round((totalVariabel / paguAnggaran) * 100) : 0
             const isOverBudget = sisaPagu < 0
             const isExpanded = expandedId === program.id
 
@@ -646,14 +1058,14 @@ function ProgramTable({ programs, onEdit, onDelete, onUpdateVariabel, canEdit })
                 >
                   <td>
                     <div>
-                      <strong style={{ fontSize: '0.875rem' }}>{program.nama_program}</strong>
+                      <strong style={{ fontSize: '0.875rem' }}>{program.nama}</strong>
                       <p className="muted" style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>
                         {program.id_rka} • {program.tahun}
                       </p>
                     </div>
                   </td>
-                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.unit_kerja}</td>
-                  <td className="text-right" style={{ fontSize: '0.875rem', fontWeight: 600 }}>{formatRupiah(program.pagu)}</td>
+                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.unit_kerja_id}</td>
+                  <td className="text-right" style={{ fontSize: '0.875rem', fontWeight: 600 }}>{formatRupiah(paguAnggaran)}</td>
                   <td className="text-right" style={{ fontSize: '0.875rem' }}>{formatRupiah(totalVariabel)}</td>
                   <td className="text-right" style={{ fontSize: '0.875rem' }}>
                     <span className={isOverBudget ? 'text-danger' : ''}>
@@ -702,7 +1114,7 @@ function ProgramTable({ programs, onEdit, onDelete, onUpdateVariabel, canEdit })
                           items={program.variabel || []}
                           onUpdate={(items) => onUpdateVariabel(program.id, items)}
                           canEdit={canEdit}
-                          pagu={program.pagu}
+                          pagu={paguAnggaran}
                         />
                       </div>
                     </td>
@@ -782,10 +1194,10 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 function ProgramModal({ program, onSave, onClose }) {
   const [form, setForm] = useState({
     id_rka: program?.id_rka || '',
-    nama_program: program?.nama_program || '',
-    unit_kerja: program?.unit_kerja || 'USC',
+    nama_program: program?.nama || '',
+    unit_kerja: program?.unit_kerja_id || 'USC',
     tahun: program?.tahun || new Date().getFullYear(),
-    pagu: program?.pagu || 0,
+    pagu: program?.pagu_anggaran || 0,
   })
   const [error, setError] = useState('')
 
@@ -799,7 +1211,17 @@ function ProgramModal({ program, onSave, onClose }) {
       setError('ID RKA dan Nama Program wajib diisi')
       return
     }
-    onSave({ ...program, ...form, variabel: program?.variabel || [] })
+    // Mapping form fields ke field database yang benar
+    const dataToSave = {
+      ...program,
+      id_rka: form.id_rka,
+      nama: form.nama_program,
+      unit_kerja_id: form.unit_kerja,
+      tahun: form.tahun,
+      pagu_anggaran: form.pagu,
+      variabel: program?.variabel || []
+    }
+    onSave(dataToSave)
   }
 
   return (
@@ -891,44 +1313,7 @@ function ProgramModal({ program, onSave, onClose }) {
 
 // ============ HALAMAN UTAMA ============
 export default function ProgramKerjaPage() {
-  const [programs, setPrograms] = useState([
-    {
-      id: '1', id_rka: '14406', nama_program: 'Peningkatan tata kelola unit kerja',
-      unit_kerja: 'USC', tahun: 2026, pagu: 150000000,
-      variabel: [
-        { id: 'v1', nama_variabel: 'Pengadaan ATK', jumlah: 50, harga_satuan: 25000 },
-        { id: 'v2', nama_variabel: 'Transport rapat', jumlah: 20, harga_satuan: 150000 },
-      ]
-    },
-    {
-      id: '2', id_rka: '14407', nama_program: 'Pemeliharaan fasilitas olahraga',
-      unit_kerja: 'Kolam Renang', tahun: 2026, pagu: 75000000,
-      variabel: [
-        { id: 'v3', nama_variabel: 'Cat akhir kolam', jumlah: 100, harga_satuan: 350000 },
-      ]
-    },
-    {
-      id: '3', id_rka: '14408', nama_program: 'Pengelolaan olahraga pendidikan',
-      unit_kerja: 'PUI Keolahragaan', tahun: 2026, pagu: 100000000,
-      variabel: []
-    },
-    {
-      id: '4', id_rka: '14409', nama_program: 'Pengembangan atlet muda',
-      unit_kerja: 'SSFC', tahun: 2026, pagu: 200000000,
-      variabel: [
-        { id: 'v4', nama_variabel: 'Pelatihan', jumlah: 30, harga_satuan: 2000000 },
-        { id: 'v5', nama_variabel: 'Peralatan', jumlah: 50, harga_satuan: 1500000 },
-      ]
-    },
-    {
-      id: '5', id_rka: '14410', nama_program: 'Turnamen golf nasional',
-      unit_kerja: 'Driving Golf', tahun: 2026, pagu: 500000000,
-      variabel: [
-        { id: 'v6', nama_variabel: 'Hadiah', jumlah: 1, harga_satuan: 300000000 },
-        { id: 'v7', nama_variabel: 'Konsumsi', jumlah: 200, harga_satuan: 500000 },
-      ]
-    },
-  ])
+  const { programs, loading, error, addProgram, updateProgram, deleteProgram, refreshPrograms } = useProgramKerja()
 
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('')
@@ -954,15 +1339,14 @@ export default function ProgramKerjaPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       result = result.filter(p => 
-        p.nama_program.toLowerCase().includes(query) ||
-        p.id_rka.toLowerCase().includes(query) ||
-        p.unit_kerja.toLowerCase().includes(query)
+        (p.nama || '').toLowerCase().includes(query) ||
+        (p.unit_kerja_id || '').toLowerCase().includes(query)
       )
     }
 
     // Unit filter
     if (selectedUnit) {
-      result = result.filter(p => p.unit_kerja === selectedUnit)
+      result = result.filter(p => p.unit_kerja_id === selectedUnit)
     }
 
     // Tahun filter
@@ -974,22 +1358,18 @@ export default function ProgramKerjaPage() {
     result.sort((a, b) => {
       switch (sortBy) {
         case 'name_asc':
-          return a.nama_program.localeCompare(b.nama_program)
+          return (a.nama || '').localeCompare(b.nama || '')
         case 'name_desc':
-          return b.nama_program.localeCompare(a.nama_program)
+          return (b.nama || '').localeCompare(a.nama || '')
         case 'pagu_asc':
-          return a.pagu - b.pagu
+          return (a.pagu_anggaran || 0) - (b.pagu_anggaran || 0)
         case 'pagu_desc':
-          return b.pagu - a.pagu
-        case 'usage_desc':
-          const usageA = calculateTotal(a.variabel || []) / a.pagu
-          const usageB = calculateTotal(b.variabel || []) / b.pagu
-          return usageB - usageA
+          return (b.pagu_anggaran || 0) - (a.pagu_anggaran || 0)
         case 'oldest':
-          return a.id.localeCompare(b.id)
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0)
         case 'newest':
         default:
-          return b.id.localeCompare(a.id)
+          return new Date(b.created_at || 0) - new Date(a.created_at || 0)
       }
     })
 
@@ -1011,44 +1391,211 @@ export default function ProgramKerjaPage() {
   // Calculate totals
   const totals = useMemo(() => {
     return filteredPrograms.reduce((acc, p) => {
-      const totalVar = calculateTotal(p.variabel || [])
       return {
-        pagu: acc.pagu + p.pagu,
-        variabel: acc.variabel + totalVar,
+        pagu: acc.pagu + (p.pagu_anggaran || 0),
+        variabel: acc.variabel + 0, // Variabel akan diimplementasikan nanti
       }
     }, { pagu: 0, variabel: 0 })
   }, [filteredPrograms])
 
   // Handlers
-  const handleSave = (program) => {
-    if (program.id) {
-      setPrograms(programs.map((p) => p.id === program.id ? program : p))
-    } else {
-      setPrograms([...programs, { ...program, id: Date.now().toString() }])
+  const handleSave = async (program) => {
+    try {
+      if (program.id) {
+        await updateProgram(program.id, program)
+      } else {
+        await addProgram(program)
+      }
+      setShowModal(false)
+      setEditing(null)
+      await refreshPrograms()
+    } catch (err) {
+      alert('Gagal menyimpan program: ' + err.message)
     }
-    setShowModal(false)
-    setEditing(null)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Hapus program ini?')) {
-      setPrograms(programs.filter((p) => p.id !== id))
+      try {
+        await deleteProgram(id)
+        await refreshPrograms()
+      } catch (err) {
+        alert('Gagal menghapus program: ' + err.message)
+      }
     }
   }
 
-  const handleUpdateVariabel = (programId, variabel) => {
-    setPrograms(programs.map((p) => p.id === programId ? { ...p, variabel } : p))
+  const handleExport = async (type = 'print') => {
+    if (filteredPrograms.length === 0) {
+      alert('Tidak ada data untuk diexport')
+      return
+    }
+
+    const timestamp = new Date().toISOString().split('T')[0]
+    const filename = `Program_Kerja_${timestamp}`
+
+    if (type === 'print') {
+      // Buka window print dengan data
+      const printWindow = window.open('', '_blank')
+      if (printWindow) {
+        const html = generatePrintHTML(filteredPrograms, totals, selectedUnit, selectedTahun)
+        printWindow.document.write(html)
+        printWindow.document.close()
+        printWindow.focus()
+        setTimeout(() => printWindow.print(), 500)
+      }
+    } else if (type === 'csv') {
+      // Export ke CSV
+      const csv = generateCSV(filteredPrograms)
+      downloadFile(csv, `${filename}.csv`, 'text/csv')
+    } else if (type === 'json') {
+      // Export ke JSON
+      const json = JSON.stringify(filteredPrograms, null, 2)
+      downloadFile(json, `${filename}.json`, 'application/json')
+    }
   }
 
-  const handleExport = () => {
-    // Simulasi export
-    alert(`Export ${filteredPrograms.length} program kerja`)
+  // Helper untuk generate HTML print
+  const generatePrintHTML = (programs, totals, unitFilter, tahunFilter) => {
+    const totalPagu = programs.reduce((sum, p) => sum + (p.pagu_anggaran || 0), 0)
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Data Program Kerja - SIMDIR</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 20px; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+          .header h1 { margin: 0; font-size: 24px; }
+          .header p { margin: 5px 0; color: #666; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .text-right { text-align: right; }
+          .summary { margin-top: 30px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+          .summary-item { display: flex; justify-content: space-between; margin: 5px 0; }
+          .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #999; }
+          @media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>DATA PROGRAM KERJA</h1>
+          <p>Direktorat Unesa Science Center</p>
+          <p>Tanggal: ${new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          ${unitFilter ? `<p>Unit Kerja: ${unitFilter}</p>` : ''}
+          ${tahunFilter ? `<p>Tahun: ${tahunFilter}</p>` : ''}
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Nama Program</th>
+              <th>Unit Kerja</th>
+              <th>Tahun</th>
+              <th class="text-right">Pagu Anggaran</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${programs.map((p, idx) => `
+              <tr>
+                <td>${idx + 1}</td>
+                <td>${p.nama || '-'}</td>
+                <td>${p.unit_kerja_id || '-'}</td>
+                <td>${p.tahun || '-'}</td>
+                <td class="text-right">Rp ${(p.pagu_anggaran || 0).toLocaleString('id-ID')}</td>
+                <td>${p.status || 'aktif'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        
+        <div class="summary">
+          <div class="summary-item">
+            <strong>Total Program:</strong>
+            <span>${programs.length} program</span>
+          </div>
+          <div class="summary-item">
+            <strong>Total Pagu Anggaran:</strong>
+            <span>Rp ${totalPagu.toLocaleString('id-ID')}</span>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>Dicetak dari Sistem Informasi Manajemen Direktorat (SIMDIR)</p>
+          <p>© ${new Date().getFullYear()} Unesa Science Center</p>
+        </div>
+        
+        <div class="no-print" style="margin-top: 30px; text-align: center;">
+          <button onclick="window.print()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">
+            🖨️ Cetak / Save as PDF
+          </button>
+        </div>
+      </body>
+      </html>
+    `
+  }
+
+  // Helper untuk generate CSV
+  const generateCSV = (programs) => {
+    const headers = ['No', 'Nama Program', 'Unit Kerja', 'Tahun', 'Pagu Anggaran', 'Status', 'Sumber Dana']
+    const rows = programs.map((p, idx) => [
+      idx + 1,
+      `"${(p.nama || '').replace(/"/g, '""')}"`,
+      p.unit_kerja_id || '-',
+      p.tahun || '-',
+      p.pagu_anggaran || 0,
+      p.status || 'aktif',
+      p.sumber_dana || 'UKT'
+    ])
+    
+    return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+  }
+
+  // Helper untuk download file
+  const downloadFile = (content, filename, mimeType) => {
+    const blob = new Blob([content], { type: mimeType })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+    // Loading state
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <div>Memuat data program kerja...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--danger)' }}>
+        <h3>Error Loading Data</h3>
+        <p>{error}</p>
+        <button onClick={refreshPrograms} className="btn btn-primary mt-4">
+          Coba Lagi
+        </button>
+      </div>
+    )
   }
 
   return (
     <div>
       {/* Header */}
-      <div className="toolbar">
+      <div className="toolbar" style={{ position: 'relative', zIndex: 1 }}>
         <div>
           <h2>Program Kerja & Anggaran</h2>
           <p className="muted" style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
@@ -1109,6 +1656,7 @@ export default function ProgramKerjaPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         onExport={handleExport}
+        totalItems={filteredPrograms.length}
       />
 
       {/* Content */}
@@ -1130,7 +1678,6 @@ export default function ProgramKerjaPage() {
                   program={program}
                   onEdit={(p) => { setEditing(p); setShowModal(true) }}
                   onDelete={handleDelete}
-                  onUpdateVariabel={handleUpdateVariabel}
                   canEdit={canEdit}
                 />
               ))}
@@ -1140,7 +1687,7 @@ export default function ProgramKerjaPage() {
               programs={paginatedPrograms}
               onEdit={(p) => { setEditing(p); setShowModal(true) }}
               onDelete={handleDelete}
-              onUpdateVariabel={handleUpdateVariabel}
+              onManageVariabel={handleOpenVariabel}
               canEdit={canEdit}
             />
           )}
@@ -1166,6 +1713,7 @@ export default function ProgramKerjaPage() {
           onClose={() => { setShowModal(false); setEditing(null) }}
         />
       )}
+
     </div>
   )
 }

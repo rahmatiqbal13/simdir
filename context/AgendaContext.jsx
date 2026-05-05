@@ -1,18 +1,9 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 
 const AgendaContext = createContext();
-
-// Inisialisasi Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-let supabase;
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
-}
 
 export function AgendaProvider({ children }) {
   const [agenda, setAgenda] = useState([]);
@@ -60,13 +51,31 @@ export function AgendaProvider({ children }) {
         throw new Error('Supabase belum dikonfigurasi');
       }
 
+      console.log('Adding agenda - raw item:', item);
+
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Pastikan data yang wajib ada
       const agendaData = {
-        ...item,
+        judul: item.judul || '',
+        jenis: item.jenis || 'internal',
+        tanggal_mulai: item.tanggal_mulai || new Date().toISOString().split('T')[0],
+        tanggal_selesai: item.tanggal_selesai || item.tanggal_mulai || new Date().toISOString().split('T')[0],
+        waktu_mulai: item.waktu_mulai || null,
+        waktu_selesai: item.waktu_selesai || null,
+        lokasi: item.lokasi || '',
+        link_meeting: item.link_meeting || null,
+        penyelenggara: item.penyelenggara || '',
+        unit_kerja: item.unit_kerja || null,
+        deskripsi: item.deskripsi || '',
+        disposisi: item.disposisi || null,
+        pic: item.pic || null,
+        status: item.status || 'upcoming',
         created_by: user?.id || null
       };
+
+      console.log('Adding agenda - formatted data:', agendaData);
 
       const { data, error: supabaseError } = await supabase
         .from('agenda')
@@ -76,13 +85,20 @@ export function AgendaProvider({ children }) {
 
       if (supabaseError) {
         console.error('Error adding agenda:', supabaseError);
-        throw supabaseError;
+        console.error('Error details:', {
+          message: supabaseError.message,
+          code: supabaseError.code,
+          details: supabaseError.details,
+          hint: supabaseError.hint
+        });
+        throw new Error(supabaseError.message || 'Gagal menambahkan agenda');
       }
 
+      console.log('Agenda added successfully:', data);
       setAgenda(prev => [data, ...prev]);
       return data;
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error in addAgenda:', err);
       throw err;
     }
   };

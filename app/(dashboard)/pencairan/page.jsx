@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-
-// Data program untuk referensi
-const PROGRAM_LIST = [
-  { id: '1', nama: 'Peningkatan tata kelola unit kerja', unit_kerja: 'USC', pagu: 150000000 },
-  { id: '2', nama: 'Pemeliharaan fasilitas olahraga', unit_kerja: 'Kolam Renang', pagu: 75000000 },
-  { id: '3', nama: 'Pengelolaan olahraga pendidikan', unit_kerja: 'PUI Keolahragaan', pagu: 100000000 },
-  { id: '4', nama: 'Pengembangan atlet muda', unit_kerja: 'SSFC', pagu: 200000000 },
-  { id: '5', nama: 'Turnamen golf nasional', unit_kerja: 'Driving Golf', pagu: 500000000 },
-];
+import { usePencairan } from '@/context/PencairanContext';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -60,7 +52,8 @@ function FilterBar({
   setSortBy,
   viewMode,
   setViewMode,
-  onExport
+  onExport,
+  programs = []
 }) {
   const [showFilters, setShowFilters] = useState(false);
 
@@ -177,7 +170,7 @@ function FilterBar({
                 style={{ width: '100%' }}
               >
                 <option value="">Semua Program</option>
-                {PROGRAM_LIST.map((p) => (
+                {programs.map((p) => (
                   <option key={p.id} value={p.id}>{p.nama}</option>
                 ))}
               </select>
@@ -237,9 +230,9 @@ function StatusBadge({ status }) {
 }
 
 // ============ KOMPONEN PENCARIAN CARD ============
-function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpandedId }) {
+function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpandedId, programs = [] }) {
   const isExpanded = expandedId === item.id;
-  const program = PROGRAM_LIST.find(p => p.id === item.program_id) || { nama: item.program, unit_kerja: '-' };
+  const program = programs.find(p => p.id === item.program_id) || { nama: item.program, unit_kerja: item.unit_kerja || '-' };
   
   const getStatus = () => {
     // Simulasi status berdasarkan data
@@ -251,6 +244,11 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
   const status = getStatus();
   const totalKegiatan = item.kegiatan?.length || 0;
   const totalNilai = item.kegiatan?.reduce((sum, k) => sum + (k.jumlah || 0), 0) || item.jumlah || 0;
+  
+  // Handle multiple programs
+  const programCount = item.programs?.length || 0;
+  const unitKerjaList = item.programs?.map(p => p.unit_kerja).filter(Boolean) || [];
+  const uniqueUnitKerja = [...new Set(unitKerjaList)];
 
   return (
     <div className="card program-panel" style={{ marginBottom: '0.75rem' }}>
@@ -267,6 +265,18 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
             <span className="muted" style={{ fontSize: '0.75rem' }}>
               {formatDate(item.tanggal)}
             </span>
+            {programCount > 1 && (
+              <span style={{ 
+                fontSize: '0.6875rem', 
+                padding: '0.125rem 0.5rem', 
+                background: 'var(--primary-bg)', 
+                color: 'var(--primary)',
+                borderRadius: '9999px',
+                fontWeight: 500
+              }}>
+                {programCount} Program
+              </span>
+            )}
           </div>
           <strong style={{ fontSize: '1rem', display: 'block', marginBottom: '0.25rem' }}>
             {item.nama}
@@ -276,13 +286,15 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              {program.unit_kerja}
+              {uniqueUnitKerja.length > 1 
+                ? `${uniqueUnitKerja.length} Unit Kerja` 
+                : (uniqueUnitKerja[0] || program.unit_kerja || '-')}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" />
               </svg>
-              {totalKegiatan} kegiatan
+              {programCount > 0 ? `${programCount} program` : `${totalKegiatan} kegiatan`}
             </span>
           </div>
         </div>
@@ -306,7 +318,7 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
             </div>
             <div>
               <span>Program Kerja</span>
-              <strong>{program.nama}</strong>
+              <strong>{programCount > 1 ? `${programCount} Program` : (program.nama || '-')}</strong>
             </div>
             <div>
               <span>Tanggal</span>
@@ -317,6 +329,34 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
               <strong>{formatRupiah(totalNilai)}</strong>
             </div>
           </div>
+          
+          {/* Multiple Programs Detail */}
+          {programCount > 1 && (
+            <div style={{ marginBottom: '1rem', padding: '0.75rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
+              <h4 style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-2)' }}>
+                Detail Program ({programCount})
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {item.programs?.map((prog, idx) => (
+                  <div key={prog.id} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                    background: 'var(--surface)',
+                    borderRadius: 'var(--radius)',
+                    fontSize: '0.8125rem'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: 500 }}>{idx + 1}. {prog.nama}</span>
+                      <span className="muted" style={{ marginLeft: '0.5rem' }}>({prog.unit_kerja})</span>
+                    </div>
+                    <strong>{formatRupiah(prog.jumlah_alokasi)}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Keterangan */}
           {item.keterangan && (
@@ -448,7 +488,7 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
 }
 
 // ============ KOMPONEN PENCARIAN TABLE ============
-function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpandedId }) {
+function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpandedId, programs = [] }) {
   return (
     <div className="table-wrap">
       <table style={{ minWidth: '48rem' }}>
@@ -466,7 +506,8 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
         <tbody>
           {items.map((item) => {
             const isExpanded = expandedId === item.id;
-            const program = PROGRAM_LIST.find(p => p.id === item.program_id) || { nama: item.program };
+            const programCount = item.programs?.length || 0;
+            const program = programs.find(p => p.id === item.program_id) || { nama: item.program, unit_kerja: item.unit_kerja };
             const totalKegiatan = item.kegiatan?.length || 0;
             const totalNilai = item.kegiatan?.reduce((sum, k) => sum + (k.jumlah || 0), 0) || item.jumlah || 0;
             
@@ -488,7 +529,20 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                 >
                   <td>
                     <div>
-                      <strong style={{ fontSize: '0.875rem' }}>{item.nama}</strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <strong style={{ fontSize: '0.875rem' }}>{item.nama}</strong>
+                        {programCount > 1 && (
+                          <span style={{ 
+                            fontSize: '0.6875rem', 
+                            padding: '0.125rem 0.375rem', 
+                            background: 'var(--primary-bg)', 
+                            color: 'var(--primary)',
+                            borderRadius: '9999px'
+                          }}>
+                            {programCount} Program
+                          </span>
+                        )}
+                      </div>
                       {item.keterangan && (
                         <p className="muted" style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>
                           {item.keterangan.length > 50 ? item.keterangan.substring(0, 50) + '...' : item.keterangan}
@@ -496,7 +550,11 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                       )}
                     </div>
                   </td>
-                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.nama}</td>
+                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>
+                    {programCount > 1 
+                      ? `${programCount} Program` 
+                      : (program.nama || '-')}
+                  </td>
                   <td style={{ fontSize: '0.8125rem' }}>{formatDate(item.tanggal)}</td>
                   <td className="text-right" style={{ fontSize: '0.875rem', fontWeight: 600 }}>{formatRupiah(totalNilai)}</td>
                   <td className="text-center" style={{ fontSize: '0.875rem' }}>{totalKegiatan}</td>
@@ -661,14 +719,23 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 }
 
 // ============ KOMPONEN MODAL ============
-function PencairanModal({ item, onSave, onClose }) {
+function PencairanModal({ item, onSave, onClose, programs = [] }) {
   const [form, setForm] = useState({
     nama: item?.nama || '',
-    program_id: item?.program_id || '1',
     tanggal: item?.tanggal || new Date().toISOString().split('T')[0],
     jumlah: item?.jumlah || 0,
     keterangan: item?.keterangan || '',
   });
+  
+  // Support multiple programs with allocation
+  const [selectedPrograms, setSelectedPrograms] = useState(
+    item?.programs?.map(p => ({
+      id: p.id,
+      jumlah_alokasi: p.jumlah_alokasi || 0,
+      keterangan: p.keterangan || ''
+    })) || []
+  );
+  
   const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
@@ -682,21 +749,54 @@ function PencairanModal({ item, onSave, onClose }) {
       setError('Jumlah harus lebih dari 0');
       return;
     }
+    if (selectedPrograms.length === 0) {
+      setError('Pilih minimal satu program kerja');
+      return;
+    }
 
-    const selectedProgram = PROGRAM_LIST.find(p => p.id === form.program_id);
+    // Validate total alokasi doesn't exceed jumlah
+    const totalAlokasi = selectedPrograms.reduce((sum, p) => sum + (parseFloat(p.jumlah_alokasi) || 0), 0);
+    if (totalAlokasi > form.jumlah) {
+      setError(`Total alokasi (${formatRupiah(totalAlokasi)}) melebihi jumlah pencairan (${formatRupiah(form.jumlah)})`);
+      return;
+    }
     
     onSave({
       ...item,
       ...form,
       id: item?.id || Date.now().toString(),
-      program: selectedProgram?.nama || '',
+      programs: selectedPrograms.map(sp => {
+        const program = programs.find(p => p.id === sp.id);
+        return {
+          ...sp,
+          nama: program?.nama,
+          unit_kerja: program?.unit_kerja_id
+        };
+      }),
       kegiatan: item?.kegiatan || [],
     });
   };
 
+  const addProgram = (programId) => {
+    if (!programId || selectedPrograms.find(p => p.id === programId)) return;
+    setSelectedPrograms([...selectedPrograms, { id: programId, jumlah_alokasi: 0, keterangan: '' }]);
+  };
+
+  const removeProgram = (programId) => {
+    setSelectedPrograms(selectedPrograms.filter(p => p.id !== programId));
+  };
+
+  const updateProgramAllocation = (programId, field, value) => {
+    setSelectedPrograms(selectedPrograms.map(p => 
+      p.id === programId ? { ...p, [field]: value } : p
+    ));
+  };
+
+  const availablePrograms = programs.filter(p => !selectedPrograms.find(sp => sp.id === p.id));
+
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{item?.id ? 'Edit' : 'Tambah'} Pencairan Dana</h2>
           <button onClick={onClose}>✕</button>
@@ -705,7 +805,7 @@ function PencairanModal({ item, onSave, onClose }) {
         <form onSubmit={handleSubmit}>
           <div className="card-form-body">
             {error && (
-              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
@@ -724,18 +824,6 @@ function PencairanModal({ item, onSave, onClose }) {
                 />
               </div>
               <div>
-                <label>Program Kerja</label>
-                <select
-                  value={form.program_id}
-                  onChange={(e) => setForm({ ...form, program_id: e.target.value })}
-                  required
-                >
-                  {PROGRAM_LIST.map((p) => (
-                    <option key={p.id} value={p.id}>{p.nama}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <label>Tanggal</label>
                 <input
                   type="date"
@@ -745,7 +833,7 @@ function PencairanModal({ item, onSave, onClose }) {
                 />
               </div>
               <div>
-                <label>Jumlah (Rp)</label>
+                <label>Jumlah Total (Rp)</label>
                 <input
                   type="number"
                   value={form.jumlah}
@@ -755,8 +843,107 @@ function PencairanModal({ item, onSave, onClose }) {
                   placeholder="50000000"
                 />
               </div>
+              
+              {/* Multiple Programs Selection */}
               <div className="full">
-                <label>Keterangan</label>
+                <label>Program Kerja <span className="muted">(bisa pilih multiple)</span></label>
+                
+                {/* Add Program Dropdown */}
+                {availablePrograms.length > 0 && (
+                  <select 
+                    onChange={(e) => { if(e.target.value) { addProgram(e.target.value); e.target.value = ''; }}}
+                    style={{ marginBottom: '1rem' }}
+                  >
+                    <option value="">+ Tambah Program...</option>
+                    {availablePrograms.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nama} ({p.unit_kerja_id})</option>
+                    ))}
+                  </select>
+                )}
+                
+                {/* Selected Programs List */}
+                {selectedPrograms.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {selectedPrograms.map((sp, index) => {
+                      const program = programs.find(p => p.id === sp.id);
+                      return (
+                        <div key={sp.id} style={{ 
+                          padding: '0.75rem', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: 'var(--radius)',
+                          background: 'var(--surface-2)'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <strong style={{ fontSize: '0.875rem' }}>{index + 1}. {program?.nama}</strong>
+                            <button 
+                              type="button"
+                              onClick={() => removeProgram(sp.id)}
+                              style={{ 
+                                color: 'var(--danger)', 
+                                fontSize: '0.75rem',
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                            <div>
+                              <label style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Alokasi Dana (Rp)</label>
+                              <input
+                                type="number"
+                                value={sp.jumlah_alokasi}
+                                onChange={(e) => updateProgramAllocation(sp.id, 'jumlah_alokasi', parseInt(e.target.value) || 0)}
+                                min="0"
+                                placeholder="0"
+                                style={{ fontSize: '0.8125rem' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Keterangan</label>
+                              <input
+                                type="text"
+                                value={sp.keterangan}
+                                onChange={(e) => updateProgramAllocation(sp.id, 'keterangan', e.target.value)}
+                                placeholder="Opsional"
+                                style={{ fontSize: '0.8125rem' }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>
+                            Unit: {program?.unit_kerja_id}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="muted" style={{ fontSize: '0.875rem', padding: '1rem', border: '1px dashed var(--border)', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+                    Belum ada program dipilih
+                  </div>
+                )}
+                
+                {/* Total Alokasi Summary */}
+                {selectedPrograms.length > 0 && (
+                  <div style={{ 
+                    marginTop: '0.75rem', 
+                    padding: '0.5rem 0.75rem', 
+                    background: 'var(--primary-bg)', 
+                    borderRadius: 'var(--radius)',
+                    fontSize: '0.8125rem',
+                    display: 'flex',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span>Total Alokasi:</span>
+                    <strong>{formatRupiah(selectedPrograms.reduce((sum, p) => sum + (parseFloat(p.jumlah_alokasi) || 0), 0))}</strong>
+                  </div>
+                )}
+              </div>
+              
+              <div className="full">
+                <label>Keterangan Umum</label>
                 <textarea
                   value={form.keterangan}
                   onChange={(e) => setForm({ ...form, keterangan: e.target.value })}
@@ -779,85 +966,8 @@ function PencairanModal({ item, onSave, onClose }) {
 
 // ============ HALAMAN UTAMA ============
 export default function PencairanPage() {
-  const [pencairan, setPencairan] = useState([
-    { 
-      id: '1', 
-      nama: 'TUPK Maret 2026', 
-      program: 'Peningkatan tata kelola unit kerja', 
-      program_id: '1', 
-      tanggal: '2026-03-15', 
-      jumlah: 50000000, 
-      keterangan: 'Pencairan pertama semester untuk operasional rutin', 
-      kegiatan: [
-        { id: 'k1', uraian: 'Pengadaan alat tulis kantor', jumlah: 15000000 },
-        { id: 'k2', uraian: 'Biaya operasional bulan Maret', jumlah: 35000000 },
-      ],
-      spj_submitted: false,
-    },
-    { 
-      id: '2', 
-      nama: 'TUP 1 April', 
-      program: 'Pemeliharaan fasilitas olahraga', 
-      program_id: '2', 
-      tanggal: '2026-04-01', 
-      jumlah: 25000000, 
-      keterangan: 'Pemeliharaan berkala fasilitas kolam renang', 
-      kegiatan: [
-        { id: 'k3', uraian: 'Perbaikan pompa air', jumlah: 10000000 },
-        { id: 'k4', uraian: 'Pengadaan suku cadang', jumlah: 15000000 },
-      ],
-      spj_submitted: true,
-      spj_partial: true,
-    },
-    { 
-      id: '3', 
-      nama: 'Honorarium Pelatih Q1', 
-      program: 'Pengembangan atlet muda', 
-      program_id: '4', 
-      tanggal: '2026-03-31', 
-      jumlah: 60000000, 
-      keterangan: 'Pembayaran honorarium pelatih periode Januari-Maret', 
-      kegiatan: [
-        { id: 'k5', uraian: 'Honor pelatih teknik', jumlah: 30000000 },
-        { id: 'k6', uraian: 'Honor pelatih fisik', jumlah: 20000000 },
-        { id: 'k7', uraian: 'Honor pelatih kiper', jumlah: 10000000 },
-      ],
-      spj_submitted: true,
-      spj_partial: false,
-    },
-    { 
-      id: '4', 
-      nama: 'Biaya Turnamen Regional', 
-      program: 'Pengembangan atlet muda', 
-      program_id: '4', 
-      tanggal: '2026-04-10', 
-      jumlah: 15000000, 
-      keterangan: 'Biaya pendaftaran dan transport turnamen regional', 
-      kegiatan: [
-        { id: 'k8', uraian: 'Pendaftaran turnamen', jumlah: 5000000 },
-        { id: 'k9', uraian: 'Transportasi tim', jumlah: 8000000 },
-        { id: 'k10', uraian: 'Konsumsi perjalanan', jumlah: 2000000 },
-      ],
-      spj_submitted: false,
-    },
-    { 
-      id: '5', 
-      nama: 'Pengadaan Peralatan Golf', 
-      program: 'Turnamen golf nasional', 
-      program_id: '5', 
-      tanggal: '2026-04-15', 
-      jumlah: 75000000, 
-      keterangan: 'Pengadaan peralatan pendukung turnamen', 
-      kegiatan: [
-        { id: 'k11', uraian: 'Sewa peralatan scoring', jumlah: 25000000 },
-        { id: 'k12', uraian: 'Pengadaan bendera dan marka', jumlah: 15000000 },
-        { id: 'k13', uraian: 'Peralatan komunikasi', jumlah: 20000000 },
-        { id: 'k14', uraian: 'Peralatan dokumentasi', jumlah: 15000000 },
-      ],
-      spj_submitted: true,
-      spj_partial: false,
-    },
-  ]);
+  // Use PencairanContext instead of local state
+  const { pencairan, programs, loading, addPencairan, updatePencairan, deletePencairan, updateSPJStatus } = usePencairan();
 
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('');
@@ -890,9 +1000,9 @@ export default function PencairanPage() {
       );
     }
 
-    // Program filter
+    // Program filter (check in program_ids array for multiple programs support)
     if (selectedProgram) {
-      result = result.filter(p => p.program_id === selectedProgram);
+      result = result.filter(p => p.program_ids?.includes(selectedProgram));
     }
 
     // Status filter
@@ -950,25 +1060,71 @@ export default function PencairanPage() {
     }, { count: 0, total: 0, pending: 0, completed: 0 });
   }, [filteredItems]);
 
-  // Handlers
-  const handleSave = (item) => {
+  // Handlers - using context
+  const handleSave = async (item) => {
+    let result;
     if (item.id && pencairan.find(p => p.id === item.id)) {
-      setPencairan(pencairan.map(p => p.id === item.id ? item : p));
+      result = await updatePencairan(item.id, item);
     } else {
-      setPencairan([...pencairan, item]);
+      result = await addPencairan(item);
     }
-    setShowModal(false);
-    setEditingItem(null);
+    
+    if (result.success) {
+      setShowModal(false);
+      setEditingItem(null);
+    } else {
+      alert('Error: ' + result.error);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Hapus pencairan ini?')) {
-      setPencairan(pencairan.filter(p => p.id !== id));
+      const result = await deletePencairan(id);
+      if (!result.success) {
+        alert('Error: ' + result.error);
+      }
     }
   };
 
   const handleExport = () => {
-    alert(`Export ${filteredItems.length} data pencairan`);
+    // Export functionality
+    const dataToExport = filteredItems.map(item => ({
+      'Nomor Pencairan': item.nama,
+      'Program': item.program,
+      'Unit Kerja': item.unit_kerja,
+      'Tanggal': item.tanggal,
+      'Jumlah': item.jumlah,
+      'Keterangan': item.keterangan,
+      'Status': item.spj_submitted ? (item.spj_partial ? 'SPJ Sebagian' : 'SPJ Lengkap') : 'Menunggu SPJ'
+    }));
+    
+    const csv = convertToCSV(dataToExport);
+    downloadCSV(csv, 'pencairan-dana.csv');
+  };
+
+  // CSV helper functions
+  const convertToCSV = (data) => {
+    if (data.length === 0) return '';
+    const headers = Object.keys(data[0]);
+    const rows = data.map(row => 
+      headers.map(header => {
+        const value = row[header];
+        // Escape values with commas or quotes
+        if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+          return `"${value.replace(/"/g, '""')}"`;
+        }
+        return value;
+      }).join(',')
+    );
+    return [headers.join(','), ...rows].join('\n');
+  };
+
+  const downloadCSV = (csv, filename) => {
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
   };
 
   return (
@@ -1035,6 +1191,7 @@ export default function PencairanPage() {
         viewMode={viewMode}
         setViewMode={setViewMode}
         onExport={handleExport}
+        programs={programs}
       />
 
       {/* Content */}
@@ -1059,6 +1216,7 @@ export default function PencairanPage() {
                   canEdit={canEdit}
                   expandedId={expandedId}
                   setExpandedId={setExpandedId}
+                  programs={programs}
                 />
               ))}
             </div>
@@ -1070,6 +1228,7 @@ export default function PencairanPage() {
               canEdit={canEdit}
               expandedId={expandedId}
               setExpandedId={setExpandedId}
+              programs={programs}
             />
           )}
 
@@ -1092,6 +1251,7 @@ export default function PencairanPage() {
           item={editingItem}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
+          programs={programs}
         />
       )}
     </div>
