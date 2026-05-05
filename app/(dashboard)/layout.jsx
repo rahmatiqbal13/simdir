@@ -15,7 +15,7 @@ const navItems = {
     { href: '/laporan', label: 'Laporan', icon: 'chart' },
     { href: '/pengaturan/users', label: 'Pengaturan', icon: 'settings' },
   ],
-  teknisi_keuangan: [
+  admin_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },

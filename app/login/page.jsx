@@ -161,12 +161,6 @@ export default function LoginPage() {
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
-
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-3)' }}>
-          <p>Default Superadmin:</p>
-          <p><strong>Username:</strong> adminiqbal</p>
-          <p><strong>Password:</strong> usc@_140451</p>
-        </div>
       </div>
     </div>
   )
