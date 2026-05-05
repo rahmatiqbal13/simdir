@@ -7,7 +7,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [formData, setFormData] = useState({
-    username: '',
+    identifier: '', // Bisa username atau email
     password: ''
   })
 
@@ -22,20 +22,44 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      // Cari user berdasarkan username
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', formData.username)
-        .single()
-
-      if (userError || !userData) {
-        throw new Error('Username atau password salah')
+      const identifier = formData.identifier.trim()
+      
+      // Cek apakah input adalah email atau username
+      const isEmail = identifier.includes('@')
+      
+      let userData
+      
+      if (isEmail) {
+        // Cari user berdasarkan email
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', identifier)
+          .single()
+        
+        if (userError || !data) {
+          throw new Error('Email atau password salah')
+        }
+        
+        userData = data
+      } else {
+        // Cari user berdasarkan username
+        const { data, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('username', identifier)
+          .single()
+        
+        if (userError || !data) {
+          throw new Error('Username atau password salah')
+        }
+        
+        userData = data
       }
 
       // Verifikasi password
       if (userData.password !== formData.password) {
-        throw new Error('Username atau password salah')
+        throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
       }
 
       // Cek apakah user aktif
@@ -108,14 +132,14 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Username</label>
+            <label htmlFor="identifier">Username atau Email</label>
             <input
               type="text"
-              id="username"
-              name="username"
-              placeholder="Masukkan username"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              id="identifier"
+              name="identifier"
+              placeholder="Masukkan username atau email"
+              value={formData.identifier}
+              onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
               required
             />
           </div>
