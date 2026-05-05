@@ -108,6 +108,19 @@ node test-legacy-jwt.js
 5. **Legacy JWT**: Required for verifying tokens from legacy Supabase projects
 6. **Agenda State**: Uses React Context + localStorage hybrid (see `AgendaContext.jsx`)
 
+### Login Error 500 (RLS Issue)
+
+If login returns 500 error from Supabase, it's caused by RLS policies blocking anonymous access to the `users` table.
+
+**Solution**: Run `fix-login-rls.sql` in Supabase SQL Editor to create RPC functions that bypass RLS:
+```sql
+-- Functions created:
+-- get_user_by_username(p_username VARCHAR)
+-- get_user_by_email(p_email VARCHAR)
+```
+
+The login page (`app/login/page.jsx`) uses these RPC functions instead of direct table queries to avoid RLS restrictions during authentication.
+
 ## Testing
 
 No formal test suite configured. Manual testing approach:

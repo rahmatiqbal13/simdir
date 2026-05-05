@@ -30,31 +30,25 @@ export default function LoginPage() {
       let userData
       
       if (isEmail) {
-        // Cari user berdasarkan email
+        // Cari user berdasarkan email menggunakan RPC function
         const { data, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', identifier)
-          .single()
+          .rpc('get_user_by_email', { p_email: identifier })
         
-        if (userError || !data) {
+        if (userError || !data || data.length === 0) {
           throw new Error('Email atau password salah')
         }
         
-        userData = data
+        userData = data[0]
       } else {
-        // Cari user berdasarkan username
+        // Cari user berdasarkan username menggunakan RPC function
         const { data, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('username', identifier)
-          .single()
+          .rpc('get_user_by_username', { p_username: identifier })
         
-        if (userError || !data) {
+        if (userError || !data || data.length === 0) {
           throw new Error('Username atau password salah')
         }
         
-        userData = data
+        userData = data[0]
       }
 
       // Verifikasi password
