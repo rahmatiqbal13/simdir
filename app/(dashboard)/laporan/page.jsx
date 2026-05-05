@@ -333,51 +333,77 @@ function PreviewModal({ show, onClose, filterPeriode, filterBulan, filterTahun, 
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal-content" style={{ maxWidth: '900px' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: '1000px', maxHeight: '90vh', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h2>Preview Laporan</h2>
           <button onClick={onClose}>✕</button>
         </div>
-        <div style={{ padding: '1.5rem' }}>
+        <div style={{ padding: '2rem' }}>
           {/* Header Laporan */}
-          <div style={{ textAlign: 'center', marginBottom: '2rem', paddingBottom: '1rem', borderBottom: '2px solid var(--text)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+          <div style={{ 
+            textAlign: 'center', 
+            marginBottom: '2rem', 
+            paddingBottom: '1.5rem', 
+            borderBottom: '2px solid #333'
+          }}>
+            <h3 style={{ 
+              fontSize: '1.5rem', 
+              fontWeight: 700, 
+              marginBottom: '0.75rem',
+              letterSpacing: '0.5px'
+            }}>
               LAPORAN SERAPAN DANA
             </h3>
-            <p className="muted">Periode {periodeText}</p>
-            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>
+            <p style={{ fontSize: '1rem', color: 'var(--text-2)', marginBottom: '0.5rem' }}>
+              Periode {periodeText}
+            </p>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>
               Tanggal Cetak: {formatDate(new Date())}
             </p>
           </div>
 
           {/* Ringkasan */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem' }}>Ringkasan Anggaran</h4>
+          <div style={{ marginBottom: '2.5rem' }}>
+            <h4 style={{ 
+              fontSize: '1rem', 
+              fontWeight: 600, 
+              marginBottom: '1rem',
+              color: 'var(--text)'
+            }}>Ringkasan Anggaran</h4>
             <div style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(4, 1fr)', 
               gap: '1rem',
-              background: 'var(--surface-2)',
-              padding: '1rem',
-              borderRadius: 'var(--radius)'
+              background: '#f8fafc',
+              padding: '1.25rem',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
             }}>
-              <div style={{ textAlign: 'center' }}>
-                <p className="muted" style={{ fontSize: '0.6875rem' }}>Total Pagu</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700 }}>{formatRupiah(totals.pagu)}</p>
+              <div style={{ textAlign: 'center', padding: '0.5rem' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Total Pagu</p>
+                <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1e293b' }}>{formatRupiah(totals.pagu)}</p>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <p className="muted" style={{ fontSize: '0.6875rem' }}>Total SPJ</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--success)' }}>{formatRupiah(totals.spj)}</p>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Total SPJ</p>
+                <p style={{ fontSize: '1.125rem', fontWeight: 700, color: '#059669' }}>{formatRupiah(totals.spj)}</p>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <p className="muted" style={{ fontSize: '0.6875rem' }}>Sisa Dana</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: totals.sisa < 0 ? 'var(--danger)' : 'var(--text)' }}>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Sisa Dana</p>
+                <p style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: 700, 
+                  color: totals.sisa < 0 ? '#dc2626' : '#1e293b' 
+                }}>
                   {formatRupiah(totals.sisa)}
                 </p>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <p className="muted" style={{ fontSize: '0.6875rem' }}>% Serapan</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: totals.serapan >= 80 ? 'var(--success)' : totals.serapan >= 50 ? 'var(--warning)' : 'var(--danger)' }}>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>% Serapan</p>
+                <p style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: 700, 
+                  color: totals.serapan >= 80 ? '#059669' : totals.serapan >= 50 ? '#d97706' : '#dc2626'
+                }}>
                   {totals.serapan}%
                 </p>
               </div>
@@ -385,18 +411,31 @@ function PreviewModal({ show, onClose, filterPeriode, filterBulan, filterTahun, 
           </div>
 
           {/* Tabel Detail */}
-          <div style={{ marginBottom: '2rem' }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '1rem' }}>Detail Program Kerja</h4>
-            <div className="table-wrap">
-              <table style={{ fontSize: '0.8125rem' }}>
+          <div style={{ marginBottom: '3rem' }}>
+            <h4 style={{ 
+              fontSize: '1rem', 
+              fontWeight: 600, 
+              marginBottom: '1rem',
+              color: 'var(--text)'
+            }}>Detail Program Kerja</h4>
+            <div style={{ 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '8px', 
+              overflow: 'hidden'
+            }}>
+              <table style={{ 
+                fontSize: '0.875rem', 
+                width: '100%', 
+                borderCollapse: 'collapse'
+              }}>
                 <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Program Kerja</th>
-                    <th className="text-right">Pagu</th>
-                    <th className="text-right">SPJ</th>
-                    <th className="text-right">Sisa</th>
-                    <th className="text-center">%</th>
+                  <tr style={{ background: '#f1f5f9' }}>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '50px' }}>No</th>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Program Kerja</th>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '150px' }}>Pagu</th>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '150px' }}>SPJ</th>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '150px' }}>Sisa</th>
+                    <th style={{ padding: '0.875rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '80px' }}>%</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -404,13 +443,20 @@ function PreviewModal({ show, onClose, filterPeriode, filterBulan, filterTahun, 
                     const sisa = item.pagu - item.total_spj;
                     const pct = item.pagu > 0 ? Math.round((item.total_spj / item.pagu) * 100) : 0;
                     return (
-                      <tr key={idx}>
-                        <td>{idx + 1}</td>
-                        <td>{item.nama}</td>
-                        <td className="text-right">{formatRupiah(item.pagu)}</td>
-                        <td className="text-right">{formatRupiah(item.total_spj)}</td>
-                        <td className={`text-right ${sisa < 0 ? 'text-danger' : ''}`}>{formatRupiah(sisa)}</td>
-                        <td className="text-center">{pct}%</td>
+                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'center' }}>{idx + 1}</td>
+                        <td style={{ padding: '0.875rem 1rem' }}>{item.nama}</td>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.pagu)}</td>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.total_spj)}</td>
+                        <td style={{ 
+                          padding: '0.875rem 1rem', 
+                          textAlign: 'right', 
+                          fontFamily: 'monospace',
+                          color: sisa < 0 ? '#dc2626' : 'inherit'
+                        }}>
+                          {formatRupiah(sisa)}
+                        </td>
+                        <td style={{ padding: '0.875rem 1rem', textAlign: 'center', fontWeight: 500 }}>{pct}%</td>
                       </tr>
                     );
                   })}
@@ -420,16 +466,28 @@ function PreviewModal({ show, onClose, filterPeriode, filterBulan, filterTahun, 
           </div>
 
           {/* Tanda Tangan */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3rem' }}>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: '0.8125rem', marginBottom: '3rem' }}>Mengetahui,</p>
-              <p style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Kepala Unit</p>
-              <p style={{ fontSize: '0.75rem' }}>NIP. ....................</p>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            marginTop: '2rem',
+            paddingRight: '3rem'
+          }}>
+            <div style={{ textAlign: 'center', width: '250px' }}>
+              <p style={{ fontSize: '0.875rem', marginBottom: '4rem' }}>Mengetahui,</p>
+              <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem' }}>Kepala Unit</p>
+              <p style={{ fontSize: '0.8125rem', color: '#64748b' }}>NIP. ....................</p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'flex-end', 
+            gap: '0.75rem', 
+            marginTop: '2.5rem', 
+            paddingTop: '1.5rem', 
+            borderTop: '1px solid #e2e8f0' 
+          }}>
             <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
             <button className="btn btn-primary">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
