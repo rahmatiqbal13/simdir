@@ -350,7 +350,7 @@ export default function LoginPage() {
               </tr>
               <tr>
                 <td style={{ padding: '0.25rem' }}>operator</td>
-                <td style={{ padding: '0.25rem' }}>operator123</td>
+                <td style={{ padding: '0.25rem' }}>operatorusc@_123</td>
                 <td style={{ padding: '0.25rem' }}>admin</td>
               </tr>
               <tr>

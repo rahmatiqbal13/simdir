@@ -1,5 +1,9 @@
 // Test file untuk memastikan Legacy JWT berfungsi
+import { config } from 'dotenv';
 import { verifyLegacyToken, generateLegacyToken, decodeToken } from './lib/jwt-legacy.js';
+
+// Load environment variables dari .env.local
+config({ path: '.env.local' });
 
 console.log('🧪 Testing Legacy JWT Configuration...\n');
 
