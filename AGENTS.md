@@ -1,135 +1,119 @@
 # AGENTS.md - SIMDIR Next.js
 
+Sistem Informasi Manajemen Direktorat USC (SIMDIR) - Agenda & Keuangan
+
 ## Quick Start
 
 ```bash
 # Install dependencies
 npm install
 
-# Run dev server (defaults to 127.0.0.1:3000)
+# Setup environment
+copy .env.local.example .env.local
+# Edit .env.local dengan credentials Supabase Anda
+
+# Run dev server
 npm run dev
 
 # Build for production
 npm run build
 ```
 
-## Environment Setup (Required)
+## Environment Setup
 
-Copy `.env.local.example` → `.env.local` and fill in:
+Copy `.env.local.example` → `.env.local` dan isi:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-LEGACY_JWT_SECRET=your-legacy-jwt-secret  # From Supabase Dashboard → Settings → API
+LEGACY_JWT_SECRET=your-legacy-jwt-secret
 ```
 
-**Critical**: The `LEGACY_JWT_SECRET` must be obtained from Supabase Dashboard → Project Settings → Configuration → API → "Legacy JWT secret (still used)". See `JWT-SETUP-GUIDE.md` for details.
+**Ambil Legacy JWT Secret dari**: Supabase Dashboard → Project Settings → API → "Legacy JWT secret (still used)"
 
 ## Architecture
 
 - **Framework**: Next.js 15 + React 19 + TypeScript (strict: false)
 - **Database**: Supabase (PostgreSQL)
-- **Auth**: Supabase Auth with custom middleware-based RBAC
-- **Styling**: Tailwind CSS via globals.css
-- **Icons**: Custom SVG icons (no icon library)
+- **Auth**: Supabase Auth dengan custom JWT middleware
+- **Styling**: Tailwind CSS
 
 ### Route Structure
 
 ```
 app/
-├── (dashboard)/          # Protected routes with sidebar layout
-│   ├── dashboard/        # Main dashboard
-│   ├── kelola-agenda/    # Agenda management
-│   ├── surat/           # Letters (super_admin, pimpinan only)
-│   ├── program-kerja/   # Work programs (super_admin, admin_keuangan, pimpinan)
-│   ├── pencairan/       # Fund disbursement (super_admin, admin_keuangan, pimpinan)
-│   ├── laporan/         # Reports (super_admin, admin_keuangan only)
-│   └── pengaturan/      # Settings (super_admin only)
-├── (public)/            # Public routes (agenda view)
-└── login/               # Auth page
+├── (dashboard)/          # Protected routes
+│   ├── dashboard/        # Overview & statistik
+│   ├── kelola-agenda/    # Manajemen agenda
+│   ├── surat/            # Surat (super_admin, pimpinan)
+│   ├── program-kerja/    # Program & anggaran
+│   ├── pencairan/        # Pencairan dana
+│   ├── laporan/          # Laporan (admin only)
+│   └── pengaturan/       # Settings (super_admin)
+├── (public)/             # Public routes
+└── login/                # Auth page
 ```
 
 ### Role-Based Access (RBAC)
 
-Roles defined in `middleware.js` and `app/(dashboard)/layout.jsx`:
-
 | Role | Permissions |
 |------|-------------|
-| `super_admin` | Full access to all modules |
-| `admin_keuangan` | Dashboard, agenda, program-kerja, pencairan, laporan |
-| `admin` | Dashboard, kelola-agenda only |
-| `pimpinan` | Read-only: dashboard, agenda, surat, program-kerja, pencairan |
-
-**Access Control**: Enforced in `middleware.js` — unauthorized access redirects to `/dashboard`.
-
-## Key Files
-
-- `middleware.js` — Route protection & RBAC enforcement
-- `lib/supabase/client.js` — Browser Supabase client
-- `lib/supabase/server.js` — Server Supabase client (for Server Components)
-- `lib/auth.js` — Client-side auth hook (`useAuth`)
-- `context/AgendaContext.jsx` — Global agenda state (localStorage-based)
-- `lib/jwt-legacy.js` — Legacy JWT token verification utilities
+| `super_admin` | Full access |
+| `admin_keuangan` | Dashboard, agenda, program, pencairan, laporan |
+| `admin` | Dashboard, agenda only |
+| `pimpinan` | Read-only: dashboard, agenda, surat, program, pencairan |
 
 ## Database Setup
 
-Multiple SQL migration files exist:
-- `supabase-schema.sql` — Main schema
-- `database-setup-final.sql` — Final setup script
-- `database-setup-v3.sql`, `database-setup-fixed.sql` — Iterations
-- `check-columns.sql` — Column verification
+Jalankan di Supabase SQL Editor:
 
-**Note**: The app was originally built with localStorage (MVP), then migrated to Supabase. Some demo data may still reference localStorage patterns.
+1. **`supabase-schema.sql`** - Setup tabel, RLS, dan data awal
+2. **`fix-login-rls.sql`** - Fix login error 500 (bypass RLS untuk auth)
 
-## Common Tasks
+### Default Login
 
-### Test JWT Configuration
+| Username | Password |
+|----------|----------|
+| `adminiqbal` | `usc@_140451` |
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `middleware.js` | Route protection & RBAC |
+| `lib/supabase/client.js` | Browser Supabase client |
+| `lib/supabase/server.js` | Server Supabase client |
+| `lib/auth.js` | Client-side auth hook |
+| `lib/jwt-legacy.js` | Legacy JWT verification |
+| `context/AgendaContext.jsx` | Global agenda state |
+
+## Common Commands
+
 ```bash
+# Test JWT configuration
 node test-legacy-jwt.js
+
+# Dev server (http://127.0.0.1:3000)
+npm run dev
+
+# Production build
+npm run build
 ```
 
-### Add New Protected Route
-1. Create folder under `app/(dashboard)/`
-2. Add route to `middleware.js` role checks
-3. Add navigation item to `navItems` in `app/(dashboard)/layout.jsx`
+## Troubleshooting
 
-### Client vs Server Supabase
-- **Client Components**: Use `lib/supabase/client.js` or `createBrowserClient` directly
-- **Server Components**: Use `lib/supabase/server.js` (`await supabaseServer()`)
-- **Middleware**: Use `createServerClient` from `@supabase/ssr`
+### Login Error 500
+Solusi: Pastikan `fix-login-rls.sql` sudah dijalankan di Supabase.
 
-## Gotchas
+### JWT Invalid
+Solusi: Cek `LEGACY_JWT_SECRET` di `.env.local` sudah sesuai dengan Supabase Dashboard.
 
-1. **Strict TypeScript is OFF**: `tsconfig.json` has `"strict": false`
-2. **Path Alias**: `@/*` maps to root directory (`./*`)
-3. **Port**: Dev server runs on `127.0.0.1:3000` (not localhost)
-4. **No Icon Library**: Icons are inline SVGs defined in layout files
-5. **Legacy JWT**: Required for verifying tokens from legacy Supabase projects
-6. **Agenda State**: Uses React Context + localStorage hybrid (see `AgendaContext.jsx`)
-
-### Login Error 500 (RLS Issue)
-
-If login returns 500 error from Supabase, it's caused by RLS policies blocking anonymous access to the `users` table.
-
-**Solution**: Run `fix-login-rls.sql` in Supabase SQL Editor to create RPC functions that bypass RLS:
-```sql
--- Functions created:
--- get_user_by_username(p_username VARCHAR)
--- get_user_by_email(p_email VARCHAR)
-```
-
-The login page (`app/login/page.jsx`) uses these RPC functions instead of direct table queries to avoid RLS restrictions during authentication.
-
-## Testing
-
-No formal test suite configured. Manual testing approach:
-- Test JWT: `node test-legacy-jwt.js`
-- Test roles: Log in with different role accounts
-- Test routes: Try accessing restricted URLs directly
+### RLS Permission Denied
+Solusi: Jalankan `fix-login-rls.sql` untuk membuat RPC functions.
 
 ## Deployment
 
-- **Target**: Vercel (configured)
-- **Environment**: Ensure all env vars are set in Vercel dashboard
-- **Build Command**: `next build` (standard)
+- **Target**: Vercel
+- **Build**: `next build`
+- Pastikan semua env vars diatur di Vercel Dashboard
