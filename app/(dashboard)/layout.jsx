@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { createClientComponentClient } from '@supabase/supabase-js'
 
 const navItems = {
   super_admin: [
@@ -14,7 +15,7 @@ const navItems = {
     { href: '/laporan', label: 'Laporan', icon: 'chart' },
     { href: '/pengaturan/users', label: 'Pengaturan', icon: 'settings' },
   ],
-  admin_keuangan: [
+  teknisi_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
@@ -24,13 +25,6 @@ const navItems = {
   admin: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
-  ],
-  pimpinan: [
-    { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
-    { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
-    { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
-    { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
   ],
 }
 
@@ -44,17 +38,57 @@ const icons = {
   settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
   logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
   bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-  refresh: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
   menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
   chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
 }
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [user, setUser] = useState(null)
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
   const pathname = usePathname()
-  const userRole = 'super_admin'
-  const userName = 'Administrator'
-  const items = navItems[userRole] || navItems.pimpinan
+
+  const supabase = createClientComponentClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      
+      if (authUser) {
+        setUser(authUser)
+        
+        // Get profile data
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+        
+        setProfile(profileData)
+      }
+      
+      setLoading(false)
+    }
+
+    getUser()
+  }, [])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
+
+  if (loading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>
+  }
+
+  const userRole = profile?.role || 'admin'
+  const userName = profile?.full_name || user?.email?.split('@')[0] || 'User'
+  const items = navItems[userRole] || navItems.admin
 
   return (
     <div className="app-shell">
@@ -82,13 +116,13 @@ export default function DashboardLayout({ children }) {
 
         <div className="sidebar-footer">
           <div className="user-info">
-            <div className="user-avatar">{userName.charAt(0)}</div>
+            <div className="user-avatar">{userName.charAt(0).toUpperCase()}</div>
             <div>
               <div className="user-name">{userName}</div>
               <div className="user-role">{userRole.replace('_', ' ')}</div>
             </div>
           </div>
-          <button className="logout-btn">
+          <button className="logout-btn" onClick={handleLogout}>
             <span>{icons.logout}</span>
             Logout
           </button>
@@ -115,11 +149,7 @@ export default function DashboardLayout({ children }) {
           <div className="topbar-right">
             <button className="topbar-btn" title="Notifications">
               {icons.bell}
-              <span className="badge">3</span>
-            </button>
-            <button className="btn-reset">
-              {icons.refresh}
-              Reset Data Demo
+              <span className="badge">0</span>
             </button>
           </div>
         </header>

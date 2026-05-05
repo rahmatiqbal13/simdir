@@ -1,32 +1,84 @@
 'use client'
 
 import { useState } from 'react'
-
-const demoUsers = [
-  { role: 'Super Admin', email: 'superadmin@usc.local', desc: 'Akses penuh ke semua fitur' },
-  { role: 'Admin Keuangan', email: 'keuangan@usc.local', desc: 'Kelola program kerja & SPJ' },
-  { role: 'Admin', email: 'admin@usc.local', desc: 'Kelola agenda & surat' },
-  { role: 'Pimpinan', email: 'pimpinan@usc.local', desc: 'Lihat laporan & rekap' },
-]
+import { createClientComponentClient } from '@supabase/supabase-js'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [error, setError] = useState(null)
+  const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  })
 
-  const handleQuickLogin = (user) => {
-    setSelectedUser(user.email)
-    setLoading(true)
-    setTimeout(() => {
-      window.location.href = '/dashboard'
-    }, 800)
-  }
+  const supabase = createClientComponentClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
+    setError(null)
+
+    try {
+      // Cari user berdasarkan username
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', formData.username)
+        .single()
+
+      if (userError || !userData) {
+        throw new Error('Username atau password salah')
+      }
+
+      // Verifikasi password
+      if (userData.password !== formData.password) {
+        throw new Error('Username atau password salah')
+      }
+
+      // Cek apakah user aktif
+      if (!userData.is_active) {
+        throw new Error('Akun Anda telah dinonaktifkan')
+      }
+
+      // Login dengan Supabase Auth menggunakan email sebagai identifier
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
+        password: formData.password
+      })
+
+      if (authError) {
+        // Jika auth gagal, coba signup terlebih dahulu
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: userData.email,
+          password: formData.password,
+          options: {
+            data: {
+              username: userData.username,
+              role: userData.role
+            }
+          }
+        })
+
+        if (signUpError) {
+          throw new Error('Gagal login. Silakan coba lagi.')
+        }
+      }
+
+      // Update last login
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userData.id)
+
+      // Redirect ke dashboard
       window.location.href = '/dashboard'
-    }, 1000)
+    } catch (err) {
+      setError(err.message)
+      setLoading(false)
+    }
   }
 
   return (
@@ -38,40 +90,32 @@ export default function LoginPage() {
             <strong>SIMDIR</strong>
           </div>
           <h1>Masuk</h1>
-          <p>Masuk dengan akun demo untuk mengakses sistem</p>
+          <p>Sistem Informasi Manajemen Direktorat USC</p>
         </div>
 
-        <div className="demo-section">
-          <p className="demo-label">Login Cepat (Demo)</p>
-          <div className="demo-grid">
-            {demoUsers.map((user) => (
-              <button
-                key={user.role}
-                type="button"
-                className="demo-btn"
-                onClick={() => handleQuickLogin(user)}
-                disabled={loading}
-              >
-                <span className="demo-btn-role">{user.role}</span>
-                <span className="demo-btn-desc">{user.desc}</span>
-              </button>
-            ))}
+        {error && (
+          <div className="error-msg" style={{ 
+            background: '#fee2e2', 
+            color: '#dc2626', 
+            padding: '0.75rem', 
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            fontSize: '0.875rem'
+          }}>
+            {error}
           </div>
-        </div>
-
-        <div className="divider">
-          <span>atau masuk dengan email</span>
-        </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">Username</label>
             <input
-              type="email"
-              id="email"
-              name="email"
-              placeholder="nama@email.com"
-              defaultValue={selectedUser || ''}
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Masukkan username"
+              value={formData.username}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
             />
           </div>
@@ -83,6 +127,8 @@ export default function LoginPage() {
               id="password"
               name="password"
               placeholder="Masukkan kata sandi"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
           </div>
@@ -91,6 +137,12 @@ export default function LoginPage() {
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
+
+        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+          <p>Default Superadmin:</p>
+          <p><strong>Username:</strong> adminiqbal</p>
+          <p><strong>Password:</strong> usc@_140451</p>
+        </div>
       </div>
     </div>
   )
