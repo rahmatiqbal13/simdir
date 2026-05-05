@@ -73,14 +73,21 @@ export default function DashboardLayout({ children }) {
         if (authUser) {
           setUser(authUser)
           
-          // Get profile data
+          // Get profile data (sesuaikan dengan struktur tabel yang ada)
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, nama, role, is_active, unit_kerja_id, created_at')
             .eq('id', authUser.id)
             .single()
           
-          setProfile(profileData)
+          if (profileData) {
+            // Mapping kolom 'nama' ke 'full_name' untuk konsistensi UI
+            setProfile({
+              ...profileData,
+              full_name: profileData.nama,
+              username: profileData.nama?.toLowerCase().replace(/\s+/g, '_')
+            })
+          }
           setLoading(false)
           return
         }
@@ -107,7 +114,8 @@ export default function DashboardLayout({ children }) {
           setProfile({
             id: userData.id,
             username: userData.username,
-            full_name: userData.full_name,
+            full_name: userData.full_name || userData.nama,
+            nama: userData.full_name || userData.nama,
             role: userData.role
           })
           setIsLocalMode(true)
@@ -162,7 +170,8 @@ export default function DashboardLayout({ children }) {
   }
 
   const userRole = profile?.role || 'admin'
-  const userName = profile?.full_name || user?.email?.split('@')[0] || 'User'
+  // Support both 'nama' (from Supabase) and 'full_name' (from local)
+  const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const items = navItems[userRole] || navItems.admin
 
   return (

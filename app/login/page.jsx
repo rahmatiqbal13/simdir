@@ -33,6 +33,46 @@ export default function LoginPage() {
     }
   }, [])
 
+  const handleLocalLogin = async (userData, source = 'local') => {
+    console.log(`Logging in via ${source} mode...`)
+    
+    // Simpan session lokal
+    const sessionData = {
+      id: userData.id,
+      username: userData.username,
+      email: userData.email,
+      role: userData.role,
+      full_name: userData.full_name || userData.nama,
+      source: source,
+      loginAt: new Date().toISOString()
+    }
+    
+    const sessionToken = btoa(JSON.stringify(sessionData))
+    
+    localStorage.setItem('simdir_session', sessionToken)
+    localStorage.setItem('simdir_user', JSON.stringify({
+      id: userData.id,
+      username: userData.username,
+      email: userData.email,
+      role: userData.role,
+      full_name: userData.full_name || userData.nama
+    }))
+    
+    // Set cookie untuk middleware
+    try {
+      await fetch('/api/auth/local-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionData: sessionToken })
+      })
+    } catch (e) {
+      console.log('Cookie set failed (non-critical):', e)
+    }
+    
+    setDebugInfo(`Login berhasil via ${source}: ${userData.username || userData.nama}`)
+    window.location.href = '/dashboard'
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -49,9 +89,9 @@ export default function LoginPage() {
       const isEmail = identifier.includes('@')
 
       // ============================================
-      // MODE LOKAL (jika dipilih atau Supabase tidak tersedia)
+      // MODE LOKAL (jika dipilih)
       // ============================================
-      if (useLocalMode || !supabaseConfigOk) {
+      if (useLocalMode) {
         console.log('Using local mode...')
         
         let localData = null
@@ -76,181 +116,127 @@ export default function LoginPage() {
           throw new Error('Akun Anda telah dinonaktifkan')
         }
 
-        // Simpan session lokal
-        const sessionData = {
-          id: userData.id,
-          username: userData.username,
-          email: userData.email,
-          role: userData.role,
-          full_name: userData.full_name,
-          source: 'local',
-          loginAt: new Date().toISOString()
-        }
-        
-        const sessionToken = btoa(JSON.stringify(sessionData))
-        
-        localStorage.setItem('simdir_session', sessionToken)
-        localStorage.setItem('simdir_user', JSON.stringify({
-          id: userData.id,
-          username: userData.username,
-          email: userData.email,
-          role: userData.role,
-          full_name: userData.full_name
-        }))
-        
-        // Set cookie untuk middleware
-        try {
-          await fetch('/api/auth/local-login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionData: sessionToken })
-          })
-        } catch (e) {
-          console.log('Cookie set failed (non-critical):', e)
-        }
-        
-        setDebugInfo(`Login berhasil via Local: ${userData.username}`)
-        window.location.href = '/dashboard'
+        await handleLocalLogin(userData, 'local')
         return
       }
 
       // ============================================
-      // MODE SUPABASE
+      // MODE SUPABASE - Coba cari di database dulu
       // ============================================
-      console.log('Mencoba login via Supabase Auth...')
+      console.log('Mencari user di database...')
+      
+      let userData = null
+      let userSource = null
+      
+      try {
+        // Cari user di database via RPC
+        let rpcData = null
+        let rpcError = null
 
-      // Coba login langsung ke Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: isEmail ? identifier : `${identifier}@placeholder.com`,
+        if (isEmail) {
+          const result = await supabase.rpc('get_user_by_email', { p_email: identifier })
+          rpcData = result.data
+          rpcError = result.error
+        } else {
+          const result = await supabase.rpc('get_user_by_username', { p_username: identifier })
+          rpcData = result.data
+          rpcError = result.error
+        }
+        
+        if (rpcError) {
+          console.error('RPC Error:', rpcError)
+          console.log('Fallback ke local mode...')
+        } else if (rpcData && rpcData.length > 0) {
+          userData = rpcData[0]
+          userSource = 'database'
+          console.log('User found in database:', userData.username || userData.nama)
+        }
+      } catch (rpcErr) {
+        console.log('RPC failed, will try local:', rpcErr.message)
+      }
+
+      // Jika tidak ketemu di database, coba local
+      if (!userData) {
+        console.log('Mencari user di file lokal...')
+        
+        let localData = null
+        
+        if (isEmail) {
+          localData = getLocalUserByEmail(identifier)
+        } else {
+          localData = getLocalUserByUsername(identifier)
+        }
+        
+        if (localData && localData.length > 0) {
+          userData = localData[0]
+          userSource = 'local'
+          console.log('User found locally:', userData.username)
+        }
+      }
+
+      // Jika user tidak ditemukan sama sekali
+      if (!userData) {
+        throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
+      }
+
+      // Verifikasi password
+      if (userData.password !== formData.password) {
+        throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
+      }
+
+      if (!userData.is_active) {
+        throw new Error('Akun Anda telah dinonaktifkan')
+      }
+
+      // ============================================
+      // Coba login ke Supabase Auth (opsional)
+      // Jika gagal, tetap login via local
+      // ============================================
+      console.log('Mencoba login ke Supabase Auth...')
+      
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: userData.email,
         password: formData.password
       })
 
       if (authError) {
-        console.log('Auth error:', authError)
+        console.log('Auth failed (expected if password differs):', authError.message)
+        console.log('Continuing with local session...')
         
-        // Jika email tidak ditemukan di Auth, coba cari di database
-        if (authError.message?.includes('Invalid login credentials') || 
-            authError.message?.includes('User not found')) {
-          
-          console.log('User tidak ditemukan di Auth, mencoba via database...')
-          
-          // Cari user di database
-          let rpcData = null
-          let rpcError = null
-
-          if (isEmail) {
-            const result = await supabase.rpc('get_user_by_email', { p_email: identifier })
-            rpcData = result.data
-            rpcError = result.error
-          } else {
-            const result = await supabase.rpc('get_user_by_username', { p_username: identifier })
-            rpcData = result.data
-            rpcError = result.error
-          }
-          
-          if (rpcError) {
-            console.error('RPC Error:', rpcError)
-            throw new Error('Terjadi kesalahan saat mencari user')
-          }
-          
-          if (!rpcData || rpcData.length === 0) {
-            throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
-          }
-          
-          const userData = rpcData[0]
-          
-          // Verifikasi password
-          if (userData.password !== formData.password) {
-            throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
-          }
-
-          if (!userData.is_active) {
-            throw new Error('Akun Anda telah dinonaktifkan')
-          }
-
-          // Coba buat user di Auth dengan password yang sama
-          console.log('Membuat user di Auth...')
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        // Coba buat user di Auth untuk next time (silent)
+        try {
+          await supabase.auth.signUp({
             email: userData.email,
             password: formData.password,
             options: {
               data: {
                 username: userData.username,
-                full_name: userData.full_name,
+                nama: userData.full_name || userData.nama,
                 role: userData.role
-              }
+              },
+              emailConfirm: true
             }
           })
-
-          if (signUpError) {
-            if (signUpError.message?.includes('already registered')) {
-              // User sudah ada di Auth tapi password beda
-              throw new Error('Email sudah terdaftar dengan password berbeda. Silakan hubungi admin.')
-            }
-            throw new Error('Gagal membuat user: ' + signUpError.message)
-          }
-
-          console.log('User berhasil dibuat di Auth, mencoba login ulang...')
-          
-          // Login ulang
-          const { error: retryError } = await supabase.auth.signInWithPassword({
-            email: userData.email,
-            password: formData.password
-          })
-
-          if (retryError) {
-            throw new Error('Gagal login setelah membuat user: ' + retryError.message)
-          }
-
-          setDebugInfo(`Login berhasil: ${userData.username} (user baru dibuat)`)
-          
-          // Update last login
+          console.log('User created in Auth for future use')
+        } catch (signupErr) {
+          console.log('Could not create auth user (may already exist):', signupErr.message)
+        }
+      } else {
+        console.log('Auth login successful')
+        
+        // Update last login di database
+        try {
           await supabase
             .from('users')
             .update({ last_login: new Date().toISOString() })
             .eq('id', userData.id)
-          
-        } else {
-          throw new Error(authError.message)
+        } catch (e) {
+          console.log('Could not update last_login:', e)
         }
-      } else {
-        // Login berhasil via Auth
-        console.log('Login berhasil via Supabase Auth:', authData)
-        
-        // Cek apakah user ada di database
-        const { data: dbUser, error: dbError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single()
-
-        if (dbError || !dbUser) {
-          console.log('User tidak ditemukan di database, membuat...')
-          
-          // Buat user di database
-          const metadata = authData.user.user_metadata
-          const { error: insertError } = await supabase.from('users').insert({
-            id: authData.user.id,
-            email: authData.user.email,
-            username: metadata?.username || authData.user.email.split('@')[0],
-            full_name: metadata?.full_name || 'User',
-            role: metadata?.role || 'admin',
-            password: 'AUTH_MANAGED', // Password managed by Supabase Auth
-            is_active: true
-          })
-
-          if (insertError) {
-            console.error('Gagal membuat user di database:', insertError)
-          } else {
-            console.log('User berhasil dibuat di database')
-          }
-        }
-
-        setDebugInfo(`Login berhasil via Auth: ${authData.user.email}`)
       }
 
-      // Redirect ke dashboard
-      window.location.href = '/dashboard'
+      // Login via local session (works regardless of Auth status)
+      await handleLocalLogin(userData, userSource)
       
     } catch (err) {
       console.error('Login error:', err)
@@ -299,12 +285,12 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="identifier">Email</label>
+            <label htmlFor="identifier">Username atau Email</label>
             <input
-              type="email"
+              type="text"
               id="identifier"
               name="identifier"
-              placeholder="Masukkan email"
+              placeholder="Masukkan username atau email"
               value={formData.identifier}
               onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
               required
@@ -338,13 +324,42 @@ export default function LoginPage() {
           color: '#6b7280'
         }}>
           <strong>User Tersedia:</strong>
-          <div style={{ marginTop: '0.5rem' }}>
-            <div>• admin@direktorat.ac.id (Supabase Auth)</div>
-            <div>• adminiqbal@usc.ac.id (Local)</div>
-            <div>• keuangan@usc.ac.id (Local)</div>
-            <div>• operator@usc.ac.id (Local)</div>
-            <div>• pimpinan@usc.ac.id (Local)</div>
-          </div>
+          <table style={{ width: '100%', marginTop: '0.5rem', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #d1d5db' }}>
+                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Email/Username</th>
+                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Password</th>
+                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ padding: '0.25rem' }}>admin@direktorat.ac.id</td>
+                <td style={{ padding: '0.25rem' }}>admin123</td>
+                <td style={{ padding: '0.25rem' }}>super_admin</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.25rem' }}>adminiqbal</td>
+                <td style={{ padding: '0.25rem' }}>usc@_140451</td>
+                <td style={{ padding: '0.25rem' }}>super_admin</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.25rem' }}>keuangan</td>
+                <td style={{ padding: '0.25rem' }}>keuangan123</td>
+                <td style={{ padding: '0.25rem' }}>admin_keuangan</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.25rem' }}>operator</td>
+                <td style={{ padding: '0.25rem' }}>operator123</td>
+                <td style={{ padding: '0.25rem' }}>admin</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '0.25rem' }}>pimpinan</td>
+                <td style={{ padding: '0.25rem' }}>pimpinan123</td>
+                <td style={{ padding: '0.25rem' }}>pimpinan</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {supabaseConfigOk && (

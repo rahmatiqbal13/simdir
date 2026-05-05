@@ -57,10 +57,10 @@ export async function middleware(request) {
       if (authUser) {
         user = authUser
         
-        // Get role from profile
+        // Get role from profile (sesuaikan dengan struktur tabel yang ada)
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, nama')  // menggunakan 'nama' bukan 'full_name'
           .eq('id', user.id)
           .single()
         
