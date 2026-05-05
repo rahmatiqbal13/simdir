@@ -1,61 +1,155 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
 const AgendaContext = createContext();
+
+// Inisialisasi Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+let supabase;
+if (supabaseUrl && supabaseKey) {
+  supabase = createClient(supabaseUrl, supabaseKey);
+}
 
 export function AgendaProvider({ children }) {
   const [agenda, setAgenda] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Load data dari Supabase saat mount
   useEffect(() => {
-    const stored = localStorage.getItem('simdir_agenda');
-    if (stored) {
-      setAgenda(JSON.parse(stored));
-    } else {
-      const defaultAgenda = [
-        { id: '1', judul: 'Rapat Evaluasi Program Semester', tanggal_mulai: '2026-05-10', tanggal_selesai: '2026-05-10', lokasi: 'Ruang Rapat USC', penyelenggara: 'USC', jenis: 'internal', deskripsi: 'Evaluasi program kerja semester awal', pic: 'Budi Santoso' },
-        { id: '2', judul: 'Pelatihan Manajemen Olahraga', tanggal_mulai: '2026-05-05', tanggal_selesai: '2026-05-07', lokasi: 'Gedung Olahraga', penyelenggara: 'PUI Keolahragaan', jenis: 'internal', deskripsi: 'Pelatihan untuk staf administrasi', pic: 'Siti Rahayu' },
-        { id: '3', judul: 'Audit Internal Keuangan', tanggal_mulai: '2026-04-20', tanggal_selesai: '2026-04-25', lokasi: 'Kantor USC', penyelenggara: 'External - KAP Smith & Co', jenis: 'eksternal', deskripsi: 'Audit rutin keuangan', pic: null },
-        { id: '4', judul: 'Workshop Digital Transformation', tanggal_mulai: '2026-06-01', tanggal_selesai: '2026-06-03', lokasi: 'Aula Utama', penyelenggara: 'PUI Seni Budaya', jenis: 'internal', deskripsi: 'Workshop transformasi digital', pic: 'Dr. Purnomo' },
-      ];
-      setAgenda(defaultAgenda);
-      localStorage.setItem('simdir_agenda', JSON.stringify(defaultAgenda));
-    }
-    setLoading(false);
+    loadAgenda();
   }, []);
 
-  const addAgenda = (item) => {
-    const newAgenda = [...agenda, item];
-    setAgenda(newAgenda);
-    localStorage.setItem('simdir_agenda', JSON.stringify(newAgenda));
+  const loadAgenda = async () => {
+    try {
+      setLoading(true);
+      
+      if (!supabase) {
+        setError('Supabase belum dikonfigurasi');
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: supabaseError } = await supabase
+        .from('agenda')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (supabaseError) {
+        console.error('Error loading agenda:', supabaseError);
+        setError('Gagal memuat data agenda');
+      } else {
+        setAgenda(data || []);
+        setError(null);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Terjadi kesalahan');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateAgenda = (id, item) => {
-    const newAgenda = agenda.map(a => a.id === id ? item : a);
-    setAgenda(newAgenda);
-    localStorage.setItem('simdir_agenda', JSON.stringify(newAgenda));
+  const addAgenda = async (item) => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase belum dikonfigurasi');
+      }
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const agendaData = {
+        ...item,
+        created_by: user?.id || null
+      };
+
+      const { data, error: supabaseError } = await supabase
+        .from('agenda')
+        .insert([agendaData])
+        .select()
+        .single();
+
+      if (supabaseError) {
+        console.error('Error adding agenda:', supabaseError);
+        throw supabaseError;
+      }
+
+      setAgenda(prev => [data, ...prev]);
+      return data;
+    } catch (err) {
+      console.error('Error:', err);
+      throw err;
+    }
   };
 
-  const deleteAgenda = (id) => {
-    const newAgenda = agenda.filter(a => a.id !== id);
-    setAgenda(newAgenda);
-    localStorage.setItem('simdir_agenda', JSON.stringify(newAgenda));
+  const updateAgenda = async (id, item) => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase belum dikonfigurasi');
+      }
+
+      const { data, error: supabaseError } = await supabase
+        .from('agenda')
+        .update(item)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (supabaseError) {
+        console.error('Error updating agenda:', supabaseError);
+        throw supabaseError;
+      }
+
+      setAgenda(prev => prev.map(a => a.id === id ? data : a));
+      return data;
+    } catch (err) {
+      console.error('Error:', err);
+      throw err;
+    }
   };
 
-  const resetAgenda = () => {
-    const defaultAgenda = [
-      { id: '1', judul: 'Rapat Evaluasi Program Semester', tanggal_mulai: '2026-05-10', tanggal_selesai: '2026-05-10', lokasi: 'Ruang Rapat USC', penyelenggara: 'USC', jenis: 'internal', deskripsi: 'Evaluasi program kerja semester awal', pic: 'Budi Santoso' },
-      { id: '2', judul: 'Pelatihan Manajemen Olahraga', tanggal_mulai: '2026-05-05', tanggal_selesai: '2026-05-07', lokasi: 'Gedung Olahraga', penyelenggara: 'PUI Keolahragaan', jenis: 'internal', deskripsi: 'Pelatihan untuk staf administrasi', pic: 'Siti Rahayu' },
-      { id: '3', judul: 'Audit Internal Keuangan', tanggal_mulai: '2026-04-20', tanggal_selesai: '2026-04-25', lokasi: 'Kantor USC', penyelenggara: 'External - KAP Smith & Co', jenis: 'eksternal', deskripsi: 'Audit rutin keuangan', pic: null },
-      { id: '4', judul: 'Workshop Digital Transformation', tanggal_mulai: '2026-06-01', tanggal_selesai: '2026-06-03', lokasi: 'Aula Utama', penyelenggara: 'PUI Seni Budaya', jenis: 'internal', deskripsi: 'Workshop transformasi digital', pic: 'Dr. Purnomo' },
-    ];
-    setAgenda(defaultAgenda);
-    localStorage.setItem('simdir_agenda', JSON.stringify(defaultAgenda));
+  const deleteAgenda = async (id) => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase belum dikonfigurasi');
+      }
+
+      const { error: supabaseError } = await supabase
+        .from('agenda')
+        .delete()
+        .eq('id', id);
+
+      if (supabaseError) {
+        console.error('Error deleting agenda:', supabaseError);
+        throw supabaseError;
+      }
+
+      setAgenda(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Error:', err);
+      throw err;
+    }
+  };
+
+  const refreshAgenda = async () => {
+    await loadAgenda();
   };
 
   return (
-    <AgendaContext.Provider value={{ agenda, loading, addAgenda, updateAgenda, deleteAgenda, resetAgenda }}>
+    <AgendaContext.Provider value={{ 
+      agenda, 
+      loading, 
+      error,
+      addAgenda, 
+      updateAgenda, 
+      deleteAgenda, 
+      refreshAgenda 
+    }}>
       {children}
     </AgendaContext.Provider>
   );

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useAgenda } from '@/context/AgendaContext'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -865,101 +866,10 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 
 // ============ HALAMAN UTAMA ============
 export default function AgendaManagePage() {
-  // Sample data
-  const [agenda, setAgenda] = useState([
-    { 
-      id: '1', 
-      judul: 'Rapat Evaluasi Program Q1', 
-      tanggal_mulai: '2026-05-20', 
-      tanggal_selesai: '2026-05-20', 
-      lokasi: 'Ruang Rapat Utama', 
-      jenis: 'internal', 
-      penyelenggara: 'USC',
-      deskripsi: 'Evaluasi capaian program kerja triwulan pertama',
-      pic: 'Budi Santoso'
-    },
-    { 
-      id: '2', 
-      judul: 'Workshop Keuangan Internal', 
-      tanggal_mulai: '2026-05-22', 
-      tanggal_selesai: '2026-05-23', 
-      waktu_mulai: '08:00',
-      waktu_selesai: '16:00',
-      lokasi: 'Aula USC', 
-      jenis: 'internal', 
-      penyelenggara: 'PUI Keolahragaan',
-      deskripsi: 'Pelatihan manajemen keuangan untuk admin unit',
-      pic: 'Siti Rahayu'
-    },
-    { 
-      id: '3', 
-      judul: 'Rapat Evaluasi Q1 via Zoom', 
-      tanggal_mulai: '2026-05-20', 
-      tanggal_selesai: '2026-05-20', 
-      waktu_mulai: '14:00',
-      waktu_selesai: '16:00',
-      lokasi: 'Online Meeting', 
-      link_meeting: 'https://zoom.us/j/1234567890',
-      jenis: 'internal', 
-      penyelenggara: 'USC',
-      deskripsi: 'Evaluasi capaian program kerja triwulan pertama',
-      pic: 'Budi Santoso'
-    },
-    { 
-      id: '4', 
-      judul: 'Pelatihan SPJ', 
-      tanggal_mulai: '2026-05-18', 
-      tanggal_selesai: '2026-05-18', 
-      lokasi: 'Ruang Training', 
-      jenis: 'internal', 
-      penyelenggara: 'Kolam Renang',
-      deskripsi: 'Pelatihan pengisian SPJ untuk unit kerja',
-      pic: 'Ahmad Hidayat'
-    },
-    { 
-      id: '5', 
-      judul: 'Seminar Olahraga Pendidikan', 
-      tanggal_mulai: '2026-06-01', 
-      tanggal_selesai: '2026-06-02', 
-      lokasi: 'Gedung Auditorium', 
-      jenis: 'eksternal', 
-      penyelenggara: 'External - Kemenpora',
-      deskripsi: 'Seminar nasional tentang pengembangan olahraga pendidikan',
-      pic: 'Manual: Prof. Ahmad'
-    },
-    { 
-      id: '6', 
-      judul: 'Rapat Koordinasi Bulanan', 
-      tanggal_mulai: '2026-05-15', 
-      tanggal_selesai: '2026-05-15', 
-      lokasi: 'Ruang Rapat Lt. 2', 
-      jenis: 'internal', 
-      penyelenggara: 'SSFC',
-      deskripsi: '',
-      pic: 'Dewi Lestari'
-    },
-    { 
-      id: '7', 
-      judul: 'Audiensi dengan Gubernur Jatim', 
-      tanggal_mulai: '2026-06-08', 
-      tanggal_selesai: '2026-06-08', 
-      lokasi: 'Gedung Negara Grahadi', 
-      jenis: 'pimpinan', 
-      penyelenggara: 'Gubernur Jawa Timur',
-      disposisi: 'Dr. Purnomo',
-      deskripsi: 'Audiensi terkait kerjasama olahraga dan seni budaya.'
-    },
-    { 
-      id: '8', 
-      judul: 'Rapat Koordinasi dengan Rektor', 
-      tanggal_mulai: '2026-05-28', 
-      tanggal_selesai: '2026-05-28', 
-      lokasi: 'Ruang Rapat Rektorat', 
-      jenis: 'pimpinan', 
-      penyelenggara: 'Rektor Unesa',
-      deskripsi: 'Koordinasi program kerja USC dengan Rektor.'
-    },
-  ])
+  const { agenda, loading: agendaLoading, error: agendaError, addAgenda, updateAgenda, deleteAgenda, refreshAgenda } = useAgenda()
+  
+  // Local loading state for operations
+  const [operationLoading, setOperationLoading] = useState(false)
 
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -968,8 +878,23 @@ export default function AgendaManagePage() {
   const [jenisFilter, setJenisFilter] = useState('all')
   const [viewMode, setViewMode] = useState('card')
   const [currentPage, setCurrentPage] = useState(1)
+  const [userRole, setUserRole] = useState('admin')
   
-  const userRole = 'super_admin'
+  useEffect(() => {
+    // Get user role from session
+    try {
+      const sessionData = localStorage.getItem('simdir_session')
+      if (sessionData) {
+        const decoded = JSON.parse(atob(sessionData))
+        if (decoded.role) {
+          setUserRole(decoded.role)
+        }
+      }
+    } catch (e) {
+      console.error('Error reading user role:', e)
+    }
+  }, [])
+  
   const canEdit = ['super_admin', 'admin'].includes(userRole)
 
   const now = new Date()
@@ -1028,20 +953,36 @@ export default function AgendaManagePage() {
     setShowModal(true)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
-      setAgenda(agenda.filter(a => a.id !== id))
+      setOperationLoading(true)
+      try {
+        await deleteAgenda(id)
+        await refreshAgenda()
+      } catch (err) {
+        alert('Gagal menghapus agenda: ' + err.message)
+      } finally {
+        setOperationLoading(false)
+      }
     }
   }
 
-  const handleSave = (item) => {
-    if (editingItem) {
-      setAgenda(agenda.map(a => a.id === editingItem.id ? item : a))
-    } else {
-      setAgenda([...agenda, item])
+  const handleSave = async (item) => {
+    setOperationLoading(true)
+    try {
+      if (editingItem) {
+        await updateAgenda(editingItem.id, item)
+      } else {
+        await addAgenda(item)
+      }
+      await refreshAgenda()
+      setShowModal(false)
+      setEditingItem(null)
+    } catch (err) {
+      alert('Gagal menyimpan agenda: ' + err.message)
+    } finally {
+      setOperationLoading(false)
     }
-    setShowModal(false)
-    setEditingItem(null)
   }
 
   const clearFilters = () => {
@@ -1052,6 +993,26 @@ export default function AgendaManagePage() {
   }
 
   const hasFilters = searchQuery || statusFilter !== 'all' || jenisFilter !== 'all'
+
+  if (agendaLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+        <div>Memuat data agenda...</div>
+      </div>
+    )
+  }
+
+  if (agendaError) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--danger)' }}>
+        <h3>Error Loading Agenda</h3>
+        <p>{agendaError}</p>
+        <button onClick={refreshAgenda} className="btn btn-primary mt-4">
+          Coba Lagi
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>

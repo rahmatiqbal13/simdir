@@ -54,7 +54,6 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [isLocalMode, setIsLocalMode] = useState(false)
   const pathname = usePathname()
 
   const supabase = createBrowserClient(
@@ -64,16 +63,13 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const getUser = async () => {
-      // ============================================
-      // METODE 1: Coba dari Supabase Auth dulu
-      // ============================================
       try {
         const { data: { user: authUser } } = await supabase.auth.getUser()
         
         if (authUser) {
           setUser(authUser)
           
-          // Get profile data (sesuaikan dengan struktur tabel yang ada)
+          // Get profile data
           const { data: profileData } = await supabase
             .from('profiles')
             .select('id, nama, role, is_active, unit_kerja_id, created_at')
@@ -81,88 +77,32 @@ export default function DashboardLayout({ children }) {
             .single()
           
           if (profileData) {
-            // Mapping kolom 'nama' ke 'full_name' untuk konsistensi UI
             setProfile({
               ...profileData,
               full_name: profileData.nama,
               username: profileData.nama?.toLowerCase().replace(/\s+/g, '_')
             })
           }
-          setLoading(false)
-          return
         }
-      } catch (supabaseErr) {
-        console.log('Supabase auth error:', supabaseErr)
+      } catch (err) {
+        console.error('Auth error:', err)
+      } finally {
+        setLoading(false)
       }
-
-      // ============================================
-      // METODE 2: Fallback ke localStorage (local mode)
-      // ============================================
-      try {
-        const localUser = localStorage.getItem('simdir_user')
-        
-        if (localUser) {
-          const userData = JSON.parse(localUser)
-          setUser({
-            id: userData.id,
-            email: userData.email,
-            user_metadata: {
-              username: userData.username,
-              role: userData.role
-            }
-          })
-          setProfile({
-            id: userData.id,
-            username: userData.username,
-            full_name: userData.full_name || userData.nama,
-            nama: userData.full_name || userData.nama,
-            role: userData.role
-          })
-          setIsLocalMode(true)
-          console.log('Dashboard: Using local session for user:', userData.username)
-        }
-      } catch (localErr) {
-        console.error('Local session error:', localErr)
-      }
-      
-      setLoading(false)
     }
 
     getUser()
   }, [])
 
   const handleLogout = async () => {
-    if (isLocalMode) {
-      // Hapus local session cookie via API
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' })
-      } catch (e) {
-        console.log('Logout API error:', e)
-      }
-      
-      // Hapus local session dari localStorage
-      localStorage.removeItem('simdir_session')
-      localStorage.removeItem('simdir_user')
-      window.location.href = '/login'
-    } else {
-      // Coba logout dari Supabase
-      try {
-        await supabase.auth.signOut()
-      } catch (e) {
-        console.log('Supabase logout error:', e)
-      }
-      
-      // Juga hapus local cookie untuk bersih-bersih
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' })
-      } catch (e) {
-        // Ignore
-      }
-      
-      localStorage.removeItem('simdir_session')
-      localStorage.removeItem('simdir_user')
-      window.location.href = '/login'
+    try {
+      await supabase.auth.signOut()
+      await fetch('/api/auth/logout', { method: 'POST' })
+    } catch (e) {
+      console.log('Logout error:', e)
     }
+    
+    window.location.href = '/login'
   }
 
   if (loading) {
@@ -170,7 +110,6 @@ export default function DashboardLayout({ children }) {
   }
 
   const userRole = profile?.role || 'admin'
-  // Support both 'nama' (from Supabase) and 'full_name' (from local)
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const items = navItems[userRole] || navItems.admin
 
@@ -203,20 +142,7 @@ export default function DashboardLayout({ children }) {
             <div className="user-avatar">{userName.charAt(0).toUpperCase()}</div>
             <div>
               <div className="user-name">{userName}</div>
-              <div className="user-role" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {userRole.replace('_', ' ')}
-                {isLocalMode && (
-                  <span style={{ 
-                    fontSize: '0.6rem', 
-                    background: '#f59e0b', 
-                    color: 'white', 
-                    padding: '1px 4px', 
-                    borderRadius: '3px'
-                  }}>
-                    LOCAL
-                  </span>
-                )}
-              </div>
+              <div className="user-role">{userRole.replace('_', ' ')}</div>
             </div>
           </div>
           <button className="logout-btn" onClick={handleLogout}>
