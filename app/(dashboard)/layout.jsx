@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 
 const navItems = {
   super_admin: [
@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
 
-  const supabase = createClientComponentClient(
+  const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   )
