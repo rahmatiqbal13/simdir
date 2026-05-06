@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useUnitKerja } from '@/context/UnitKerjaContext';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -99,7 +100,8 @@ function UnitCard({ unit, index, canEdit, onEdit, onToggleStatus, onDelete }) {
   const config = UNIT_CATEGORIES[category] || UNIT_CATEGORIES.lainnya;
   
   // Generate initials
-  const initials = unit.singkatan?.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase();
+  const unitCode = unit.kode || unit.singkatan || '';
+  const initials = unitCode.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase();
 
   return (
     <div className="card" style={{ marginBottom: '0.75rem' }}>
@@ -134,7 +136,7 @@ function UnitCard({ unit, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 fontSize: '0.75rem',
                 color: 'var(--text-2)'
               }}>
-                {unit.singkatan}
+                {unit.kode || unit.singkatan}
               </code>
               <CategoryBadge category={category} />
               <StatusBadge isActive={unit.is_active} />
@@ -225,7 +227,7 @@ function UnitTable({ units, canEdit, onEdit, onToggleStatus, onDelete }) {
                       fontWeight: 700,
                       flexShrink: 0
                     }}>
-                      {unit.singkatan?.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase()}
+                      {(unit.kode || unit.singkatan)?.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase()}
                     </div>
                     <strong style={{ fontSize: '0.875rem' }}>{unit.nama}</strong>
                   </div>
@@ -237,7 +239,7 @@ function UnitTable({ units, canEdit, onEdit, onToggleStatus, onDelete }) {
                     borderRadius: 'var(--radius)',
                     fontSize: '0.8125rem'
                   }}>
-                    {unit.singkatan}
+                    {unit.kode || unit.singkatan}
                   </code>
                 </td>
                 <td>
@@ -301,7 +303,7 @@ function UnitTable({ units, canEdit, onEdit, onToggleStatus, onDelete }) {
 function UnitModal({ unit, onSave, onClose }) {
   const [form, setForm] = useState({
     nama: unit?.nama || '',
-    singkatan: unit?.singkatan || '',
+    singkatan: unit?.kode || unit?.singkatan || '',
     is_active: unit?.is_active ?? true,
   });
   const [error, setError] = useState('');
@@ -472,19 +474,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 
 // ============ HALAMAN UTAMA ============
 export default function UnitKerjaPage() {
-  const [units, setUnits] = useState([
-    { id: '1', nama: 'USC', singkatan: 'USC', is_active: true },
-    { id: '2', nama: 'PUI Keolahragaan', singkatan: 'PUI-Olahraga', is_active: true },
-    { id: '3', nama: 'PUI Disabilitas', singkatan: 'PUI-Disabilitas', is_active: true },
-    { id: '4', nama: 'PUI Seni Budaya', singkatan: 'PUI-Seni', is_active: true },
-    { id: '5', nama: 'Kolam Renang', singkatan: 'KR', is_active: true },
-    { id: '6', nama: 'Driving Golf', singkatan: 'Golf', is_active: true },
-    { id: '7', nama: 'ULABK', singkatan: 'ULABK', is_active: true },
-    { id: '8', nama: 'SSFC', singkatan: 'SSFC', is_active: true },
-    { id: '9', nama: 'PUIPT Seni Budaya Majapahitan', singkatan: 'PUIPT-SBM', is_active: true },
-    { id: '10', nama: 'PUIPT DIC', singkatan: 'PUIPT-DIC', is_active: true },
-    { id: '11', nama: 'PUIPT SERC', singkatan: 'PUIPT-SERC', is_active: false },
-  ]);
+  const { units, loading, error, addUnit, updateUnit, deleteUnit, toggleUnitStatus, refreshUnits } = useUnitKerja();
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -494,6 +484,7 @@ export default function UnitKerjaPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const userRole = 'super_admin';
   const canEdit = userRole === 'super_admin';
@@ -505,8 +496,8 @@ export default function UnitKerjaPage() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       result = result.filter(u => 
-        u.nama.toLowerCase().includes(query) ||
-        u.singkatan.toLowerCase().includes(query)
+        (u.nama || '').toLowerCase().includes(query) ||
+        ((u.kode || u.singkatan) || '').toLowerCase().includes(query)
       );
     }
     
@@ -548,23 +539,44 @@ export default function UnitKerjaPage() {
   }, [units]);
 
   // Handlers
-  const handleSave = (unit) => {
-    if (unit.id) {
-      setUnits(units.map(u => u.id === unit.id ? unit : u));
-    } else {
-      setUnits([...units, { ...unit, id: Date.now().toString(), is_active: true }]);
+  const handleSave = async (unit) => {
+    try {
+      setActionLoading(true);
+      if (unit.id) {
+        await updateUnit(unit.id, unit);
+      } else {
+        await addUnit(unit);
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (err) {
+      alert('Gagal menyimpan unit kerja: ' + err.message);
+    } finally {
+      setActionLoading(false);
     }
-    setShowModal(false);
-    setEditingItem(null);
   };
 
-  const handleToggleStatus = (id) => {
-    setUnits(units.map(u => u.id === id ? { ...u, is_active: !u.is_active } : u));
+  const handleToggleStatus = async (id) => {
+    try {
+      const unit = units.find(u => u.id === id);
+      if (unit) {
+        await toggleUnitStatus(id, unit.is_active);
+      }
+    } catch (err) {
+      alert('Gagal mengubah status: ' + err.message);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Apakah Anda yakin ingin menghapus unit kerja ini?')) {
-      setUnits(units.filter(u => u.id !== id));
+      try {
+        setActionLoading(true);
+        await deleteUnit(id);
+      } catch (err) {
+        alert('Gagal menghapus unit kerja: ' + err.message);
+      } finally {
+        setActionLoading(false);
+      }
     }
   };
 
@@ -576,6 +588,36 @@ export default function UnitKerjaPage() {
         </svg>
         <h3>Akses Ditolak</h3>
         <p>Anda tidak memiliki akses ke halaman ini.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <div style={{ width: '3rem', height: '3rem', border: '3px solid var(--surface-2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+        <h3>Memuat Data...</h3>
+        <p>Sedang mengambil data unit kerja dari server</p>
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', color: 'var(--danger)' }}>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <h3>Terjadi Kesalahan</h3>
+        <p>{error}</p>
+        <button className="btn btn-primary" onClick={refreshUnits} style={{ marginTop: '1rem' }}>
+          Coba Lagi
+        </button>
       </div>
     );
   }

@@ -13,14 +13,24 @@ const formatDate = (date) => {
 }
 
 const getAgendaStatus = (mulai, selesai) => {
+  // Reset waktu ke 00:00:00 untuk perbandingan tanggal saja
   const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  
   const start = new Date(mulai)
+  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate())
+  
   const end = new Date(selesai)
+  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate())
   
-  if (now > end) return 'completed'
-  if (now >= start && now <= end) return 'ongoing'
+  // Cek apakah hari ini sudah lewat dari tanggal selesai (hari berikutnya atau lebih)
+  if (today > endDate) return 'completed'
   
-  const diffTime = start - now
+  // Cek apakah hari ini dalam rentang tanggal mulai sampai selesai
+  if (today >= startDate && today <= endDate) return 'ongoing'
+  
+  // Hitung selisih hari untuk status upcoming
+  const diffTime = startDate - today
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
   
   if (diffDays <= 3) return 'upcoming_soon'

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useUsers } from '@/context/UsersContext';
 
 // Role configurations
 const ROLE_CONFIGS = {
@@ -109,7 +110,8 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
   const config = ROLE_CONFIGS[user.role] || ROLE_CONFIGS.admin;
   
   // Generate avatar initials
-  const initials = user.nama
+  const userName = user.full_name || user.nama || '';
+  const initials = userName
     .split(' ')
     .map(n => n[0])
     .join('')
@@ -139,7 +141,7 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
           {/* User Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <strong style={{ fontSize: '0.9375rem' }}>{user.nama}</strong>
+              <strong style={{ fontSize: '0.9375rem' }}>{user.full_name || user.nama}</strong>
               <RoleBadge role={user.role} />
             </div>
             <p className="muted" style={{ fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
@@ -232,10 +234,10 @@ function UserTable({ users, canEdit, onEdit, onToggleStatus, onDelete }) {
                     fontWeight: 700,
                     flexShrink: 0
                   }}>
-                    {user.nama.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    {(user.full_name || user.nama || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                   <div>
-                    <strong style={{ fontSize: '0.875rem' }}>{user.nama}</strong>
+                    <strong style={{ fontSize: '0.875rem' }}>{user.full_name || user.nama}</strong>
                     <p className="muted" style={{ fontSize: '0.75rem', margin: 0 }}>{user.email}</p>
                   </div>
                 </div>
@@ -302,10 +304,12 @@ function UserTable({ users, canEdit, onEdit, onToggleStatus, onDelete }) {
 // ============ KOMPONEN MODAL ============
 function UserModal({ user, onSave, onClose }) {
   const [form, setForm] = useState({
-    nama: user?.nama || '',
+    nama: user?.full_name || user?.nama || '',
+    username: user?.username || '',
     email: user?.email || '',
     role: user?.role || 'admin',
     is_active: user?.is_active ?? true,
+    password: '',
   });
   const [error, setError] = useState('');
 
@@ -316,8 +320,16 @@ function UserModal({ user, onSave, onClose }) {
       setError('Nama lengkap wajib diisi');
       return;
     }
+    if (!form.username.trim()) {
+      setError('Username wajib diisi');
+      return;
+    }
     if (!form.email.trim() || !form.email.includes('@')) {
       setError('Email valid wajib diisi');
+      return;
+    }
+    if (!user?.id && !form.password.trim()) {
+      setError('Password wajib diisi untuk user baru');
       return;
     }
 
@@ -353,6 +365,15 @@ function UserModal({ user, onSave, onClose }) {
                 />
               </div>
               <div className="full">
+                <label>Username</label>
+                <input 
+                  value={form.username}
+                  onChange={e => setForm({ ...form, username: e.target.value })}
+                  placeholder="Contoh: budisantoso"
+                  required
+                />
+              </div>
+              <div className="full">
                 <label>Email</label>
                 <input 
                   type="email"
@@ -376,6 +397,16 @@ function UserModal({ user, onSave, onClose }) {
                 <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
                   {ROLE_CONFIGS[form.role]?.description}
                 </p>
+              </div>
+              <div className="full">
+                <label>{user?.id ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password'}</label>
+                <input 
+                  type="password"
+                  value={form.password}
+                  onChange={e => setForm({ ...form, password: e.target.value })}
+                  placeholder={user?.id ? "Biarkan kosong jika tidak diubah" : "Masukkan password"}
+                  required={!user?.id}
+                />
               </div>
               {user?.id && (
                 <div className="full">
@@ -466,14 +497,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 
 // ============ HALAMAN UTAMA ============
 export default function UsersPage() {
-  const [users, setUsers] = useState([
-    { id: '1', nama: 'Administrator', email: 'admin@usc.ac.id', role: 'super_admin', is_active: true },
-    { id: '2', nama: 'Budi Santoso', email: 'budi@usc.ac.id', role: 'admin_keuangan', is_active: true },
-    { id: '3', nama: 'Siti Rahayu', email: 'siti@usc.ac.id', role: 'admin', is_active: true },
-    { id: '4', nama: 'Dr. Purnomo', email: 'purnomo@usc.ac.id', role: 'pimpinan', is_active: true },
-    { id: '5', nama: 'Ahmad Fauzi', email: 'ahmad@usc.ac.id', role: 'admin_keuangan', is_active: false },
-    { id: '6', nama: 'Dewi Kusuma', email: 'dewi@usc.ac.id', role: 'admin', is_active: true },
-  ]);
+  const { users, loading, error, addUser, updateUser, deleteUser, toggleUserStatus, refreshUsers } = useUsers();
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -483,6 +507,7 @@ export default function UsersPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const userRole = 'super_admin';
   const canEdit = userRole === 'super_admin';
@@ -493,9 +518,9 @@ export default function UsersPage() {
     
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(u => 
-        u.nama.toLowerCase().includes(query) ||
-        u.email.toLowerCase().includes(query)
+            result = result.filter(u => 
+        ((u.full_name || u.nama || '').toLowerCase().includes(query)) ||
+        (u.email || '').toLowerCase().includes(query)
       );
     }
     
@@ -532,23 +557,44 @@ export default function UsersPage() {
   }), [users]);
 
   // Handlers
-  const handleSave = (user) => {
-    if (user.id) {
-      setUsers(users.map(u => u.id === user.id ? user : u));
-    } else {
-      setUsers([...users, { ...user, id: Date.now().toString(), is_active: true }]);
+  const handleSave = async (user) => {
+    try {
+      setActionLoading(true);
+      if (user.id) {
+        await updateUser(user.id, user);
+      } else {
+        await addUser(user);
+      }
+      setShowModal(false);
+      setEditingItem(null);
+    } catch (err) {
+      alert('Gagal menyimpan user: ' + err.message);
+    } finally {
+      setActionLoading(false);
     }
-    setShowModal(false);
-    setEditingItem(null);
   };
 
-  const handleToggleStatus = (id) => {
-    setUsers(users.map(u => u.id === id ? { ...u, is_active: !u.is_active } : u));
+  const handleToggleStatus = async (id) => {
+    try {
+      const user = users.find(u => u.id === id);
+      if (user) {
+        await toggleUserStatus(id, user.is_active);
+      }
+    } catch (err) {
+      alert('Gagal mengubah status: ' + err.message);
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
-      setUsers(users.filter(u => u.id !== id));
+      try {
+        setActionLoading(true);
+        await deleteUser(id);
+      } catch (err) {
+        alert('Gagal menghapus user: ' + err.message);
+      } finally {
+        setActionLoading(false);
+      }
     }
   };
 
@@ -560,6 +606,36 @@ export default function UsersPage() {
         </svg>
         <h3>Akses Ditolak</h3>
         <p>Anda tidak memiliki akses ke halaman ini.</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="empty-state">
+        <div style={{ width: '3rem', height: '3rem', border: '3px solid var(--surface-2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
+        <h3>Memuat Data...</h3>
+        <p>Sedang mengambil data user dari server</p>
+        <style jsx>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', color: 'var(--danger)' }}>
+          <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+        <h3>Terjadi Kesalahan</h3>
+        <p>{error}</p>
+        <button className="btn btn-primary" onClick={refreshUsers} style={{ marginTop: '1rem' }}>
+          Coba Lagi
+        </button>
       </div>
     );
   }

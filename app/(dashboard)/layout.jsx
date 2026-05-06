@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
+import { UsersProvider } from '@/context/UsersContext'
+import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
 
 const navItems = {
   super_admin: [
@@ -208,7 +210,11 @@ export default function DashboardLayout({ children }) {
         </header>
 
         <main className="content-area">
-          {children}
+          <UsersProvider>
+            <UnitKerjaProvider>
+              {children}
+            </UnitKerjaProvider>
+          </UsersProvider>
         </main>
       </div>
 

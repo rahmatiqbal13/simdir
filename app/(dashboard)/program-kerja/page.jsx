@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from 'react'
 import { useProgramKerja } from '@/context/ProgramKerjaContext'
 
 const UNIT_KERJA_LIST = [
@@ -1012,7 +1012,7 @@ function BiayaVariabelRow({ item, onUpdate, onRemove, canEdit, index }) {
 }
 
 // ============ KOMPONEN PROGRAM TABLE ============
-function ProgramTable({ programs, onEdit, onDelete, canEdit }) {
+function ProgramTable({ programs, onEdit, onDelete, onManageVariabel, canEdit }) {
   const [expandedId, setExpandedId] = useState(null)
 
   return (
@@ -1049,9 +1049,8 @@ function ProgramTable({ programs, onEdit, onDelete, canEdit }) {
             const status = getStatusBadge()
 
             return (
-              <>
-                <tr 
-                  key={program.id}
+              <Fragment key={program.id}>
+                <tr
                   className={isExpanded ? 'header-row' : ''}
                   style={{ cursor: 'pointer' }}
                   onClick={() => setExpandedId(isExpanded ? null : program.id)}
@@ -1091,6 +1090,18 @@ function ProgramTable({ programs, onEdit, onDelete, canEdit }) {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
                         </button>
+                        {onManageVariabel && (
+                          <button
+                            className="ghost icon-only"
+                            style={{ color: 'var(--primary)' }}
+                            onClick={(e) => { e.stopPropagation(); onManageVariabel(program) }}
+                            title="Kelola Variabel"
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
+                              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                            </svg>
+                          </button>
+                        )}
                         <button
                           className="ghost icon-only"
                           style={{ color: 'var(--danger)' }}
@@ -1120,7 +1131,7 @@ function ProgramTable({ programs, onEdit, onDelete, canEdit }) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             )
           })}
         </tbody>
@@ -1326,6 +1337,22 @@ export default function ProgramKerjaPage() {
   // Modal States
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState(null)
+
+  // Variabel Modal States
+  const [showVariabelModal, setShowVariabelModal] = useState(false)
+  const [selectedProgram, setSelectedProgram] = useState(null)
+
+  // Handler untuk membuka modal variabel
+  const handleOpenVariabel = (program) => {
+    setSelectedProgram(program)
+    setShowVariabelModal(true)
+  }
+
+  // Handler untuk menutup modal variabel
+  const handleCloseVariabel = () => {
+    setShowVariabelModal(false)
+    setSelectedProgram(null)
+  }
 
   // User Role (nantinya dari context/auth)
   const userRole = 'super_admin'
@@ -1712,6 +1739,34 @@ export default function ProgramKerjaPage() {
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditing(null) }}
         />
+      )}
+
+      {/* Variabel Modal */}
+      {showVariabelModal && selectedProgram && (
+        <div className="modal-overlay" onClick={handleCloseVariabel}>
+          <div className="modal-content" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Kelola Variabel Biaya</h3>
+              <p className="muted">{selectedProgram.nama}</p>
+            </div>
+            <div className="modal-body">
+              <BiayaVariabelSection
+                programId={selectedProgram.id}
+                items={selectedProgram.variabel || []}
+                onUpdate={(items) => {
+                  // Update local state
+                  selectedProgram.variabel = items
+                  refreshPrograms()
+                }}
+                canEdit={canEdit}
+                pagu={selectedProgram.pagu_anggaran || 0}
+              />
+            </div>
+            <div className="card-form-footer">
+              <button type="button" className="btn btn-ghost" onClick={handleCloseVariabel}>Tutup</button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

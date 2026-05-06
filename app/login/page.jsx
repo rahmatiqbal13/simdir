@@ -209,32 +209,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div style={{ 
-          marginTop: '1rem', 
-          padding: '0.75rem', 
-          background: '#f3f4f6', 
-          borderRadius: '8px',
-          fontSize: '0.75rem',
-          color: '#6b7280'
-        }}>
-          <strong>Akun Default:</strong>
-          <table style={{ width: '100%', marginTop: '0.5rem', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #d1d5db' }}>
-                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Username</th>
-                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Password</th>
-                <th style={{ textAlign: 'left', padding: '0.25rem' }}>Role</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={{ padding: '0.25rem' }}>adminiqbal</td>
-                <td style={{ padding: '0.25rem' }}>usc@_140451</td>
-                <td style={{ padding: '0.25rem' }}>super_admin</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
   )
