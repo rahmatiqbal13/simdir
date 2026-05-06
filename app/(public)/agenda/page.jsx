@@ -703,27 +703,51 @@ export default function AgendaPage() {
               </p>
             </div>
 
-            {/* Login Button */}
-            <a
-              href="/login"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.625rem 1.25rem',
-                background: '#4f46e5',
-                color: 'white',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                fontWeight: 500,
-                textDecoration: 'none'
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-              </svg>
-              Masuk
-            </a>
+            {/* TV Mode & Login Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <a
+                href="/agenda/tv"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  background: '#0f172a',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  textDecoration: 'none'
+                }}
+                title="Tampilan khusus untuk Smart TV / Layar Besar"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                  <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                  <polyline points="17 2 12 7 7 2" />
+                </svg>
+                Mode TV
+              </a>
+              <a
+                href="/login"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.625rem 1.25rem',
+                  background: '#4f46e5',
+                  color: 'white',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 500,
+                  textDecoration: 'none'
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                </svg>
+                Masuk
+              </a>
+            </div>
           </div>
 
           {/* Stats Bar */}
