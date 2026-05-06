@@ -31,55 +31,127 @@ const getCountdownLabel = (tanggalMulai) => {
   return `${m} menit lagi`
 }
 
+// ============ TEMA ============
+const DARK = {
+  pageBg:           '#0f172a',
+  headerBg:         '#1e293b',
+  headerBorder:     '#2d3f55',
+  tableBg:          '#1e293b',
+  theadBg:          '#0f172a',
+  theadBorder:      '#2d3f55',
+  rowEven:          'rgba(30,41,59,0.85)',
+  rowOdd:           'rgba(15,23,42,0.65)',
+  rowOngoing:       'rgba(16,185,129,0.07)',
+  rowEmptyEven:     'rgba(30,41,59,0.4)',
+  rowEmptyOdd:      'rgba(15,23,42,0.25)',
+  rowBorder:        'rgba(51,65,85,0.45)',
+  emptyBorder:      'rgba(51,65,85,0.25)',
+  colHeader:        '#475569',
+  noColor:          '#475569',
+  titleColor:       'white',
+  subText:          '#64748b',
+  mutedText:        '#94a3b8',
+  timeMain:         '#cbd5e1',
+  navBg:            '#1e293b',
+  navBorder:        '#2d3f55',
+  tickerBg:         '#020617',
+  tickerText:       '#64748b',
+  tickerBorder:     '#1e293b',
+  ongoingLabelColor:'#34d399',
+  countdownColor:   '#818cf8',
+  disposisiColor:   '#f9a8d4',
+  progressTrackBg:  '#0f172a',
+  inactiveDotBg:    '#334155',
+}
+
+const LIGHT = {
+  pageBg:           '#f1f5f9',
+  headerBg:         '#ffffff',
+  headerBorder:     '#cbd5e1',
+  tableBg:          '#ffffff',
+  theadBg:          '#f8fafc',
+  theadBorder:      '#e2e8f0',
+  rowEven:          'rgba(248,250,252,0.95)',
+  rowOdd:           'rgba(241,245,249,0.9)',
+  rowOngoing:       'rgba(16,185,129,0.08)',
+  rowEmptyEven:     'rgba(248,250,252,0.6)',
+  rowEmptyOdd:      'rgba(241,245,249,0.5)',
+  rowBorder:        'rgba(203,213,225,0.7)',
+  emptyBorder:      'rgba(203,213,225,0.4)',
+  colHeader:        '#334155',
+  noColor:          '#475569',
+  titleColor:       '#0f172a',
+  subText:          '#475569',
+  mutedText:        '#334155',
+  timeMain:         '#1e293b',
+  navBg:            '#ffffff',
+  navBorder:        '#e2e8f0',
+  tickerBg:         '#1e293b',
+  tickerText:       '#94a3b8',
+  tickerBorder:     '#334155',
+  ongoingLabelColor:'#065f46',
+  countdownColor:   '#3730a3',
+  disposisiColor:   '#9d174d',
+  progressTrackBg:  '#e2e8f0',
+  inactiveDotBg:    '#94a3b8',
+}
+
 // ============ KONSTANTA ============
 const ROTATE_MS = 15000
 const ROWS_PER_PAGE = 8   // default; otomatis dikurangi jika layar kecil
 
 const COLS = '3.5% 11% 25% 10% 15% 14% 9% 12.5%'
 
-const STATUS_CFG = {
-  upcoming:      { label: 'Akan Datang', color: '#818cf8', bg: 'rgba(99,102,241,0.18)',  border: 'rgba(99,102,241,0.45)' },
-  upcoming_soon: { label: 'Segera',      color: '#fbbf24', bg: 'rgba(245,158,11,0.18)',  border: 'rgba(245,158,11,0.45)' },
-  ongoing:       { label: 'Berlangsung', color: '#34d399', bg: 'rgba(16,185,129,0.18)',  border: 'rgba(16,185,129,0.45)' },
-  completed:     { label: 'Selesai',     color: '#94a3b8', bg: 'rgba(100,116,139,0.18)', border: 'rgba(100,116,139,0.3)' },
-}
+const getStatusCfg = (isDark) => ({
+  upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
+  upcoming_soon: { label: 'Segera',      color: isDark ? '#fbbf24' : '#92400e', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.4)'  },
+  ongoing:       { label: 'Berlangsung', color: isDark ? '#34d399' : '#065f46', bg: 'rgba(16,185,129,0.15)',  border: 'rgba(16,185,129,0.4)'  },
+  completed:     { label: 'Selesai',     color: isDark ? '#94a3b8' : '#475569', bg: 'rgba(100,116,139,0.12)', border: 'rgba(100,116,139,0.25)' },
+})
 
-const JENIS_CFG = {
-  internal:  { label: 'Internal',  color: '#a5b4fc', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
-  eksternal: { label: 'Eksternal', color: '#fcd34d', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.4)'  },
-  pimpinan:  { label: 'Pimpinan',  color: '#f9a8d4', bg: 'rgba(236,72,153,0.15)',  border: 'rgba(236,72,153,0.4)'  },
-}
+const getJenisCfg = (isDark) => ({
+  internal:  { label: 'Internal',  color: isDark ? '#a5b4fc' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
+  eksternal: { label: 'Eksternal', color: isDark ? '#fcd34d' : '#92400e', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.4)'  },
+  pimpinan:  { label: 'Pimpinan',  color: isDark ? '#f9a8d4' : '#9d174d', bg: 'rgba(236,72,153,0.15)',  border: 'rgba(236,72,153,0.4)'  },
+})
 
 const STATUS_ACCENT = {
   upcoming: '#6366f1', upcoming_soon: '#f59e0b', ongoing: '#10b981', completed: '#475569',
 }
 
 // ============ HOOK: SCALE LAYAR ============
-// Scale font/spacing proporsional terhadap lebar layar (baseline 1920px)
-// Row count dihitung dari tinggi container nyata via ResizeObserver
 function useScreenScale() {
   const [scale, setScale] = useState(1)
-
   useEffect(() => {
-    const update = () => {
-      const w = window.innerWidth
-      // Clamp antara 0.8 (HD kecil) sampai 2.0 (4K native)
-      setScale(Math.max(0.8, Math.min(2.0, w / 1920)))
-    }
+    const update = () => setScale(Math.max(0.8, Math.min(2.0, window.innerWidth / 1920)))
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
-
   return scale
+}
+
+// ============ HOOK: TEMA ============
+function useTheme() {
+  const [isDark, setIsDark] = useState(true)
+  useEffect(() => {
+    const saved = localStorage.getItem('tv-theme')
+    if (saved === 'light') setIsDark(false)
+  }, [])
+  const toggle = () => setIsDark(prev => {
+    const next = !prev
+    localStorage.setItem('tv-theme', next ? 'dark' : 'light')
+    return next
+  })
+  return { isDark, theme: isDark ? DARK : LIGHT, toggle }
 }
 
 // ============ BADGE ============
 const Badge = ({ bg, border, color, children, s }) => (
   <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: `${0.3 * s}rem`,
-    padding: `${0.28 * s}rem ${0.65 * s}rem`, borderRadius: '9999px',
-    fontSize: `${0.8 * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', gap: `${0.35 * s}rem`,
+    padding: `${0.35 * s}rem ${0.8 * s}rem`, borderRadius: '9999px',
+    fontSize: `${0.95 * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
     background: bg, border: `${Math.max(1, Math.round(1.5 * s))}px solid ${border}`, color,
   }}>
     {children}
@@ -87,11 +159,11 @@ const Badge = ({ bg, border, color, children, s }) => (
 )
 
 // ============ BARIS DATA (div-based, flex: 1) ============
-function AgendaRow({ item, rowIndex, s }) {
+function AgendaRow({ item, rowIndex, s, t, isDark }) {
   const status   = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
   const accent   = STATUS_ACCENT[status]
-  const sCfg     = STATUS_CFG[status]
-  const jCfg     = JENIS_CFG[item.jenis] || JENIS_CFG.internal
+  const sCfg     = getStatusCfg(isDark)[status]
+  const jCfg     = getJenisCfg(isDark)[item.jenis] || getJenisCfg(isDark).internal
   const startD   = new Date(item.tanggal_mulai)
   const endD     = new Date(item.tanggal_selesai)
   const multiDay = item.tanggal_mulai !== item.tanggal_selesai
@@ -107,17 +179,17 @@ function AgendaRow({ item, rowIndex, s }) {
   })()
 
   const rowBg = isOngoing
-    ? 'rgba(16,185,129,0.07)'
-    : rowIndex % 2 === 0 ? 'rgba(30,41,59,0.85)' : 'rgba(15,23,42,0.65)'
+    ? t.rowOngoing
+    : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
 
   // Padding sel — proporsional ke scale
-  const cp = `${0.55 * s}rem ${0.85 * s}rem`
+  const cp = `${0.7 * s}rem ${1.0 * s}rem`
 
   const cellBase = {
     padding: cp,
     display: 'flex', alignItems: 'center',
     overflow: 'hidden',
-    borderBottom: '1px solid rgba(51,65,85,0.45)',
+    borderBottom: `1px solid ${t.rowBorder}`,
   }
 
   const clamp2 = {
@@ -135,21 +207,21 @@ function AgendaRow({ item, rowIndex, s }) {
     }}>
       {/* No */}
       <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, color: '#475569' }}>
+        <span style={{ fontSize: `${1.05 * s}rem`, fontWeight: 700, color: t.noColor }}>
           {rowIndex + 1}
         </span>
       </div>
 
       {/* Tanggal */}
       <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.1 * s}rem` }}>
-        <span style={{ fontSize: `${1.25 * s}rem`, fontWeight: 800, color: accent, lineHeight: 1 }}>
+        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 800, color: accent, lineHeight: 1 }}>
           {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${0.78 * s}rem`, color: '#64748b' }}>
+        <span style={{ fontSize: `${0.95 * s}rem`, color: t.subText }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${0.72 * s}rem`, color: '#475569' }}>
+          <span style={{ fontSize: `${0.88 * s}rem`, color: t.mutedText }}>
             s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
           </span>
         )}
@@ -157,7 +229,7 @@ function AgendaRow({ item, rowIndex, s }) {
 
       {/* Judul */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.1 * s}rem`, fontWeight: 700, color: 'white', lineHeight: 1.35, ...clamp2 }}>
+        <span style={{ fontSize: `${1.35 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp2 }}>
           {item.judul}
         </span>
       </div>
@@ -166,19 +238,19 @@ function AgendaRow({ item, rowIndex, s }) {
       <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.08 * s}rem` }}>
         {wMulai ? (
           <>
-            <span style={{ fontSize: `${0.95 * s}rem`, fontWeight: 600, color: '#cbd5e1' }}>{wMulai}</span>
+            <span style={{ fontSize: `${1.15 * s}rem`, fontWeight: 600, color: t.timeMain }}>{wMulai}</span>
             {wSelesai && (
-              <span style={{ fontSize: `${0.78 * s}rem`, color: '#64748b' }}>s/d {wSelesai}</span>
+              <span style={{ fontSize: `${0.95 * s}rem`, color: t.subText }}>s/d {wSelesai}</span>
             )}
           </>
         ) : (
-          <span style={{ fontSize: `${0.9 * s}rem`, color: '#334155' }}>—</span>
+          <span style={{ fontSize: `${1.05 * s}rem`, color: t.mutedText }}>—</span>
         )}
       </div>
 
       {/* Lokasi */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${0.92 * s}rem`, color: '#94a3b8', fontWeight: 500, ...clamp2 }}>
+        <span style={{ fontSize: `${1.1 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2 }}>
           {item.lokasi || '—'}
         </span>
       </div>
@@ -186,8 +258,8 @@ function AgendaRow({ item, rowIndex, s }) {
       {/* PIC / Disposisi */}
       <div style={{ ...cellBase }}>
         <span style={{
-          fontSize: `${0.92 * s}rem`,
-          color: item.jenis === 'pimpinan' && item.disposisi ? '#f9a8d4' : '#94a3b8',
+          fontSize: `${1.1 * s}rem`,
+          color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText,
           fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500,
           ...clamp2,
         }}>
@@ -211,16 +283,16 @@ function AgendaRow({ item, rowIndex, s }) {
           {sCfg.label}
         </Badge>
         {isOngoing && (
-          <span style={{ fontSize: `${0.75 * s}rem`, color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.92 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}>
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
             Berlangsung
           </span>
         )}
         {!isOngoing && cdLabel && (
-          <span style={{ fontSize: `${0.75 * s}rem`, color: '#818cf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.92 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
             {cdLabel}
@@ -232,23 +304,23 @@ function AgendaRow({ item, rowIndex, s }) {
 }
 
 // ============ BARIS KOSONG ============
-const EmptyRow = ({ rowIndex, s }) => (
+const EmptyRow = ({ rowIndex, s, t }) => (
   <div style={{
     display: 'grid', gridTemplateColumns: COLS,
     flex: 1, minHeight: 0,
     borderLeft: '4px solid transparent',
-    background: rowIndex % 2 === 0 ? 'rgba(30,41,59,0.4)' : 'rgba(15,23,42,0.25)',
-    borderBottom: '1px solid rgba(51,65,85,0.25)',
+    background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd,
+    borderBottom: `1px solid ${t.emptyBorder}`,
   }}>
     {Array.from({ length: 8 }).map((_, i) => (
-      <div key={i} style={{ padding: `${0.55 * s}rem ${0.85 * s}rem` }} />
+      <div key={i} style={{ padding: `${0.7 * s}rem ${1.0 * s}rem` }} />
     ))}
   </div>
 )
 
 // ============ PROGRESS BAR ============
-const ProgressBar = ({ progress, s }) => (
-  <div style={{ width: '100%', height: `${Math.max(4, 5 * s)}px`, background: '#0f172a', borderRadius: 9999, overflow: 'hidden' }}>
+const ProgressBar = ({ progress, s, t }) => (
+  <div style={{ width: '100%', height: `${Math.max(4, 5 * s)}px`, background: t.progressTrackBg, borderRadius: 9999, overflow: 'hidden' }}>
     <div style={{
       width: `${progress}%`, height: '100%',
       background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
@@ -258,7 +330,7 @@ const ProgressBar = ({ progress, s }) => (
 )
 
 // ============ RUNNING TEXT ============
-const RunningText = ({ agenda, s }) => {
+const RunningText = ({ agenda, s, t }) => {
   const ongoing  = agenda.filter(i => getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai) === 'ongoing')
   const upcoming = agenda.filter(i => { const st = getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai); return st === 'upcoming' || st === 'upcoming_soon' })
 
@@ -270,8 +342,8 @@ const RunningText = ({ agenda, s }) => {
   })()
 
   return (
-    <div style={{ background: '#020617', color: '#64748b', padding: `${0.6 * s}rem 0`, overflow: 'hidden', whiteSpace: 'nowrap', borderTop: '2px solid #1e293b', flexShrink: 0 }}>
-      <span style={{ display: 'inline-block', animation: 'marquee 40s linear infinite', fontSize: `${0.95 * s}rem`, fontWeight: 500 }}>
+    <div style={{ background: t.tickerBg, color: t.tickerText, padding: `${0.6 * s}rem 0`, overflow: 'hidden', whiteSpace: 'nowrap', borderTop: `2px solid ${t.tickerBorder}`, flexShrink: 0 }}>
+      <span style={{ display: 'inline-block', animation: 'marquee 40s linear infinite', fontSize: `${1.1 * s}rem`, fontWeight: 500 }}>
         {text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{text}
       </span>
     </div>
@@ -281,6 +353,7 @@ const RunningText = ({ agenda, s }) => {
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
   const s = useScreenScale()
+  const { isDark, theme: t, toggle: toggleTheme } = useTheme()
 
   const [agenda,      setAgenda]      = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -296,7 +369,7 @@ export default function AgendaTVPage() {
     if (!tbodyRef.current) return
     const obs = new ResizeObserver(([entry]) => {
       const h        = entry.contentRect.height
-      const minRowH  = Math.max(70, 85 * s)   // tinggi minimum 1 baris terbaca
+      const minRowH  = Math.max(90, 110 * s)   // tinggi minimum 1 baris terbaca (font besar untuk senior)
       const rows     = Math.max(4, Math.min(14, Math.floor(h / minRowH)))
       setRowsPerPage(rows)
     })
@@ -372,13 +445,13 @@ export default function AgendaTVPage() {
 
   return (
     <div
-      style={{ height: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
+      style={{ height: '100vh', background: t.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
 
       {/* ── HEADER ── */}
-      <header style={{ background: '#1e293b', borderBottom: '2px solid #2d3f55', padding: `${0.7 * s}rem ${2 * s}rem`, flexShrink: 0 }}>
+      <header style={{ background: t.headerBg, borderBottom: `2px solid ${t.headerBorder}`, padding: `${0.7 * s}rem ${2 * s}rem`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
           {/* Brand */}
@@ -391,21 +464,21 @@ export default function AgendaTVPage() {
               boxShadow: '0 4px 14px rgba(245,158,11,0.35)',
             }}>S</div>
             <div>
-              <strong style={{ display: 'block', fontSize: `${1.3 * s}rem`, color: 'white', letterSpacing: '0.05em' }}>SIMDIR</strong>
-              <span style={{ fontSize: `${0.82 * s}rem`, color: '#64748b' }}>Unesa Science Center</span>
+              <strong style={{ display: 'block', fontSize: `${1.5 * s}rem`, color: t.titleColor, letterSpacing: '0.05em' }}>SIMDIR</strong>
+              <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText }}>Unesa Science Center</span>
             </div>
           </div>
 
           {/* Judul */}
           <div style={{ textAlign: 'center' }}>
-            <h1 style={{ margin: 0, fontSize: `${1.75 * s}rem`, fontWeight: 700, color: 'white' }}>Agenda Kegiatan</h1>
-            <p style={{ margin: `${0.2 * s}rem 0 0`, fontSize: `${0.92 * s}rem`, color: '#64748b' }}>
+            <h1 style={{ margin: 0, fontSize: `${2.1 * s}rem`, fontWeight: 700, color: t.titleColor }}>Agenda Kegiatan</h1>
+            <p style={{ margin: `${0.2 * s}rem 0 0`, fontSize: `${1.1 * s}rem`, color: t.subText }}>
               {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'flex', gap: `${0.75 * s}rem` }}>
+          {/* Stats + Toggle Tema */}
+          <div style={{ display: 'flex', gap: `${0.75 * s}rem`, alignItems: 'center' }}>
             {[
               { label: 'Berlangsung', value: stats.ongoing,  color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)'  },
               { label: 'Akan Datang', value: stats.upcoming, color: '#6366f1', bg: 'rgba(99,102,241,0.1)',  border: 'rgba(99,102,241,0.3)'  },
@@ -415,10 +488,40 @@ export default function AgendaTVPage() {
                 background: st.bg, borderRadius: `${10 * s}px`,
                 border: `2px solid ${st.border}`, minWidth: `${90 * s}px`,
               }}>
-                <div style={{ fontSize: `${1.9 * s}rem`, fontWeight: 800, color: st.color, lineHeight: 1 }}>{st.value}</div>
-                <div style={{ fontSize: `${0.75 * s}rem`, color: '#64748b', fontWeight: 600, marginTop: `${0.15 * s}rem` }}>{st.label}</div>
+                <div style={{ fontSize: `${2.2 * s}rem`, fontWeight: 800, color: st.color, lineHeight: 1 }}>{st.value}</div>
+                <div style={{ fontSize: `${0.92 * s}rem`, color: t.subText, fontWeight: 600, marginTop: `${0.15 * s}rem` }}>{st.label}</div>
               </div>
             ))}
+
+            {/* Tombol Toggle Tema */}
+            <button
+              onClick={toggleTheme}
+              title={isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
+              style={{
+                width: `${44 * s}px`, height: `${44 * s}px`,
+                borderRadius: `${10 * s}px`,
+                background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                border: `2px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
+                cursor: 'pointer', display: 'grid', placeItems: 'center',
+                flexShrink: 0, transition: 'all 0.2s',
+              }}
+            >
+              {isDark ? (
+                /* Ikon matahari (mode terang) */
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                /* Ikon bulan (mode gelap) */
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
       </header>
@@ -429,18 +532,18 @@ export default function AgendaTVPage() {
         {filtered.length > 0 ? (
           <>
             {/* Wrapper tabel */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#1e293b', borderRadius: `${12 * s}px`, border: '2px solid #2d3f55', overflow: 'hidden', minHeight: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
 
               {/* Header kolom */}
               <div style={{
                 display: 'grid', gridTemplateColumns: COLS,
-                background: '#0f172a', borderBottom: '2px solid #2d3f55', flexShrink: 0,
+                background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0,
               }}>
                 {['No', 'Tanggal', 'Judul Kegiatan', 'Waktu', 'Lokasi', 'PIC / Disposisi', 'Jenis', 'Status'].map(col => (
                   <div key={col} style={{
                     padding: `${0.55 * s}rem ${0.85 * s}rem`,
-                    fontSize: `${0.72 * s}rem`, fontWeight: 700,
-                    letterSpacing: '0.07em', textTransform: 'uppercase', color: '#475569',
+                    fontSize: `${0.88 * s}rem`, fontWeight: 700,
+                    letterSpacing: '0.06em', textTransform: 'uppercase', color: t.colHeader,
                   }}>
                     {col}
                   </div>
@@ -454,11 +557,11 @@ export default function AgendaTVPage() {
                     key={item.id}
                     item={item}
                     rowIndex={currentPage * rowsPerPage + i}
-                    s={s}
+                    s={s} t={t} isDark={isDark}
                   />
                 ))}
                 {Array.from({ length: emptyCount }).map((_, i) => (
-                  <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} />
+                  <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} t={t} />
                 ))}
               </div>
             </div>
@@ -466,17 +569,17 @@ export default function AgendaTVPage() {
             {/* Navigasi carousel */}
             {totalPages > 1 && (
               <div style={{
-                background: '#1e293b', borderRadius: `${10 * s}px`, border: '2px solid #2d3f55',
+                background: t.navBg, borderRadius: `${10 * s}px`, border: `2px solid ${t.navBorder}`,
                 padding: `${0.55 * s}rem ${1.25 * s}rem`,
                 display: 'flex', alignItems: 'center', gap: `${1.25 * s}rem`, flexShrink: 0,
               }}>
-                <span style={{ fontSize: `${0.82 * s}rem`, color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText, fontWeight: 500, whiteSpace: 'nowrap' }}>
                   Hal. {currentPage + 1}/{totalPages} &nbsp;·&nbsp; {filtered.length} agenda &nbsp;·&nbsp; {rowsPerPage} baris
                 </span>
 
-                <div style={{ flex: 1 }}><ProgressBar progress={progress} s={s} /></div>
+                <div style={{ flex: 1 }}><ProgressBar progress={progress} s={s} t={t} /></div>
 
-                <span style={{ fontSize: `${0.82 * s}rem`, color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: `${1.0 * s}rem`, color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   {isPaused ? '⏸ Dijeda' : `Ganti dalam ${secondsLeft}s`}
                 </span>
 
@@ -485,7 +588,7 @@ export default function AgendaTVPage() {
                     <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{
                       width: i === currentPage ? `${1.75 * s}rem` : `${0.65 * s}rem`,
                       height: `${0.65 * s}rem`, borderRadius: 9999, padding: 0,
-                      background: i === currentPage ? '#6366f1' : '#334155',
+                      background: i === currentPage ? '#6366f1' : t.inactiveDotBg,
                       border: 'none', cursor: 'pointer', transition: 'all 0.3s ease',
                     }} />
                   ))}
@@ -508,7 +611,7 @@ export default function AgendaTVPage() {
       </main>
 
       {/* ── RUNNING TEXT ── */}
-      <RunningText agenda={agenda} s={s} />
+      <RunningText agenda={agenda} s={s} t={t} />
 
       <style jsx global>{`
         @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
