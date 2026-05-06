@@ -1,38 +1,154 @@
-# SIMDIR Demo
+# SIMDIR - Sistem Informasi Manajemen Direktorat
 
-Prototype runnable dari PRD SIMDIR v1.2.
+Sistem Informasi Manajemen untuk Direktorat Unesa Science Center.
 
-## Cara menjalankan
+## 🏗️ Struktur Proyek
 
-1. Jalankan server lokal dari folder ini:
+```
+simdir/
+├── 📁 app/                    # Next.js App Router
+│   ├── (dashboard)/           # Protected dashboard routes
+│   │   ├── dashboard/
+│   │   ├── kelola-agenda/
+│   │   ├── pencairan/
+│   │   ├── program-kerja/
+│   │   ├── surat/
+│   │   ├── laporan/
+│   │   └── pengaturan/
+│   ├── (public)/              # Public routes
+│   │   └── agenda/
+│   │       └── tv/            # Tampilan TV Display
+│   ├── api/                   # API Routes
+│   └── login/                 # Login page
+│
+├── 📁 components/             # React Components
+│   ├── AgendaCard.tsx
+│   ├── CountdownDisplay.tsx
+│   └── StatusBadge.tsx
+│
+├── 📁 context/                # React Contexts
+│   ├── AgendaContext.jsx
+│   ├── PencairanContext.jsx
+│   ├── ProgramKerjaContext.jsx
+│   ├── SuratContext.jsx
+│   ├── UnitKerjaContext.jsx
+│   └── UsersContext.jsx
+│
+├── 📁 lib/                    # Utility Libraries
+│   ├── hooks/
+│   │   └── useSupabase.js
+│   ├── supabase/
+│   │   ├── client.js
+│   │   └── server.js
+│   ├── auth.js
+│   ├── auth-middleware.js
+│   ├── jwt-legacy.js
+│   ├── local-users.js
+│   └── agenda-status.ts
+│
+├── 📁 docs/                   # 📚 Dokumentasi
+│   ├── AGENTS.md
+│   ├── CONTEXT.md
+│   ├── DOKUMENTASI-SIMDIR.md
+│   ├── ERROR-400-500-FIX.md
+│   ├── JWT-SETUP-GUIDE.md
+│   ├── PRD_SIMDIR_v1.3_updated.md
+│   ├── SQL-README.md
+│   ├── SUPABASE-SETUP-GUIDE.md
+│   └── VERCEL-DEPLOY-TROUBLESHOOTING.md
+│
+├── 📁 sql/                    # 🗄️ Database SQL
+│   ├── schema/
+│   │   └── supabase-schema.sql
+│   ├── seed/
+│   │   ├── seed-pengaturan.sql
+│   │   └── backup-simdir-data.sql
+│   ├── fixes/
+│   │   └── fix-pengaturan-rls.sql
+│   └── archive/
+│       └── (29+ archived SQL files)
+│
+├── 📁 scripts/                # 🚀 Utility Scripts
+│   ├── setup-supabase-auth.js
+│   └── test-legacy-jwt.js
+│
+├── 📁 config/                 # ⚙️ Configuration
+│   └── .env.local.example
+│
+├── 📁 examples/               # 💡 Code Examples
+│
+├── middleware.js              # Next.js Middleware
+├── next.config.js             # Next.js Configuration
+├── package.json               # Dependencies
+└── tsconfig.json              # TypeScript Config
+```
 
-   ```powershell
-   node server.js
-   ```
+## 🚀 Cara Menjalankan
 
-2. Buka `http://localhost:4173`.
+### 1. Install Dependencies
 
-Data demo tersimpan di `localStorage` browser. Gunakan tombol **Reset Data Demo** untuk kembali ke seed awal.
+```bash
+npm install
+```
 
-## Fitur yang sudah dibuat
+### 2. Setup Environment Variables
 
-- Dashboard ringkasan agenda, pagu, total SPJ, dan sisa anggaran.
-- Role switcher untuk Super Admin, Admin Teknisi Keuangan, Admin, Pimpinan, dan Publik.
-- UI memakai arah visual Tailwind/shadcn: token warna, panel, card, badge, tombol ikon, focus ring, dan layout responsive.
-- Halaman agenda publik dengan filter bulan, status, penyelenggara, serta tampilan list/kalender.
-- CRUD lokal untuk agenda, surat, program kerja, pencairan, unit kerja, user, SPJ header, dan SPJ detail.
-- Program kerja berupa pencatatan singkat RKA: ID RKA, tahun anggaran, unit kerja, nama program/detail aktivitas, dan pelaksanaan berupa tanggal spesifik atau rentang bulan.
-- Rincian akun/item anggaran tetap tersedia sebagai sumber kegiatan saat pencairan.
-- Pencairan dana berbentuk batch; satu pencairan dapat berisi beberapa kegiatan/item dari detail Program Kerja.
-- Tampilan Pencairan Dana memakai panel collapse dengan summary total, jumlah kegiatan, dan rincian item.
-- Tampilan SPJ & Rekap memakai summary cards, tabel scrollable, tombol ikon, dan kartu rekap unit responsif.
-- Saat memilih Pencairan Dana di halaman SPJ, sistem otomatis menyiapkan draft baris SPJ dari kegiatan pencairan yang dipilih.
-- Tabel SPJ dua level dengan kalkulasi otomatis `Belum SPJ`.
-- Tandai/undo pengembalian dana per detail dan bulk per induk.
-- Rekap unit kerja otomatis.
-- Preview laporan serapan dana dan tombol cetak via browser.
-- Audit log untuk perubahan data utama.
+```bash
+cp config/.env.local.example .env.local
+```
 
-## Catatan implementasi
+Edit `.env.local` dengan nilai yang sesuai:
 
-Ini adalah MVP lokal tanpa backend agar dapat langsung dicoba. Untuk produksi sesuai PRD, langkah berikutnya adalah migrasi ke Next.js App Router, Supabase Auth/Database/Storage, RLS policy, dan PDF renderer (`@react-pdf/renderer` atau Puppeteer).
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+JWT_SECRET=your_jwt_secret
+```
+
+### 3. Setup Database
+
+Jalankan SQL files di folder `sql/schema/` dan `sql/seed/` di Supabase SQL Editor.
+
+### 4. Jalankan Development Server
+
+```bash
+npm run dev
+```
+
+Buka [http://localhost:3000](http://localhost:3000)
+
+## 📺 Tampilan TV Display
+
+Untuk menampilkan agenda di Smart TV, akses:
+
+```
+http://localhost:3000/agenda/tv
+```
+
+Fitur TV Display:
+- ✅ Full screen tanpa scroll
+- ✅ Grid 2x2 atau 3x2 (adaptif)
+- ✅ Font besar untuk jarak jauh
+- ✅ Auto-rotate setiap 15 detik
+- ✅ Running text di footer
+
+## 📚 Dokumentasi
+
+Lihat folder [`docs/`](docs/) untuk dokumentasi lengkap:
+
+- [Setup Supabase](docs/SUPABASE-SETUP-GUIDE.md)
+- [Setup JWT](docs/JWT-SETUP-GUIDE.md)
+- [Troubleshooting](docs/ERROR-400-500-FIX.md)
+- [Dokumentasi Indonesia](docs/DOKUMENTASI-SIMDIR.md)
+
+## 🔧 Teknologi
+
+- **Framework:** Next.js 15 (App Router)
+- **Database:** Supabase (PostgreSQL)
+- **Styling:** Tailwind CSS
+- **Auth:** Supabase Auth + Custom JWT
+- **Language:** JavaScript/TypeScript
+
+## 📝 Lisensi
+
+© 2025 Direktorat Unesa Science Center. All rights reserved.

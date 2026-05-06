@@ -3,880 +3,499 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
-// Helper functions
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  })
-}
+// ============ HELPERS ============
+const formatDate = (date) =>
+  new Date(date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
 
 const getAgendaStatus = (mulai, selesai) => {
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
-  const start = new Date(mulai)
-  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  
-  const end = new Date(selesai)
-  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate())
-  
-  if (today > endDate) return 'completed'
-  if (today >= startDate && today <= endDate) return 'ongoing'
-  
-  const diffTime = startDate - today
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays <= 3) return 'upcoming_soon'
-  return 'upcoming'
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const start = new Date(mulai); start.setHours(0, 0, 0, 0)
+  const end   = new Date(selesai); end.setHours(0, 0, 0, 0)
+
+  if (today > end)   return 'completed'
+  if (today >= start) return 'ongoing'
+
+  const days = Math.ceil((start - today) / 86400000)
+  return days <= 3 ? 'upcoming_soon' : 'upcoming'
 }
 
-const getCountdown = (tanggalMulai) => {
-  const now = new Date()
-  const start = new Date(tanggalMulai)
-  const diffTime = start - now
-  
-  if (diffTime <= 0) return null
-  
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60))
-  
-  if (diffDays > 0) {
-    return { value: diffDays, unit: 'hari', label: `${diffDays} hari lagi` }
-  } else if (diffHours > 0) {
-    return { value: diffHours, unit: 'jam', label: `${diffHours} jam lagi` }
-  } else {
-    return { value: diffMinutes, unit: 'menit', label: `${diffMinutes} menit lagi` }
-  }
+const getCountdownLabel = (tanggalMulai) => {
+  const diff = new Date(tanggalMulai) - new Date()
+  if (diff <= 0) return null
+  const d = Math.floor(diff / 86400000)
+  const h = Math.floor((diff % 86400000) / 3600000)
+  const m = Math.floor((diff % 3600000)  / 60000)
+  if (d > 0) return `${d} hari lagi`
+  if (h > 0) return `${h} jam lagi`
+  return `${m} menit lagi`
 }
 
-// TV-optimized constants
-const ROTATE_INTERVAL = 15000 // 15 detik untuk TV
+// ============ KONSTANTA ============
+const ROWS_PER_PAGE  = 8
+const ROTATE_MS      = 15000   // 15 detik
 
-// ============ KOMPONEN STATUS BADGE TV ============
-function StatusBadge({ tanggalMulai, tanggalSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai)
-  
-  const configs = {
-    upcoming: { label: 'Akan Datang', bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' },
-    upcoming_soon: { label: 'Segera', bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
-    ongoing: { label: 'Berlangsung', bg: '#ecfdf5', color: '#059669', border: '#a7f3d0' },
-    completed: { label: 'Selesai', bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0' },
-  }
-  
-  const config = configs[status]
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.5rem 1rem',
-      borderRadius: '9999px',
-      fontSize: '1rem',
-      fontWeight: 700,
-      background: config.bg,
-      color: config.color,
-      border: `2px solid ${config.border}`
-    }}>
-      {status === 'ongoing' && (
-        <span style={{ 
-          width: '10px', 
-          height: '10px', 
-          borderRadius: '50%', 
-          background: config.color,
-          animation: 'pulse 2s infinite'
-        }} />
-      )}
-      {config.label}
-    </span>
-  )
+const STATUS_CFG = {
+  upcoming:      { label: 'Akan Datang',  color: '#818cf8', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
+  upcoming_soon: { label: 'Segera',       color: '#fbbf24', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.4)'  },
+  ongoing:       { label: 'Berlangsung',  color: '#34d399', bg: 'rgba(16,185,129,0.15)',  border: 'rgba(16,185,129,0.4)'  },
+  completed:     { label: 'Selesai',      color: '#94a3b8', bg: 'rgba(100,116,139,0.15)', border: 'rgba(100,116,139,0.3)' },
 }
 
-// ============ KOMPONEN JENIS BADGE TV ============
-function JenisBadge({ jenis }) {
-  const configs = {
-    internal: { label: 'Internal', bg: '#eef2ff', color: '#4f46e5', border: '#c7d2fe' },
-    eksternal: { label: 'Eksternal', bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
-    pimpinan: { label: 'Pimpinan', bg: '#fce7f3', color: '#be185d', border: '#fbcfe8' },
-  }
-  
-  const config = configs[jenis] || configs.internal
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.375rem',
-      padding: '0.375rem 0.875rem',
-      borderRadius: '9999px',
-      fontSize: '0.875rem',
-      fontWeight: 600,
-      background: config.bg,
-      color: config.color,
-      border: `2px solid ${config.border}`
-    }}>
-      {config.label}
-    </span>
-  )
+const JENIS_CFG = {
+  internal:  { label: 'Internal',  color: '#a5b4fc', bg: 'rgba(99,102,241,0.12)',  border: 'rgba(99,102,241,0.35)'  },
+  eksternal: { label: 'Eksternal', color: '#fcd34d', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.35)'  },
+  pimpinan:  { label: 'Pimpinan',  color: '#f9a8d4', bg: 'rgba(236,72,153,0.12)',  border: 'rgba(236,72,153,0.35)'  },
 }
 
-// ============ KOMPONEN COUNTDOWN BADGE TV ============
-function CountdownBadge({ tanggalMulai, tanggalSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai)
-  const countdown = getCountdown(tanggalMulai)
-  
-  if (status === 'ongoing') {
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        borderRadius: '10px',
-        fontSize: '1rem',
-        fontWeight: 700,
-        background: '#059669',
-        color: 'white'
-      }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '1.25rem', height: '1.25rem' }}>
-          <polygon points="5 3 19 12 5 21 5 3" />
-        </svg>
-        Sedang Berlangsung
-      </span>
-    )
-  }
-  
-  if (status === 'completed') {
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-        padding: '0.5rem 1rem',
-        borderRadius: '10px',
-        fontSize: '1rem',
-        fontWeight: 600,
-        background: '#f1f5f9',
-        color: '#64748b'
-      }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-        Selesai
-      </span>
-    )
-  }
-  
-  if (!countdown) return null
-  
-  const isUrgent = countdown.unit === 'jam' || countdown.unit === 'menit'
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      padding: '0.5rem 1rem',
-      borderRadius: '10px',
-      fontSize: '1rem',
-      fontWeight: 700,
-      background: isUrgent ? '#fee2e2' : '#e0f2fe',
-      color: isUrgent ? '#dc2626' : '#0284c7',
-      border: `2px solid ${isUrgent ? '#fecaca' : '#bae6fd'}`
-    }}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-      {countdown.label}
-    </span>
-  )
+const STATUS_ACCENT = {
+  upcoming:      '#6366f1',
+  upcoming_soon: '#f59e0b',
+  ongoing:       '#10b981',
+  completed:     '#475569',
 }
 
-// ============ KOMPONEN AGENDA CARD TV ============
-function AgendaCard({ item }) {
-  const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  
-  const statusColors = {
-    upcoming: '#4f46e5',
-    upcoming_soon: '#d97706',
-    ongoing: '#059669',
-    completed: '#64748b',
+// ============ BADGE ============
+const Badge = ({ bg, border, color, children }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    padding: '0.3rem 0.75rem', borderRadius: '9999px',
+    fontSize: '0.9rem', fontWeight: 700, whiteSpace: 'nowrap',
+    background: bg, border: `2px solid ${border}`, color,
+  }}>
+    {children}
+  </span>
+)
+
+// ============ BARIS TABEL ============
+function AgendaRow({ item, index, isHighlighted }) {
+  const status   = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+  const accent   = STATUS_ACCENT[status]
+  const sCfg     = STATUS_CFG[status]
+  const jCfg     = JENIS_CFG[item.jenis] || JENIS_CFG.internal
+  const startD   = new Date(item.tanggal_mulai)
+  const endD     = new Date(item.tanggal_selesai)
+  const multiDay = item.tanggal_mulai !== item.tanggal_selesai
+  const isOngoing = status === 'ongoing'
+  const cdLabel  = getCountdownLabel(item.tanggal_mulai)
+
+  const pic = (() => {
+    if (item.jenis === 'pimpinan' && item.disposisi) return `→ ${item.disposisi}`
+    if (item.pic) return item.pic.replace('Manual: ', '')
+    return '—'
+  })()
+
+  const rowBg = isOngoing
+    ? 'rgba(16,185,129,0.08)'
+    : index % 2 === 0 ? 'rgba(30,41,59,0.9)' : 'rgba(15,23,42,0.7)'
+
+  const cellStyle = {
+    padding: '0.75rem 1rem',
+    verticalAlign: 'middle',
+    borderBottom: '1px solid rgba(51,65,85,0.5)',
   }
-  
-  const color = statusColors[status]
-  const startDate = new Date(item.tanggal_mulai)
-  const isMultiDay = item.tanggal_mulai !== item.tanggal_selesai
 
   return (
-    <div style={{
-      background: 'white',
-      borderRadius: '20px',
-      border: '3px solid #e2e8f0',
-      overflow: 'hidden',
-      boxShadow: '0 8px 16px -4px rgba(0, 0, 0, 0.15)',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column'
+    <tr style={{
+      borderLeft: `5px solid ${accent}`,
+      background: rowBg,
+      transition: 'background 0.3s',
     }}>
-      {/* Header with Date */}
-      <div style={{ display: 'flex', borderBottom: '3px solid #e2e8f0' }}>
-        {/* Date Box */}
-        <div style={{
-          width: '120px',
-          padding: '1.5rem',
-          background: `${color}15`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRight: `4px solid ${color}`,
-          flexShrink: 0
-        }}>
-          <span style={{
-            fontSize: '1rem',
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            color: color
-          }}>
-            {startDate.toLocaleDateString('id-ID', { month: 'short' })}
-          </span>
-          <span style={{
-            fontSize: '3rem',
-            fontWeight: 800,
-            color: color,
-            lineHeight: 1
-          }}>
-            {startDate.getDate()}
-          </span>
-          <span style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>
-            {startDate.toLocaleDateString('id-ID', { weekday: 'short' })}
-          </span>
+      {/* No */}
+      <td style={{ ...cellStyle, textAlign: 'center', width: '3%', color: '#475569', fontWeight: 700, fontSize: '1rem' }}>
+        {index + 1}
+      </td>
+
+      {/* Tanggal */}
+      <td style={{ ...cellStyle, width: '11%' }}>
+        <div style={{ fontWeight: 800, fontSize: '1.4rem', color: accent, lineHeight: 1 }}>
+          {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </div>
-
-        {/* Title & Badges */}
-        <div style={{ flex: 1, padding: '1.5rem', minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-            <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
-            <JenisBadge jenis={item.jenis} />
-          </div>
-          <h3 style={{
-            fontSize: '1.5rem',
-            fontWeight: 700,
-            color: '#0f172a',
-            lineHeight: 1.3,
-            margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {item.judul}
-          </h3>
-          {/* Countdown Badge */}
-          <div style={{ marginTop: '0.75rem' }}>
-            <CountdownBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
-          </div>
+        <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '0.15rem' }}>
+          {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </div>
-      </div>
-
-      {/* Content */}
-      <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Info Grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1rem' }}>
-          {/* Date Range */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#475569' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color, flexShrink: 0 }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-              {isMultiDay
-                ? `${formatDate(item.tanggal_mulai)} - ${formatDate(item.tanggal_selesai)}`
-                : formatDate(item.tanggal_mulai)
-              }
-            </span>
+        {multiDay && (
+          <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '0.1rem' }}>
+            s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
           </div>
-
-          {/* Time */}
-          {(item.waktu_mulai || item.waktu_selesai) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color, flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                {item.waktu_mulai || '--:--'} - {item.waktu_selesai || '--:--'} WIB
-              </span>
-            </div>
-          )}
-
-          {/* Location */}
-          {item.lokasi && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color, flexShrink: 0 }}>
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.lokasi}</span>
-            </div>
-          )}
-
-          {/* Organizer */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#475569' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color, flexShrink: 0 }}>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            </svg>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>{item.penyelenggara}</span>
-          </div>
-
-          {/* PIC atau Disposisi */}
-          {item.jenis === 'pimpinan' && item.disposisi ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#be185d' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color: '#be185d', flexShrink: 0 }}>
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="8.5" cy="7" r="4" />
-                <polyline points="17 11 19 13 23 9" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>
-                Disposisi ke: {item.disposisi}
-              </span>
-            </div>
-          ) : item.pic && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '1.125rem', color: '#475569' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', color, flexShrink: 0 }}>
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                PIC: {item.pic.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : item.pic}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Description */}
-        {item.deskripsi && (
-          <p style={{
-            marginTop: 'auto',
-            paddingTop: '1rem',
-            borderTop: '2px solid #e2e8f0',
-            fontSize: '1rem',
-            color: '#64748b',
-            lineHeight: 1.5,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 3,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {item.deskripsi}
-          </p>
         )}
-      </div>
-    </div>
+      </td>
+
+      {/* Judul */}
+      <td style={{ ...cellStyle, width: '27%' }}>
+        <div style={{
+          fontWeight: 700, fontSize: '1.25rem', color: 'white', lineHeight: 1.35,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        }}>
+          {item.judul}
+        </div>
+      </td>
+
+      {/* Waktu */}
+      <td style={{ ...cellStyle, width: '11%' }}>
+        {item.waktu_mulai ? (
+          <span style={{ color: '#94a3b8', fontSize: '1.05rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+            {item.waktu_mulai}
+            {item.waktu_selesai && <><br /><span style={{ fontSize: '0.85rem', color: '#64748b' }}>s/d {item.waktu_selesai}</span></>}
+          </span>
+        ) : (
+          <span style={{ color: '#334155', fontSize: '1rem' }}>—</span>
+        )}
+      </td>
+
+      {/* Lokasi */}
+      <td style={{ ...cellStyle, width: '16%' }}>
+        <span style={{
+          color: '#94a3b8', fontSize: '1.05rem', fontWeight: 500,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        }}>
+          {item.lokasi || '—'}
+        </span>
+      </td>
+
+      {/* PIC / Disposisi */}
+      <td style={{ ...cellStyle, width: '15%' }}>
+        <span style={{
+          color: item.jenis === 'pimpinan' && item.disposisi ? '#f9a8d4' : '#94a3b8',
+          fontSize: '1.05rem', fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500,
+          overflow: 'hidden', textOverflow: 'ellipsis',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        }}>
+          {pic}
+        </span>
+      </td>
+
+      {/* Jenis */}
+      <td style={{ ...cellStyle, width: '9%', textAlign: 'center' }}>
+        <Badge bg={jCfg.bg} border={jCfg.border} color={jCfg.color}>
+          {jCfg.label}
+        </Badge>
+      </td>
+
+      {/* Status + Countdown */}
+      <td style={{ ...cellStyle, width: '14%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'flex-start' }}>
+          <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color}>
+            {isOngoing && (
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
+            )}
+            {sCfg.label}
+          </Badge>
+
+          {isOngoing && (
+            <span style={{ fontSize: '0.85rem', color: '#34d399', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '0.9rem', height: '0.9rem' }}>
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              Sedang Berlangsung
+            </span>
+          )}
+
+          {!isOngoing && cdLabel && (
+            <span style={{ fontSize: '0.85rem', color: '#818cf8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.9rem', height: '0.9rem' }}>
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              {cdLabel}
+            </span>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
-// ============ KOMPONEN NAVIGASI DOTS TV ============
-function NavigationDots({ total, current, onSelect }) {
-  return (
-    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-      {Array.from({ length: total }, (_, i) => (
-        <button
-          key={i}
-          onClick={() => onSelect(i)}
-          style={{
-            width: i === current ? '3rem' : '1.25rem',
-            height: '1.25rem',
-            borderRadius: '9999px',
-            background: i === current ? '#4f46e5' : '#cbd5e1',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease'
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ============ KOMPONEN PROGRESS BAR TV ============
+// ============ PROGRESS BAR ============
 function ProgressBar({ progress }) {
   return (
-    <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-      <div
-        style={{
-          width: `${progress}%`,
-          height: '100%',
-          background: 'linear-gradient(90deg, #4f46e5, #7c3aed)',
-          borderRadius: '9999px',
-          transition: 'width 0.1s linear'
-        }}
-      />
+    <div style={{ width: '100%', height: '5px', background: '#1e293b', borderRadius: 9999, overflow: 'hidden' }}>
+      <div style={{
+        width: `${progress}%`, height: '100%',
+        background: 'linear-gradient(90deg, #6366f1, #8b5cf6)',
+        borderRadius: 9999, transition: 'width 0.1s linear',
+      }} />
     </div>
   )
 }
 
-// ============ KOMPONEN RUNNING TEXT ============
+// ============ RUNNING TEXT ============
 function RunningText({ agenda }) {
-  const ongoing = agenda.filter(item => {
-    const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-    return status === 'ongoing'
+  const ongoing  = agenda.filter(i => getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai) === 'ongoing')
+  const upcoming = agenda.filter(i => {
+    const s = getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai)
+    return s === 'upcoming' || s === 'upcoming_soon'
   })
-  
-  const upcoming = agenda.filter(item => {
-    const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-    return status === 'upcoming' || status === 'upcoming_soon'
-  })
-  
-  const getText = () => {
-    let texts = []
-    
-    if (ongoing.length > 0) {
-      texts.push(`📢 SEDANG BERLANGSUNG: ${ongoing.map(a => a.judul).join(' | ')}`)
-    }
-    
-    if (upcoming.length > 0) {
-      texts.push(`📅 AKAN DATANG: ${upcoming.slice(0, 3).map(a => `${a.judul} (${formatDate(a.tanggal_mulai)})`).join(' | ')}`)
-    }
-    
-    return texts.length > 0 ? texts.join('    •    ') : '📢 Tidak ada agenda aktif saat ini'
-  }
-  
+
+  const text = (() => {
+    const parts = []
+    if (ongoing.length)  parts.push(`📢 SEDANG BERLANGSUNG: ${ongoing.map(a => a.judul).join(' | ')}`)
+    if (upcoming.length) parts.push(`📅 AKAN DATANG: ${upcoming.slice(0, 5).map(a => `${a.judul} (${formatDate(a.tanggal_mulai)})`).join(' | ')}`)
+    return parts.length ? parts.join('    •    ') : '📢 Tidak ada agenda aktif saat ini'
+  })()
+
   return (
     <div style={{
-      background: '#0f172a',
-      color: 'white',
-      padding: '1rem 0',
-      overflow: 'hidden',
-      whiteSpace: 'nowrap'
+      background: '#020617', color: '#64748b',
+      padding: '0.7rem 0', overflow: 'hidden', whiteSpace: 'nowrap',
+      borderTop: '2px solid #1e293b', flexShrink: 0,
     }}>
-      <div style={{
-        display: 'inline-block',
-        animation: 'marquee 30s linear infinite',
-        fontSize: '1.25rem',
-        fontWeight: 500
-      }}>
-        {getText()}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{getText()}
-      </div>
+      <span style={{ display: 'inline-block', animation: 'marquee 40s linear infinite', fontSize: '1.05rem', fontWeight: 500 }}>
+        {text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{text}
+      </span>
     </div>
   )
 }
 
 // ============ HALAMAN UTAMA TV ============
 export default function AgendaTVPage() {
-  const [agenda, setAgenda] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [agenda,      setAgenda]      = useState([])
+  const [loading,     setLoading]     = useState(true)
+  const [error,       setError]       = useState(null)
   const [currentPage, setCurrentPage] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [itemsPerView, setItemsPerView] = useState(4)
+  const [progress,    setProgress]    = useState(0)
+  const [isPaused,    setIsPaused]    = useState(false)
 
-  // Detect TV screen size
+  // Fetch data
   useEffect(() => {
-    const detectScreen = () => {
-      const width = window.innerWidth
-      const height = window.innerHeight
-      
-      // TV usually has wider aspect ratio (16:9 or wider)
-      // Adjust items per view based on screen size
-      if (width >= 1920 && height >= 1080) {
-        setItemsPerView(6) // 3x2 grid for large TVs
-      } else if (width >= 1280 && height >= 720) {
-        setItemsPerView(4) // 2x2 grid for standard TVs
-      } else {
-        setItemsPerView(4)
-      }
-    }
-    
-    detectScreen()
-    window.addEventListener('resize', detectScreen)
-    return () => window.removeEventListener('resize', detectScreen)
-  }, [])
-
-  // Fetch agenda from Supabase
-  useEffect(() => {
-    const loadAgenda = async () => {
+    const load = async () => {
       try {
-        setLoading(true)
-        if (!supabase) {
-          setError('Supabase belum dikonfigurasi')
-          setLoading(false)
-          return
-        }
-
-        const { data, error: supabaseError } = await supabase
-          .from('agenda')
-          .select('*')
-          .order('tanggal_mulai', { ascending: true })
-
-        if (supabaseError) {
-          console.error('Error loading agenda:', supabaseError)
-          setError('Gagal memuat agenda')
-        } else {
-          setAgenda(data || [])
-          setError(null)
-        }
-      } catch (err) {
-        console.error('Error:', err)
-        setError('Terjadi kesalahan')
-      } finally {
-        setLoading(false)
-      }
+        if (!supabase) { setError('Supabase belum dikonfigurasi'); return }
+        const { data, error: err } = await supabase
+          .from('agenda').select('*').order('tanggal_mulai', { ascending: true })
+        if (err) setError('Gagal memuat agenda')
+        else { setAgenda(data || []); setError(null) }
+      } catch { setError('Terjadi kesalahan') }
+      finally { setLoading(false) }
     }
-
-    loadAgenda()
+    load()
   }, [])
 
-  // Update current time every minute
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 60000)
-    return () => clearInterval(timer)
-  }, [])
+  // Filter — hanya ongoing & upcoming
+  const filtered = useMemo(() =>
+    agenda
+      .filter(i => { const s = getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai); return s !== 'completed' })
+      .sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
+  , [agenda])
 
-  // Filter agenda - show upcoming, ongoing, and recent completed
-  const filteredAgenda = useMemo(() => {
-    return agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-      return status === 'upcoming' || status === 'upcoming_soon' || status === 'ongoing'
-    }).sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
-  }, [agenda])
+  const totalPages   = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE))
+  const currentRows  = useMemo(() => {
+    const s = currentPage * ROWS_PER_PAGE
+    return filtered.slice(s, s + ROWS_PER_PAGE)
+  }, [filtered, currentPage])
 
-  // Calculate pages
-  const totalPages = Math.ceil(filteredAgenda.length / itemsPerView) || 1
-  const currentAgenda = useMemo(() => {
-    const start = currentPage * itemsPerView
-    return filteredAgenda.slice(start, start + itemsPerView)
-  }, [filteredAgenda, currentPage, itemsPerView])
+  const stats = useMemo(() => ({
+    ongoing:  agenda.filter(i => getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai) === 'ongoing').length,
+    upcoming: agenda.filter(i => { const s = getAgendaStatus(i.tanggal_mulai, i.tanggal_selesai); return s === 'upcoming' || s === 'upcoming_soon' }).length,
+  }), [agenda])
 
-  // Stats
-  const stats = useMemo(() => {
-    return {
-      total: agenda.length,
-      upcoming: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'upcoming' || status === 'upcoming_soon'
-      }).length,
-      ongoing: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'ongoing'
-      }).length,
-      completed: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'completed'
-      }).length,
-    }
-  }, [agenda])
+  // Carousel auto-rotate
+  const pageRef = useRef(currentPage)
+  useEffect(() => { pageRef.current = currentPage }, [currentPage])
 
-  // Ref untuk tracking currentPage dalam interval
-  const currentPageRef = useRef(currentPage)
-  useEffect(() => {
-    currentPageRef.current = currentPage
-  }, [currentPage])
-
-  // Auto-rotate
   useEffect(() => {
     if (isPaused || totalPages <= 1) return
-
-    const interval = setInterval(() => {
-      setProgress((prev) => {
+    const id = setInterval(() => {
+      setProgress(prev => {
         if (prev >= 100) {
-          const nextPage = (currentPageRef.current + 1) % totalPages
-          setCurrentPage(nextPage)
+          setCurrentPage((pageRef.current + 1) % totalPages)
           return 0
         }
-        return prev + (100 / (ROTATE_INTERVAL / 100))
+        return prev + (100 / (ROTATE_MS / 100))
       })
     }, 100)
-
-    return () => clearInterval(interval)
+    return () => clearInterval(id)
   }, [isPaused, totalPages])
 
-  // Reset progress when page changes
-  useEffect(() => {
-    setProgress(0)
-  }, [currentPage])
+  useEffect(() => { setProgress(0) }, [currentPage])
 
-  // Calculate grid columns based on items per view
-  const getGridColumns = () => {
-    if (itemsPerView === 6) return 'repeat(3, 1fr)'
-    return 'repeat(2, 1fr)'
-  }
-
-  const getGridRows = () => {
-    if (itemsPerView === 6) return 'repeat(2, 1fr)'
-    return 'repeat(2, 1fr)'
-  }
-
-  if (loading) {
+  // ---- Loading / Error ----
+  if (loading || error) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: '#f8fafc', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        flexDirection: 'column',
-        gap: '1.5rem'
-      }}>
-        <div style={{ 
-          width: '80px', 
-          height: '80px', 
-          borderRadius: '20px', 
-          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          display: 'grid',
-          placeItems: 'center',
-          color: '#0f172a',
-          fontWeight: 800,
-          fontSize: '2.5rem'
-        }}>
-          S
-        </div>
-        <p style={{ color: '#64748b', fontSize: '1.5rem' }}>Memuat agenda...</p>
+      <div style={{ minHeight: '100vh', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: 20,
+          background: error ? '#7f1d1d' : 'linear-gradient(135deg,#f59e0b,#d97706)',
+          display: 'grid', placeItems: 'center',
+          color: error ? '#fca5a5' : '#0f172a', fontWeight: 900, fontSize: '2.5rem',
+        }}>{error ? '!' : 'S'}</div>
+        <p style={{ color: error ? '#f87171' : '#64748b', fontSize: '1.5rem' }}>
+          {error || 'Memuat agenda...'}
+        </p>
       </div>
     )
   }
 
-  if (error) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: '#f8fafc', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        flexDirection: 'column',
-        gap: '1.5rem'
-      }}>
-        <div style={{ 
-          width: '80px', 
-          height: '80px', 
-          borderRadius: '20px', 
-          background: '#fee2e2',
-          display: 'grid',
-          placeItems: 'center',
-          color: '#dc2626',
-          fontWeight: 800,
-          fontSize: '2.5rem'
-        }}>
-          !
-        </div>
-        <p style={{ color: '#dc2626', fontSize: '1.5rem' }}>{error}</p>
-      </div>
-    )
-  }
+  const secondsLeft = Math.ceil((100 - progress) / 100 * (ROTATE_MS / 1000))
 
   return (
-    <div 
-      style={{ 
-        height: '100vh', 
-        background: '#f8fafc', 
-        display: 'flex', 
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}
+    <div
+      style={{ height: '100vh', background: '#0f172a', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Header - Compact for TV */}
-      <header style={{
-        background: 'white',
-        borderBottom: '3px solid #e2e8f0',
-        padding: '1rem 2rem',
-        flexShrink: 0
-      }}>
-        <div style={{ 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
+      {/* ── Header ── */}
+      <header style={{ background: '#1e293b', borderBottom: '2px solid #334155', padding: '0.875rem 2.5rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           {/* Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              display: 'grid',
-              placeItems: 'center',
-              color: '#0f172a',
-              fontWeight: 800,
-              fontSize: '1.75rem'
-            }}>
-              S
-            </div>
+              width: 52, height: 52, borderRadius: 12,
+              background: 'linear-gradient(135deg,#f59e0b,#d97706)',
+              display: 'grid', placeItems: 'center',
+              color: '#0f172a', fontWeight: 900, fontSize: '1.75rem',
+              boxShadow: '0 4px 12px rgba(245,158,11,0.4)',
+            }}>S</div>
             <div>
-              <strong style={{ display: 'block', fontSize: '1.5rem', color: '#0f172a' }}>
-                SIMDIR
-              </strong>
-              <span style={{ fontSize: '1rem', color: '#64748b' }}>
-                Unesa Science Center
-              </span>
+              <strong style={{ display: 'block', fontSize: '1.4rem', color: 'white', letterSpacing: '0.05em' }}>SIMDIR</strong>
+              <span style={{ fontSize: '0.9rem', color: '#64748b' }}>Unesa Science Center</span>
             </div>
           </div>
 
-          {/* Title */}
+          {/* Judul */}
           <div style={{ textAlign: 'center' }}>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
-              Agenda Kegiatan
-            </h1>
-            <p style={{ fontSize: '1.125rem', color: '#64748b' }}>
-              {new Date().toLocaleDateString('id-ID', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}
+            <h1 style={{ margin: 0, fontSize: '1.875rem', fontWeight: 700, color: 'white' }}>Agenda Kegiatan</h1>
+            <p style={{ margin: '0.2rem 0 0', fontSize: '1rem', color: '#64748b' }}>
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
 
-          {/* Stats */}
-          <div style={{ display: 'flex', gap: '1rem' }}>
+          {/* Statistik */}
+          <div style={{ display: 'flex', gap: '0.875rem' }}>
             {[
-              { label: 'Berlangsung', value: stats.ongoing, color: '#059669' },
-              { label: 'Akan Datang', value: stats.upcoming, color: '#4f46e5' },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                style={{
-                  textAlign: 'center',
-                  padding: '0.75rem 1.5rem',
-                  background: '#f8fafc',
-                  borderRadius: '12px',
-                  border: '2px solid #e2e8f0',
-                  minWidth: '120px'
-                }}
-              >
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: item.color }}>
-                  {item.value}
-                </div>
-                <div style={{ fontSize: '0.875rem', color: '#64748b', fontWeight: 600 }}>
-                  {item.label}
-                </div>
+              { label: 'Berlangsung', value: stats.ongoing,  color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.3)'  },
+              { label: 'Akan Datang', value: stats.upcoming, color: '#6366f1', bg: 'rgba(99,102,241,0.1)',  border: 'rgba(99,102,241,0.3)'  },
+            ].map((s, i) => (
+              <div key={i} style={{ textAlign: 'center', padding: '0.625rem 1.25rem', background: s.bg, borderRadius: 12, border: `2px solid ${s.border}`, minWidth: 100 }}>
+                <div style={{ fontSize: '2rem', fontWeight: 800, color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, marginTop: '0.2rem' }}>{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       </header>
 
-      {/* Main Content - Fill remaining space */}
-      <main style={{ 
-        flex: 1, 
-        padding: '1.5rem 2rem',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-        {/* Agenda Grid - Fill available space */}
-        {filteredAgenda.length > 0 ? (
-          <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: getGridColumns(),
-              gridTemplateRows: getGridRows(),
-              gap: '1.5rem',
-              flex: 1,
-              minHeight: 0
-            }}>
-              {currentAgenda.map((item) => (
-                <AgendaCard key={item.id} item={item} />
-              ))}
+      {/* ── Main: Tabel ── */}
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '1rem 1.5rem 0.75rem' }}>
+        {filtered.length > 0 ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#1e293b', borderRadius: 16, border: '2px solid #334155', overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              {/* Header tabel */}
+              <thead>
+                <tr style={{ background: '#0f172a', borderBottom: '2px solid #334155' }}>
+                  {[
+                    { label: 'No',            w: '3%'  },
+                    { label: 'Tanggal',        w: '11%' },
+                    { label: 'Judul Kegiatan', w: '27%' },
+                    { label: 'Waktu',          w: '11%' },
+                    { label: 'Lokasi',         w: '16%' },
+                    { label: 'PIC / Disposisi',w: '15%' },
+                    { label: 'Jenis',          w: '9%'  },
+                    { label: 'Status',         w: '14%' },
+                  ].map(col => (
+                    <th key={col.label} style={{
+                      width: col.w, padding: '0.75rem 1rem',
+                      textAlign: 'left', fontWeight: 700,
+                      fontSize: '0.8rem', letterSpacing: '0.08em',
+                      textTransform: 'uppercase', color: '#475569',
+                    }}>
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+
+              {/* Baris data */}
+              <tbody>
+                {currentRows.map((item, i) => (
+                  <AgendaRow
+                    key={item.id}
+                    item={item}
+                    index={currentPage * ROWS_PER_PAGE + i}
+                  />
+                ))}
+
+                {/* Baris kosong agar tabel tidak collapse */}
+                {currentRows.length < ROWS_PER_PAGE && Array.from({ length: ROWS_PER_PAGE - currentRows.length }).map((_, i) => (
+                  <tr key={`empty-${i}`} style={{ borderLeft: '5px solid transparent', background: i % 2 === 0 ? 'rgba(30,41,59,0.5)' : 'rgba(15,23,42,0.3)' }}>
+                    {Array.from({ length: 8 }).map((_, j) => (
+                      <td key={j} style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(51,65,85,0.3)' }} />
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1e293b', borderRadius: 16, border: '2px solid #334155' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '5rem', height: '5rem', color: '#334155', marginBottom: '1rem' }}>
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <h3 style={{ fontSize: '1.75rem', fontWeight: 600, color: '#475569', margin: 0 }}>Tidak ada agenda</h3>
+            <p style={{ fontSize: '1.1rem', color: '#334155', marginTop: '0.5rem' }}>Tidak ada agenda yang akan datang atau sedang berlangsung.</p>
+          </div>
+        )}
+
+        {/* ── Navigasi Carousel ── */}
+        {totalPages > 1 && (
+          <div style={{
+            marginTop: '0.75rem',
+            background: '#1e293b',
+            borderRadius: 12, border: '2px solid #334155',
+            padding: '0.75rem 1.5rem',
+            display: 'flex', alignItems: 'center', gap: '1.5rem',
+            flexShrink: 0,
+          }}>
+            {/* Info halaman */}
+            <span style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              Halaman {currentPage + 1} / {totalPages}
+              &nbsp;·&nbsp;
+              {filtered.length} agenda
+            </span>
+
+            {/* Progress */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <ProgressBar progress={progress} />
             </div>
 
-            {/* Navigation - Compact */}
-            {totalPages > 1 && (
-              <div style={{
-                background: 'white',
-                padding: '1rem 2rem',
-                borderRadius: '16px',
-                border: '3px solid #e2e8f0',
-                marginTop: '1rem',
-                flexShrink: 0
-              }}>
-                {/* Progress Bar */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: '0.5rem'
-                  }}>
-                    <span style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500 }}>
-                      Halaman {currentPage + 1} dari {totalPages}
-                    </span>
-                    <span style={{ fontSize: '1rem', fontWeight: 600, color: '#4f46e5' }}>
-                      {Math.round(progress)}% - Ganti dalam {Math.ceil((100 - progress) / 100 * (ROTATE_INTERVAL / 1000))} detik
-                    </span>
-                  </div>
-                  <ProgressBar progress={progress} />
-                </div>
+            {/* Countdown ganti halaman */}
+            <span style={{ fontSize: '0.9rem', color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
+              {isPaused ? '⏸ Dijeda' : `Ganti dalam ${secondsLeft}s`}
+            </span>
 
-                {/* Navigation Dots */}
-                <NavigationDots
-                  total={totalPages}
-                  current={currentPage}
-                  onSelect={(page) => {
-                    setCurrentPage(page)
-                    setProgress(0)
+            {/* Dots */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <button
+                  key={i}
+                  onClick={() => { setCurrentPage(i); setProgress(0) }}
+                  style={{
+                    width: i === currentPage ? '2rem' : '0.75rem',
+                    height: '0.75rem',
+                    borderRadius: 9999,
+                    background: i === currentPage ? '#6366f1' : '#334155',
+                    border: 'none', cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    padding: 0,
                   }}
                 />
-              </div>
-            )}
-          </>
-        ) : (
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            background: 'white',
-            borderRadius: '20px',
-            border: '3px solid #e2e8f0'
-          }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '6rem', height: '6rem', color: '#cbd5e1', marginBottom: '1.5rem' }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <h3 style={{ fontSize: '2rem', fontWeight: 600, color: '#475569', marginBottom: '0.5rem' }}>
-              Tidak ada agenda
-            </h3>
-            <p style={{ fontSize: '1.25rem', color: '#64748b' }}>
-              Tidak ada agenda yang akan datang atau sedang berlangsung.
-            </p>
+              ))}
+            </div>
           </div>
         )}
       </main>
 
-      {/* Running Text Footer */}
+      {/* ── Running Text ── */}
       <RunningText agenda={agenda} />
 
       <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
+        @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
+        @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+        * { box-sizing: border-box; }
+        body { margin: 0; }
       `}</style>
     </div>
   )

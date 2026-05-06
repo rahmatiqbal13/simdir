@@ -9,7 +9,7 @@ Sistem Informasi Manajemen Direktorat USC (SIMDIR) - Agenda & Keuangan
 npm install
 
 # Setup environment
-copy .env.local.example .env.local
+cp config/.env.local.example .env.local
 # Edit .env.local dengan credentials Supabase Anda
 
 # Run dev server
@@ -21,7 +21,7 @@ npm run build
 
 ## Environment Setup
 
-Copy `.env.local.example` → `.env.local` dan isi:
+Copy `config/.env.local.example` → `.env.local` dan isi:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
@@ -52,6 +52,8 @@ app/
 │   ├── laporan/          # Laporan (admin only)
 │   └── pengaturan/       # Settings (super_admin)
 ├── (public)/             # Public routes
+│   └── agenda/
+│       └── tv/           # Tampilan TV Display
 └── login/                # Auth page
 ```
 
@@ -68,8 +70,10 @@ app/
 
 Jalankan di Supabase SQL Editor:
 
-1. **`supabase-schema.sql`** - Setup tabel, RLS, dan data awal
-2. **`fix-login-rls.sql`** - Fix login error 500 (bypass RLS untuk auth)
+1. **`sql/schema/supabase-schema.sql`** - Setup tabel, RLS, dan data awal
+2. **`sql/fixes/fix-login-rls.sql`** - Fix login error 500 (bypass RLS untuk auth)
+
+Lihat [`sql/README.md`](sql/README.md) untuk struktur SQL lengkap.
 
 ### Default Login
 
@@ -87,12 +91,35 @@ Jalankan di Supabase SQL Editor:
 | `lib/auth.js` | Client-side auth hook |
 | `lib/jwt-legacy.js` | Legacy JWT verification |
 | `context/AgendaContext.jsx` | Global agenda state |
+| `app/(public)/agenda/tv/page.jsx` | TV Display mode |
+
+## Project Structure
+
+```
+simdir/
+├── app/                    # Next.js App Router
+├── components/             # React Components
+├── context/                # React Contexts
+├── lib/                    # Utility Libraries
+├── docs/                   # 📚 Documentation
+├── sql/                    # 🗄️ Database SQL
+│   ├── schema/            # Database schema
+│   ├── seed/              # Seed data
+│   ├── fixes/             # Fix scripts
+│   └── archive/           # Archived SQL
+├── scripts/                # 🚀 Utility scripts
+├── config/                 # ⚙️ Configuration
+└── examples/               # 💡 Code examples
+```
 
 ## Common Commands
 
 ```bash
 # Test JWT configuration
-node test-legacy-jwt.js
+node scripts/test-legacy-jwt.js
+
+# Setup Supabase Auth
+node scripts/setup-supabase-auth.js
 
 # Dev server (http://127.0.0.1:3000)
 npm run dev
@@ -104,16 +131,23 @@ npm run build
 ## Troubleshooting
 
 ### Login Error 500
-Solusi: Pastikan `fix-login-rls.sql` sudah dijalankan di Supabase.
+Solusi: Pastikan `sql/fixes/fix-login-rls.sql` sudah dijalankan di Supabase.
 
 ### JWT Invalid
 Solusi: Cek `LEGACY_JWT_SECRET` di `.env.local` sudah sesuai dengan Supabase Dashboard.
 
 ### RLS Permission Denied
-Solusi: Jalankan `fix-login-rls.sql` untuk membuat RPC functions.
+Solusi: Jalankan `sql/fixes/fix-login-rls.sql` untuk membuat RPC functions.
 
 ## Deployment
 
 - **Target**: Vercel
 - **Build**: `next build`
 - Pastikan semua env vars diatur di Vercel Dashboard
+
+## TV Display Mode
+
+Untuk menampilkan agenda di Smart TV:
+- URL: `/agenda/tv`
+- Fitur: Full screen, auto-rotate, font besar
+- Cocok untuk layar 1080p atau lebih tinggi
