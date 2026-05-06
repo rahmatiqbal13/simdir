@@ -98,7 +98,7 @@ const LIGHT = {
 
 // ============ KONSTANTA ============
 const ROTATE_MS = 15000
-const ROWS_PER_PAGE = 8   // default; otomatis dikurangi jika layar kecil
+const ROWS_PER_PAGE = 6   // default; ResizeObserver akan sesuaikan (max 6)
 
 const COLS = '3.5% 11% 25% 10% 15% 14% 9% 12.5%'
 
