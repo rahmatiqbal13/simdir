@@ -100,7 +100,21 @@ const LIGHT = {
 const ROTATE_MS = 15000
 const ROWS_PER_PAGE = 6   // default; ResizeObserver akan sesuaikan (max 6)
 
-const COLS = '3.5% 11% 25% 10% 15% 14% 9% 12.5%'
+// 🎬 KONFIGURASI YOUTUBE VIDEO
+// Format: https://www.youtube.com/embed/VIDEO_ID?PARAMS
+// atau playlist: https://www.youtube.com/embed/videoseries?list=PLAYLIST_ID&PARAMS
+const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/nl6LLK92iWU' // ← Isi URL YouTube di sini (kosong = sembunyikan video)
+
+// Parameter yang otomatis ditambahkan:
+// - autoplay=1&mute=1      : Play otomatis dengan mute (wajib browser)
+// - loop=1                  : Loop video/playlist terus menerus
+// - rel=0                   : Tidak tampilkan video related setelah selesai
+// - modestbranding=1        : Minimalkan logo YouTube
+// - controls=0              : Sembunyikan kontrol player (opsional)
+// - iv_load_policy=3        : Sembunyikan annotation
+
+// Optimized column widths for better text display
+const COLS = '3% 10% 30% 8% 13% 13% 7% 16%'
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -146,6 +160,48 @@ function useTheme() {
   return { isDark, theme: isDark ? DARK : LIGHT, toggle }
 }
 
+// ============ VIDEO PLAYER COMPONENT ============
+const VideoPlayer = ({ url }) => {
+  // Generate src URL dengan parameter loop yang benar
+  const getVideoSrc = () => {
+    if (!url) return ''
+    
+    // Base parameters
+    const baseParams = 'autoplay=1&mute=1&rel=0&modestbranding=1&controls=0&iv_load_policy=3&loop=1'
+    const separator = url.includes('?') ? '&' : '?'
+    
+    // Jika single video (bukan playlist), perlu tambahkan playlist=VIDEO_ID agar loop berfungsi
+    if (url.includes('/embed/') && !url.includes('videoseries')) {
+      // Extract VIDEO_ID dari URL
+      const match = url.match(/embed\/([^?&]+)/)
+      if (match && match[1]) {
+        const videoId = match[1]
+        return `${url}${separator}${baseParams}&playlist=${videoId}`
+      }
+    }
+    
+    // Playlist atau format lain
+    return `${url}${separator}${baseParams}`
+  }
+
+  return (
+    <iframe
+      src={getVideoSrc()}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        border: 'none',
+      }}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowFullScreen
+      title="Tentang USC"
+    />
+  )
+}
+
 // ============ BADGE ============
 const Badge = ({ bg, border, color, children, s }) => (
   <span style={{
@@ -182,8 +238,8 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
     ? t.rowOngoing
     : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
 
-  // Padding sel — proporsional ke scale
-  const cp = `${1.0 * s}rem ${1.0 * s}rem`
+  // Padding sel — lebih kompak untuk memaksimalkan ruang teks
+  const cp = `${0.85 * s}rem ${0.75 * s}rem`
 
   const cellBase = {
     padding: cp,
@@ -195,6 +251,11 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
   const clamp2 = {
     overflow: 'hidden', textOverflow: 'ellipsis',
     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+  }
+
+  const clamp3 = {
+    overflow: 'hidden', textOverflow: 'ellipsis',
+    display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
   }
 
   return (
@@ -229,7 +290,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 
       {/* Judul */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.6 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp2 }}>
+        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.4, ...clamp3 }}>
           {item.judul}
         </span>
       </div>
@@ -250,7 +311,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 
       {/* Lokasi */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.3 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2 }}>
+        <span style={{ fontSize: `${1.15 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.4 }}>
           {item.lokasi || '—'}
         </span>
       </div>
@@ -258,10 +319,11 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
       {/* PIC / Disposisi */}
       <div style={{ ...cellBase }}>
         <span style={{
-          fontSize: `${1.3 * s}rem`,
+          fontSize: `${1.15 * s}rem`,
           color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText,
           fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500,
           ...clamp2,
+          lineHeight: 1.4,
         }}>
           {pic}
         </span>
@@ -275,24 +337,24 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
       </div>
 
       {/* Status */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.3 * s}rem` }}>
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.25 * s}rem` }}>
         <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s}>
           {isOngoing && (
-            <span style={{ width: `${7 * s}px`, height: `${7 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
+            <span style={{ width: `${6 * s}px`, height: `${6 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
           )}
           {sCfg.label}
         </Badge>
         {isOngoing && (
-          <span style={{ fontSize: `${1.05 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.95 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}>
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
             Berlangsung
           </span>
         )}
         {!isOngoing && cdLabel && (
-          <span style={{ fontSize: `${1.05 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem` }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.95 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
             {cdLabel}
@@ -313,7 +375,7 @@ const EmptyRow = ({ rowIndex, s, t }) => (
     borderBottom: `1px solid ${t.emptyBorder}`,
   }}>
     {Array.from({ length: 8 }).map((_, i) => (
-      <div key={i} style={{ padding: `${1.0 * s}rem ${1.0 * s}rem` }} />
+      <div key={i} style={{ padding: `${0.85 * s}rem ${0.75 * s}rem` }} />
     ))}
   </div>
 )
@@ -362,6 +424,7 @@ export default function AgendaTVPage() {
   const [progress,    setProgress]    = useState(0)
   const [isPaused,    setIsPaused]    = useState(false)
   const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE)
+  const [videoKey,    setVideoKey]    = useState(0) // Untuk force reload video
 
   // ResizeObserver: ukur tinggi tbody nyata → hitung baris yang muat
   const tbodyRef = useRef(null)
@@ -378,18 +441,37 @@ export default function AgendaTVPage() {
   }, [s])
 
   // Fetch
+  const load = async () => {
+    try {
+      if (!supabase) { setError('Supabase belum dikonfigurasi'); return }
+      const { data, error: err } = await supabase
+        .from('agenda').select('*').order('tanggal_mulai', { ascending: true })
+      if (err) setError('Gagal memuat agenda')
+      else { setAgenda(data || []); setError(null) }
+    } catch { setError('Terjadi kesalahan') }
+    finally { setLoading(false) }
+  }
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        if (!supabase) { setError('Supabase belum dikonfigurasi'); return }
-        const { data, error: err } = await supabase
-          .from('agenda').select('*').order('tanggal_mulai', { ascending: true })
-        if (err) setError('Gagal memuat agenda')
-        else { setAgenda(data || []); setError(null) }
-      } catch { setError('Terjadi kesalahan') }
-      finally { setLoading(false) }
-    }
     load()
+  }, [])
+
+  // Auto-refresh setiap 5 menit (300000 ms)
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      load()
+    }, 300000)
+    return () => clearInterval(intervalId)
+  }, [])
+
+  // Force reload video iframe setelah mount untuk memastikan autoplay berjalan
+  useEffect(() => {
+    if (YOUTUBE_VIDEO_URL) {
+      const timer = setTimeout(() => {
+        setVideoKey(prev => prev + 1)
+      }, 100)
+      return () => clearTimeout(timer)
+    }
   }, [])
 
   const filtered = useMemo(() =>
@@ -527,85 +609,123 @@ export default function AgendaTVPage() {
       </header>
 
       {/* ── MAIN ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: `${0.75 * s}rem ${1.25 * s}rem ${0.6 * s}rem`, gap: `${0.6 * s}rem` }}>
+      <main style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: `${0.75 * s}rem ${1.25 * s}rem ${0.6 * s}rem`, gap: `${0.75 * s}rem` }}>
+        
+        {/* ── KIRI: AGENDA TABLE ── */}
+        <div style={{ flex: YOUTUBE_VIDEO_URL ? 1.7 : 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem` }}>
+          {filtered.length > 0 ? (
+            <>
+              {/* Wrapper tabel */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
 
-        {filtered.length > 0 ? (
-          <>
-            {/* Wrapper tabel */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
+                {/* Header kolom */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: COLS,
+                  background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0,
+                }}>
+                  {['No', 'Tanggal', 'Judul Kegiatan', 'Waktu', 'Lokasi', 'PIC / Disposisi', 'Jenis', 'Status'].map((col, idx) => (
+                    <div key={col} style={{
+                      padding: `${0.55 * s}rem ${0.75 * s}rem`,
+                      fontSize: `${0.82 * s}rem`, fontWeight: 700,
+                      letterSpacing: '0.05em', textTransform: 'uppercase', color: t.colHeader,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {col}
+                    </div>
+                  ))}
+                </div>
 
-              {/* Header kolom */}
-              <div style={{
-                display: 'grid', gridTemplateColumns: COLS,
-                background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0,
-              }}>
-                {['No', 'Tanggal', 'Judul Kegiatan', 'Waktu', 'Lokasi', 'PIC / Disposisi', 'Jenis', 'Status'].map(col => (
-                  <div key={col} style={{
-                    padding: `${0.55 * s}rem ${0.85 * s}rem`,
-                    fontSize: `${0.88 * s}rem`, fontWeight: 700,
-                    letterSpacing: '0.06em', textTransform: 'uppercase', color: t.colHeader,
-                  }}>
-                    {col}
-                  </div>
-                ))}
-              </div>
-
-              {/* Tbody — flex column, mengisi sisa tinggi */}
-              <div ref={tbodyRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-                {currentRows.map((item, i) => (
-                  <AgendaRow
-                    key={item.id}
-                    item={item}
-                    rowIndex={currentPage * rowsPerPage + i}
-                    s={s} t={t} isDark={isDark}
-                  />
-                ))}
-                {Array.from({ length: emptyCount }).map((_, i) => (
-                  <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} t={t} />
-                ))}
-              </div>
-            </div>
-
-            {/* Navigasi carousel */}
-            {totalPages > 1 && (
-              <div style={{
-                background: t.navBg, borderRadius: `${10 * s}px`, border: `2px solid ${t.navBorder}`,
-                padding: `${0.55 * s}rem ${1.25 * s}rem`,
-                display: 'flex', alignItems: 'center', gap: `${1.25 * s}rem`, flexShrink: 0,
-              }}>
-                <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText, fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  Hal. {currentPage + 1}/{totalPages} &nbsp;·&nbsp; {filtered.length} agenda &nbsp;·&nbsp; {rowsPerPage} baris
-                </span>
-
-                <div style={{ flex: 1 }}><ProgressBar progress={progress} s={s} t={t} /></div>
-
-                <span style={{ fontSize: `${1.0 * s}rem`, color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                  {isPaused ? '⏸ Dijeda' : `Ganti dalam ${secondsLeft}s`}
-                </span>
-
-                <div style={{ display: 'flex', gap: `${0.45 * s}rem` }}>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{
-                      width: i === currentPage ? `${1.75 * s}rem` : `${0.65 * s}rem`,
-                      height: `${0.65 * s}rem`, borderRadius: 9999, padding: 0,
-                      background: i === currentPage ? '#6366f1' : t.inactiveDotBg,
-                      border: 'none', cursor: 'pointer', transition: 'all 0.3s ease',
-                    }} />
+                {/* Tbody — flex column, mengisi sisa tinggi */}
+                <div ref={tbodyRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+                  {currentRows.map((item, i) => (
+                    <AgendaRow
+                      key={item.id}
+                      item={item}
+                      rowIndex={currentPage * rowsPerPage + i}
+                      s={s} t={t} isDark={isDark}
+                    />
+                  ))}
+                  {Array.from({ length: emptyCount }).map((_, i) => (
+                    <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} t={t} />
                   ))}
                 </div>
               </div>
-            )}
-          </>
-        ) : (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#1e293b', borderRadius: `${14 * s}px`, border: '2px solid #2d3f55' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: `${5 * s}rem`, height: `${5 * s}rem`, color: '#334155', marginBottom: `${1 * s}rem` }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <h3 style={{ fontSize: `${1.6 * s}rem`, fontWeight: 600, color: '#475569', margin: 0 }}>Tidak ada agenda</h3>
-            <p style={{ fontSize: `${1 * s}rem`, color: '#334155', marginTop: `${0.4 * s}rem` }}>
-              Tidak ada agenda yang akan datang atau sedang berlangsung.
-            </p>
+
+              {/* Navigasi carousel */}
+              {totalPages > 1 && (
+                <div style={{
+                  background: t.navBg, borderRadius: `${10 * s}px`, border: `2px solid ${t.navBorder}`,
+                  padding: `${0.55 * s}rem ${1.25 * s}rem`,
+                  display: 'flex', alignItems: 'center', gap: `${1.25 * s}rem`, flexShrink: 0,
+                }}>
+                  <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                    Hal. {currentPage + 1}/{totalPages} &nbsp;·&nbsp; {filtered.length} agenda &nbsp;·&nbsp; {rowsPerPage} baris
+                  </span>
+
+                  <div style={{ flex: 1 }}><ProgressBar progress={progress} s={s} t={t} /></div>
+
+                  <span style={{ fontSize: `${1.0 * s}rem`, color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {isPaused ? '⏸ Dijeda' : `Ganti dalam ${secondsLeft}s`}
+                  </span>
+
+                  <div style={{ display: 'flex', gap: `${0.45 * s}rem` }}>
+                    {Array.from({ length: totalPages }, (_, i) => (
+                      <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{
+                        width: i === currentPage ? `${1.75 * s}rem` : `${0.65 * s}rem`,
+                        height: `${0.65 * s}rem`, borderRadius: 9999, padding: 0,
+                        background: i === currentPage ? '#6366f1' : t.inactiveDotBg,
+                        border: 'none', cursor: 'pointer', transition: 'all 0.3s ease',
+                      }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: t.tableBg, borderRadius: `${14 * s}px`, border: `2px solid ${t.headerBorder}` }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: `${5 * s}rem`, height: `${5 * s}rem`, color: t.colHeader, marginBottom: `${1 * s}rem` }}>
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <h3 style={{ fontSize: `${1.6 * s}rem`, fontWeight: 600, color: t.subText, margin: 0 }}>Tidak ada agenda</h3>
+              <p style={{ fontSize: `${1 * s}rem`, color: t.mutedText, marginTop: `${0.4 * s}rem` }}>
+                Tidak ada agenda yang akan datang atau sedang berlangsung.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* ── KANAN: YOUTUBE VIDEO ── */}
+        {YOUTUBE_VIDEO_URL && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
+            {/* Video Header */}
+            <div style={{
+              background: t.theadBg, 
+              borderBottom: `2px solid ${t.theadBorder}`, 
+              padding: `${0.55 * s}rem ${0.85 * s}rem`,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: `${0.5 * s}rem`,
+            }}>
+              <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem`, color: '#ef4444' }}>
+                <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+              </svg>
+              <span style={{
+                fontSize: `${0.9 * s}rem`,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                color: t.colHeader,
+              }}>
+                Tentang USC
+              </span>
+            </div>
+            
+            {/* Video Player */}
+            <div style={{ flex: 1, position: 'relative', background: '#000', minHeight: 0 }}>
+              <VideoPlayer key={videoKey} url={YOUTUBE_VIDEO_URL} />
+            </div>
           </div>
         )}
       </main>
