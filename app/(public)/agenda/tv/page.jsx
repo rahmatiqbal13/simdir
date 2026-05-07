@@ -113,8 +113,8 @@ const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/nl6LLK92iWU' // ← Isi
 // - controls=0              : Sembunyikan kontrol player (opsional)
 // - iv_load_policy=3        : Sembunyikan annotation
 
-// Optimized column widths (tanpa Waktu dan Jenis) - lebih balanced
-const COLS = 'minmax(40px, 4%) minmax(100px, 12%) minmax(250px, 36%) minmax(130px, 16%) minmax(140px, 20%) minmax(110px, 12%)'
+// Optimized column widths (tanpa Waktu dan Jenis) - Status diperbesar agar terlihat jelas di TV
+const COLS = 'minmax(40px, 4%) minmax(90px, 10%) minmax(220px, 30%) minmax(120px, 14%) minmax(130px, 17%) minmax(160px, 25%)'
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -235,8 +235,9 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
     ? t.rowOngoing
     : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
 
-  // Padding sel — seragam dengan header
+  // Padding sel — seragam dengan header, kolom terakhir (Status) diberi padding kanan ekstra
   const cp = `${0.6 * s}rem ${0.6 * s}rem`
+  const cpLast = `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` // top right bottom left
 
   const cellBase = {
     padding: cp,
@@ -314,7 +315,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
       </div>
 
       {/* Status */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.2 * s}rem` }}>
+      <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.2 * s}rem`, overflow: 'visible' }}>
         <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s}>
           {isOngoing && (
             <span style={{ width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
@@ -351,9 +352,12 @@ const EmptyRow = ({ rowIndex, s, t }) => (
     background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd,
     borderBottom: `1px solid ${t.emptyBorder}`,
   }}>
-    {Array.from({ length: 6 }).map((_, i) => (
-      <div key={i} style={{ padding: `${0.6 * s}rem ${0.6 * s}rem` }} />
-    ))}
+    {Array.from({ length: 6 }).map((_, i) => {
+      const isLastCol = i === 5
+      return (
+        <div key={i} style={{ padding: isLastCol ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem ${0.6 * s}rem` }} />
+      )
+    })}
   </div>
 )
 
@@ -586,7 +590,7 @@ export default function AgendaTVPage() {
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: `${0.75 * s}rem ${1.25 * s}rem ${0.6 * s}rem`, gap: `${0.75 * s}rem` }}>
         
         {/* ── KIRI: AGENDA TABLE ── */}
-        <div style={{ flex: YOUTUBE_VIDEO_URL ? 1.7 : 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem` }}>
+        <div style={{ flex: YOUTUBE_VIDEO_URL ? 2.5 : 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem` }}>
           {filtered.length > 0 ? (
             <>
               {/* Wrapper tabel */}
@@ -597,18 +601,21 @@ export default function AgendaTVPage() {
                   display: 'grid', gridTemplateColumns: COLS,
                   background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0,
                 }}>
-                  {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => (
-                    <div key={col} style={{
-                      padding: `${0.6 * s}rem ${0.6 * s}rem`,
-                      fontSize: `${0.75 * s}rem`, fontWeight: 700,
-                      letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}>
-                      {col}
-                    </div>
-                  ))}
+                  {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => {
+                    const isLastCol = idx === 5
+                    return (
+                      <div key={col} style={{
+                        padding: isLastCol ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem ${0.6 * s}rem`,
+                        fontSize: `${0.75 * s}rem`, fontWeight: 700,
+                        letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}>
+                        {col}
+                      </div>
+                    )
+                  })}
                 </div>
 
                 {/* Tbody — flex column, mengisi sisa tinggi */}
