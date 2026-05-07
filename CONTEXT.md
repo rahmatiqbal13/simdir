@@ -1,7 +1,7 @@
 # SIMDIR — Context Dokumen untuk AI
 
 > Dokumen ini dibuat untuk memberikan konteks kepada AI yang akan melanjutkan pengerjaan project ini.
-> Update terakhir: 2026-05-06
+> Update terakhir: 2026-05-07
 
 ---
 
@@ -55,16 +55,18 @@ Menampilkan agenda kegiatan USC di layar TV yang dipasang di lobby/ruang tunggu.
 
 ### Desain
 - **Dark theme** (background `#0f172a`, card `#1e293b`)
-- **Layout: tabel** (bukan card) — dipilih karena perlu tampilkan info lengkap termasuk PIC
-- **Kolom tabel:** No | Tanggal | Judul Kegiatan | Waktu | Lokasi | PIC/Disposisi | Jenis | Status
+- **Layout: split screen** — Agenda tabel (kiri ~63%) + YouTube Video (kanan ~37%)
+- **Layout tabel:** div-based grid (bukan `<table>`) agar baris bisa `flex: 1`
+- **Kolom tabel (6 kolom):** No | Tanggal | Judul Kegiatan | Lokasi | PIC/Disposisi | Status
 - **Font:** proporsional ke lebar layar via `scale = window.innerWidth / 1920`
+- **YouTube Video:** Auto-play, mute, loop (konfigurasi via `YOUTUBE_VIDEO_URL`)
 
 ### Carousel Otomatis
 - Auto-rotate setiap **15 detik**
-- Pause saat mouse hover
 - Progress bar berjalan + countdown "Ganti dalam Xs"
 - Dot navigation untuk pindah halaman manual
 - Running text (marquee) di bagian bawah: agenda berlangsung + akan datang
+- Carousel berjalan terus tanpa pause saat hover
 
 ### Responsive Scaling (kritis untuk 4K TV)
 ```js
@@ -200,12 +202,14 @@ npm run dev
 
 ---
 
-## Status Saat Ini (2026-05-06)
+## Status Saat Ini (2026-05-07)
 
 - [x] TV display page selesai dan berjalan di TV 4K
 - [x] Carousel otomatis 15 detik
 - [x] Responsive scaling untuk berbagai resolusi TV
 - [x] Mock client untuk local development
 - [x] `.env.local` template tersedia
-- [ ] Belum ada fitur refresh otomatis data agenda (saat ini hanya load sekali saat mount)
-- [ ] Belum ada notifikasi jika data berubah di database (real-time subscription)
+- [x] Split screen dengan YouTube video (kanan)
+- [x] Auto-refresh data agenda setiap 5 menit
+- [x] Layout 6 kolom (tanpa Waktu dan Jenis)
+- [ ] Belum ada notifikasi real-time subscription (Supabase realtime)

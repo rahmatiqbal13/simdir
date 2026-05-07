@@ -113,8 +113,8 @@ const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/nl6LLK92iWU' // ← Isi
 // - controls=0              : Sembunyikan kontrol player (opsional)
 // - iv_load_policy=3        : Sembunyikan annotation
 
-// Optimized column widths for better text display
-const COLS = '3% 10% 30% 8% 13% 13% 7% 16%'
+// Optimized column widths (tanpa Waktu dan Jenis) - lebih balanced
+const COLS = 'minmax(40px, 4%) minmax(100px, 12%) minmax(250px, 36%) minmax(130px, 16%) minmax(140px, 20%) minmax(110px, 12%)'
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -205,10 +205,10 @@ const VideoPlayer = ({ url }) => {
 // ============ BADGE ============
 const Badge = ({ bg, border, color, children, s }) => (
   <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: `${0.35 * s}rem`,
-    padding: `${0.35 * s}rem ${0.8 * s}rem`, borderRadius: '9999px',
-    fontSize: `${1.1 * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
-    background: bg, border: `${Math.max(1, Math.round(1.5 * s))}px solid ${border}`, color,
+    display: 'inline-flex', alignItems: 'center', gap: `${0.3 * s}rem`,
+    padding: `${0.3 * s}rem ${0.6 * s}rem`, borderRadius: '9999px',
+    fontSize: `${0.95 * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
+    background: bg, border: `${Math.max(1, Math.round(1 * s))}px solid ${border}`, color,
   }}>
     {children}
   </span>
@@ -219,14 +219,11 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
   const status   = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
   const accent   = STATUS_ACCENT[status]
   const sCfg     = getStatusCfg(isDark)[status]
-  const jCfg     = getJenisCfg(isDark)[item.jenis] || getJenisCfg(isDark).internal
   const startD   = new Date(item.tanggal_mulai)
   const endD     = new Date(item.tanggal_selesai)
   const multiDay = item.tanggal_mulai !== item.tanggal_selesai
   const isOngoing = status === 'ongoing'
   const cdLabel  = getCountdownLabel(item.tanggal_mulai)
-  const wMulai   = formatTime(item.waktu_mulai)
-  const wSelesai = formatTime(item.waktu_selesai)
 
   const pic = (() => {
     if (item.jenis === 'pimpinan' && item.disposisi) return `→ ${item.disposisi}`
@@ -238,14 +235,15 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
     ? t.rowOngoing
     : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
 
-  // Padding sel — lebih kompak untuk memaksimalkan ruang teks
-  const cp = `${0.85 * s}rem ${0.75 * s}rem`
+  // Padding sel — seragam dengan header
+  const cp = `${0.6 * s}rem ${0.6 * s}rem`
 
   const cellBase = {
     padding: cp,
     display: 'flex', alignItems: 'center',
     overflow: 'hidden',
     borderBottom: `1px solid ${t.rowBorder}`,
+    minHeight: 0,
   }
 
   const clamp2 = {
@@ -268,21 +266,21 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
     }}>
       {/* No */}
       <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <span style={{ fontSize: `${1.25 * s}rem`, fontWeight: 700, color: t.noColor }}>
+        <span style={{ fontSize: `${1.1 * s}rem`, fontWeight: 700, color: t.noColor }}>
           {rowIndex + 1}
         </span>
       </div>
 
       {/* Tanggal */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.1 * s}rem` }}>
-        <span style={{ fontSize: `${1.75 * s}rem`, fontWeight: 800, color: accent, lineHeight: 1 }}>
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.05 * s}rem` }}>
+        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 800, color: accent, lineHeight: 1.1 }}>
           {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${1.1 * s}rem`, color: t.subText }}>
+        <span style={{ fontSize: `${0.95 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${1.0 * s}rem`, color: t.mutedText }}>
+          <span style={{ fontSize: `${0.85 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
             s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
           </span>
         )}
@@ -290,28 +288,14 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 
       {/* Judul */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.4, ...clamp3 }}>
+        <span style={{ fontSize: `${1.35 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp3 }}>
           {item.judul}
         </span>
       </div>
 
-      {/* Waktu */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.08 * s}rem` }}>
-        {wMulai ? (
-          <>
-            <span style={{ fontSize: `${1.35 * s}rem`, fontWeight: 600, color: t.timeMain }}>{wMulai}</span>
-            {wSelesai && (
-              <span style={{ fontSize: `${1.1 * s}rem`, color: t.subText }}>s/d {wSelesai}</span>
-            )}
-          </>
-        ) : (
-          <span style={{ fontSize: `${1.2 * s}rem`, color: t.mutedText }}>—</span>
-        )}
-      </div>
-
       {/* Lokasi */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.15 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.4 }}>
+        <span style={{ fontSize: `${1.05 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>
           {item.lokasi || '—'}
         </span>
       </div>
@@ -319,42 +303,35 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
       {/* PIC / Disposisi */}
       <div style={{ ...cellBase }}>
         <span style={{
-          fontSize: `${1.15 * s}rem`,
+          fontSize: `${1.05 * s}rem`,
           color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText,
           fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500,
           ...clamp2,
-          lineHeight: 1.4,
+          lineHeight: 1.35,
         }}>
           {pic}
         </span>
       </div>
 
-      {/* Jenis */}
-      <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <Badge bg={jCfg.bg} border={jCfg.border} color={jCfg.color} s={s}>
-          {jCfg.label}
-        </Badge>
-      </div>
-
       {/* Status */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.25 * s}rem` }}>
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.2 * s}rem` }}>
         <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s}>
           {isOngoing && (
-            <span style={{ width: `${6 * s}px`, height: `${6 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
+            <span style={{ width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
           )}
           {sCfg.label}
         </Badge>
         {isOngoing && (
-          <span style={{ fontSize: `${0.95 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.85 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
               <polygon points="5 3 19 12 5 21 5 3" />
             </svg>
             Berlangsung
           </span>
         )}
         {!isOngoing && cdLabel && (
-          <span style={{ fontSize: `${0.95 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}>
+          <span style={{ fontSize: `${0.85 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
             </svg>
             {cdLabel}
@@ -374,8 +351,8 @@ const EmptyRow = ({ rowIndex, s, t }) => (
     background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd,
     borderBottom: `1px solid ${t.emptyBorder}`,
   }}>
-    {Array.from({ length: 8 }).map((_, i) => (
-      <div key={i} style={{ padding: `${0.85 * s}rem ${0.75 * s}rem` }} />
+    {Array.from({ length: 6 }).map((_, i) => (
+      <div key={i} style={{ padding: `${0.6 * s}rem ${0.6 * s}rem` }} />
     ))}
   </div>
 )
@@ -422,7 +399,6 @@ export default function AgendaTVPage() {
   const [error,       setError]       = useState(null)
   const [currentPage, setCurrentPage] = useState(0)
   const [progress,    setProgress]    = useState(0)
-  const [isPaused,    setIsPaused]    = useState(false)
   const [rowsPerPage, setRowsPerPage] = useState(ROWS_PER_PAGE)
   const [videoKey,    setVideoKey]    = useState(0) // Untuk force reload video
 
@@ -494,7 +470,7 @@ export default function AgendaTVPage() {
   useEffect(() => { pageRef.current = currentPage }, [currentPage])
 
   useEffect(() => {
-    if (isPaused || totalPages <= 1) return
+    if (totalPages <= 1) return
     const id = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) { setCurrentPage((pageRef.current + 1) % totalPages); return 0 }
@@ -502,7 +478,7 @@ export default function AgendaTVPage() {
       })
     }, 100)
     return () => clearInterval(id)
-  }, [isPaused, totalPages])
+  }, [totalPages])
 
   useEffect(() => { setProgress(0) }, [currentPage])
   useEffect(() => { setCurrentPage(0); setProgress(0) }, [rowsPerPage])
@@ -528,8 +504,6 @@ export default function AgendaTVPage() {
   return (
     <div
       style={{ height: '100vh', background: t.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
 
       {/* ── HEADER ── */}
@@ -623,12 +597,14 @@ export default function AgendaTVPage() {
                   display: 'grid', gridTemplateColumns: COLS,
                   background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0,
                 }}>
-                  {['No', 'Tanggal', 'Judul Kegiatan', 'Waktu', 'Lokasi', 'PIC / Disposisi', 'Jenis', 'Status'].map((col, idx) => (
+                  {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => (
                     <div key={col} style={{
-                      padding: `${0.55 * s}rem ${0.75 * s}rem`,
-                      fontSize: `${0.82 * s}rem`, fontWeight: 700,
-                      letterSpacing: '0.05em', textTransform: 'uppercase', color: t.colHeader,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      padding: `${0.6 * s}rem ${0.6 * s}rem`,
+                      fontSize: `${0.75 * s}rem`, fontWeight: 700,
+                      letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
                     }}>
                       {col}
                     </div>
@@ -664,8 +640,8 @@ export default function AgendaTVPage() {
 
                   <div style={{ flex: 1 }}><ProgressBar progress={progress} s={s} t={t} /></div>
 
-                  <span style={{ fontSize: `${1.0 * s}rem`, color: isPaused ? '#f59e0b' : '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                    {isPaused ? '⏸ Dijeda' : `Ganti dalam ${secondsLeft}s`}
+                  <span style={{ fontSize: `${1.0 * s}rem`, color: '#6366f1', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    {`Ganti dalam ${secondsLeft}s`}
                   </span>
 
                   <div style={{ display: 'flex', gap: `${0.45 * s}rem` }}>
