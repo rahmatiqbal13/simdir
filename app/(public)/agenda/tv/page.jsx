@@ -113,8 +113,11 @@ const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/nl6LLK92iWU' // ← Isi
 // - controls=0              : Sembunyikan kontrol player (opsional)
 // - iv_load_policy=3        : Sembunyikan annotation
 
-// Optimized column widths (tanpa Waktu dan Jenis) - Status diperbesar agar terlihat jelas di TV
-const COLS = 'minmax(40px, 4%) minmax(90px, 10%) minmax(220px, 30%) minmax(120px, 14%) minmax(130px, 17%) minmax(160px, 25%)'
+// Optimized column widths (tanpa Waktu dan Jenis)
+// getCols(isSmallScreen): TV 32-43" (HD) lebih kompak, TV 50-65" 4K lebih lebar
+const getCols = (isSmallScreen) => isSmallScreen
+  ? 'minmax(35px, 5%) minmax(75px, 11%) minmax(150px, 26%) minmax(90px, 13%) minmax(100px, 19%) minmax(110px, 26%)'  // HD/32-43"
+  : 'minmax(40px, 4%) minmax(90px, 10%) minmax(220px, 30%) minmax(120px, 14%) minmax(130px, 17%) minmax(160px, 25%)'  // 4K/50-65"
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -143,6 +146,20 @@ function useScreenScale() {
     return () => window.removeEventListener('resize', update)
   }, [])
   return scale
+}
+
+// ============ HOOK: DETEKSI UKURAN LAYAR ============
+// TV 32-43" (HD ~1366-1920px) = isSmallScreen: true
+// TV 50-65" 4K (>1920px) = isSmallScreen: false
+function useScreenSize() {
+  const [isSmallScreen, setIsSmallScreen] = useState(false)
+  useEffect(() => {
+    const update = () => setIsSmallScreen(window.innerWidth <= 1920)
+    update()
+    window.addEventListener('resize', update)
+    return () => window.removeEventListener('resize', update)
+  }, [])
+  return isSmallScreen
 }
 
 // ============ HOOK: TEMA ============
@@ -203,11 +220,11 @@ const VideoPlayer = ({ url }) => {
 }
 
 // ============ BADGE ============
-const Badge = ({ bg, border, color, children, s }) => (
+const Badge = ({ bg, border, color, children, s, isSmallScreen }) => (
   <span style={{
     display: 'inline-flex', alignItems: 'center', gap: `${0.3 * s}rem`,
     padding: `${0.3 * s}rem ${0.6 * s}rem`, borderRadius: '9999px',
-    fontSize: `${0.95 * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
+    fontSize: `${(isSmallScreen ? 0.8 : 0.95) * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
     background: bg, border: `${Math.max(1, Math.round(1 * s))}px solid ${border}`, color,
   }}>
     {children}
@@ -215,7 +232,7 @@ const Badge = ({ bg, border, color, children, s }) => (
 )
 
 // ============ BARIS DATA (div-based, flex: 1) ============
-function AgendaRow({ item, rowIndex, s, t, isDark }) {
+function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
   const status   = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
   const accent   = STATUS_ACCENT[status]
   const sCfg     = getStatusCfg(isDark)[status]
@@ -238,6 +255,9 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
   // Padding sel — seragam dengan header, kolom terakhir (Status) diberi padding kanan ekstra
   const cp = `${0.6 * s}rem ${0.6 * s}rem`
   const cpLast = `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` // top right bottom left
+
+  // Kolom layout berdasarkan ukuran layar
+  const COLS = getCols(isSmallScreen)
 
   const cellBase = {
     padding: cp,
@@ -267,21 +287,21 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
     }}>
       {/* No */}
       <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <span style={{ fontSize: `${1.1 * s}rem`, fontWeight: 700, color: t.noColor }}>
+        <span style={{ fontSize: `${(isSmallScreen ? 0.95 : 1.1) * s}rem`, fontWeight: 700, color: t.noColor }}>
           {rowIndex + 1}
         </span>
       </div>
 
       {/* Tanggal */}
       <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.05 * s}rem` }}>
-        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 800, color: accent, lineHeight: 1.1 }}>
+        <span style={{ fontSize: `${(isSmallScreen ? 1.3 : 1.5) * s}rem`, fontWeight: 800, color: accent, lineHeight: 1.1 }}>
           {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${0.95 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
+        <span style={{ fontSize: `${(isSmallScreen ? 0.85 : 0.95) * s}rem`, color: t.subText, lineHeight: 1.2 }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${0.85 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
+          <span style={{ fontSize: `${(isSmallScreen ? 0.75 : 0.85) * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
             s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
           </span>
         )}
@@ -289,14 +309,14 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 
       {/* Judul */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.35 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp3 }}>
+        <span style={{ fontSize: `${(isSmallScreen ? 1.15 : 1.35) * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp3 }}>
           {item.judul}
         </span>
       </div>
 
       {/* Lokasi */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.05 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>
+        <span style={{ fontSize: `${(isSmallScreen ? 0.95 : 1.05) * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>
           {item.lokasi || '—'}
         </span>
       </div>
@@ -304,7 +324,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
       {/* PIC / Disposisi */}
       <div style={{ ...cellBase }}>
         <span style={{
-          fontSize: `${1.05 * s}rem`,
+          fontSize: `${(isSmallScreen ? 0.95 : 1.05) * s}rem`,
           color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText,
           fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500,
           ...clamp2,
@@ -316,13 +336,14 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 
       {/* Status */}
       <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.2 * s}rem`, overflow: 'visible' }}>
-        <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s}>
+        <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s} isSmallScreen={isSmallScreen}>
           {isOngoing && (
             <span style={{ width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />
           )}
           {sCfg.label}
         </Badge>
-        {isOngoing && (
+        {/* TV kecil: sembunyikan teks "Berlangsung" dan countdown agar tidak terlalu sempit */}
+        {!isSmallScreen && isOngoing && (
           <span style={{ fontSize: `${0.85 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
               <polygon points="5 3 19 12 5 21 5 3" />
@@ -330,7 +351,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
             Berlangsung
           </span>
         )}
-        {!isOngoing && cdLabel && (
+        {!isSmallScreen && !isOngoing && cdLabel && (
           <span style={{ fontSize: `${0.85 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}>
               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
@@ -344,22 +365,25 @@ function AgendaRow({ item, rowIndex, s, t, isDark }) {
 }
 
 // ============ BARIS KOSONG ============
-const EmptyRow = ({ rowIndex, s, t }) => (
-  <div style={{
-    display: 'grid', gridTemplateColumns: COLS,
-    flex: 1, minHeight: 0,
-    borderLeft: '4px solid transparent',
-    background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd,
-    borderBottom: `1px solid ${t.emptyBorder}`,
-  }}>
-    {Array.from({ length: 6 }).map((_, i) => {
-      const isLastCol = i === 5
-      return (
-        <div key={i} style={{ padding: isLastCol ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem ${0.6 * s}rem` }} />
-      )
-    })}
-  </div>
-)
+const EmptyRow = ({ rowIndex, s, t, isSmallScreen }) => {
+  const COLS = getCols(isSmallScreen)
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: COLS,
+      flex: 1, minHeight: 0,
+      borderLeft: '4px solid transparent',
+      background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd,
+      borderBottom: `1px solid ${t.emptyBorder}`,
+    }}>
+      {Array.from({ length: 6 }).map((_, i) => {
+        const isLastCol = i === 5
+        return (
+          <div key={i} style={{ padding: isLastCol ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem ${0.6 * s}rem` }} />
+        )
+      })}
+    </div>
+  )
+}
 
 // ============ PROGRESS BAR ============
 const ProgressBar = ({ progress, s, t }) => (
@@ -396,7 +420,11 @@ const RunningText = ({ agenda, s, t }) => {
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
   const s = useScreenScale()
+  const isSmallScreen = useScreenSize()
   const { isDark, theme: t, toggle: toggleTheme } = useTheme()
+  
+  // Kolom layout berdasarkan ukuran layar
+  const COLS = getCols(isSmallScreen)
 
   const [agenda,      setAgenda]      = useState([])
   const [loading,     setLoading]     = useState(true)
@@ -590,7 +618,8 @@ export default function AgendaTVPage() {
       <main style={{ flex: 1, display: 'flex', overflow: 'hidden', padding: `${0.75 * s}rem ${1.25 * s}rem ${0.6 * s}rem`, gap: `${0.75 * s}rem` }}>
         
         {/* ── KIRI: AGENDA TABLE ── */}
-        <div style={{ flex: YOUTUBE_VIDEO_URL ? 2.5 : 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem` }}>
+        {/* TV 32-43" (HD): tabel 75:25, TV 50-65" 4K: tabel 70:30 */}
+        <div style={{ flex: YOUTUBE_VIDEO_URL ? (isSmallScreen ? 3 : 2.33) : 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem` }}>
           {filtered.length > 0 ? (
             <>
               {/* Wrapper tabel */}
@@ -606,7 +635,7 @@ export default function AgendaTVPage() {
                     return (
                       <div key={col} style={{
                         padding: isLastCol ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem ${0.6 * s}rem`,
-                        fontSize: `${0.75 * s}rem`, fontWeight: 700,
+                        fontSize: `${(isSmallScreen ? 0.65 : 0.75) * s}rem`, fontWeight: 700,
                         letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
                         whiteSpace: 'nowrap',
                         display: 'flex',
@@ -625,11 +654,11 @@ export default function AgendaTVPage() {
                       key={item.id}
                       item={item}
                       rowIndex={currentPage * rowsPerPage + i}
-                      s={s} t={t} isDark={isDark}
+                      s={s} t={t} isDark={isDark} isSmallScreen={isSmallScreen}
                     />
                   ))}
                   {Array.from({ length: emptyCount }).map((_, i) => (
-                    <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} t={t} />
+                    <EmptyRow key={`e${i}`} rowIndex={currentRows.length + i} s={s} t={t} isSmallScreen={isSmallScreen} />
                   ))}
                 </div>
               </div>
