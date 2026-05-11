@@ -196,7 +196,7 @@ const Badge = ({ bg, border, color, children, s, compact }) => (
   <span style={{
     display: 'inline-flex', alignItems: 'center', gap: `${0.3 * s}rem`,
     padding: `${0.3 * s}rem ${0.6 * s}rem`, borderRadius: '9999px',
-    fontSize: `${(compact ? 0.8 : 0.95) * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
+    fontSize: `${(compact ? 0.85 : 1.1) * s}rem`, fontWeight: 700, whiteSpace: 'nowrap',
     background: bg, border: `${Math.max(1, Math.round(1 * s))}px solid ${border}`, color,
   }}>
     {children}
@@ -219,54 +219,53 @@ function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
     return '—'
   })()
   const rowBg  = isOngoing ? t.rowOngoing : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
-  const cp     = `${0.6 * s}rem`
-  const cpLast = `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem`
+  const cp     = `${0.85 * s}rem`
+  const cpLast = `${0.85 * s}rem ${1.1 * s}rem ${0.85 * s}rem ${0.85 * s}rem`
   const COLS   = getCols(isSmallScreen)
   const cellBase = { padding: cp, display: 'flex', alignItems: 'center', overflow: 'hidden', borderBottom: `1px solid ${t.rowBorder}`, minHeight: 0 }
   const clamp2 = { overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }
-  const clamp3 = { overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: `${Math.max(3, Math.round(4 * s))}px solid ${accent}`, background: rowBg, transition: 'background 0.2s' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: `${Math.max(4, Math.round(5 * s))}px solid ${accent}`, background: rowBg, transition: 'background 0.2s' }}>
       <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <span style={{ fontSize: `${(isSmallScreen ? 0.95 : 1.1) * s}rem`, fontWeight: 700, color: t.noColor }}>{rowIndex + 1}</span>
+        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 700, color: t.noColor }}>{rowIndex + 1}</span>
       </div>
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.05 * s}rem` }}>
-        <span style={{ fontSize: `${(isSmallScreen ? 1.3 : 1.5) * s}rem`, fontWeight: 800, color: accent, lineHeight: 1.1 }}>
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.1 * s}rem` }}>
+        <span style={{ fontSize: `${2.4 * s}rem`, fontWeight: 900, color: accent, lineHeight: 1.05 }}>
           {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${(isSmallScreen ? 0.85 : 0.95) * s}rem`, color: t.subText, lineHeight: 1.2 }}>
+        <span style={{ fontSize: `${1.2 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${(isSmallScreen ? 0.75 : 0.85) * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
+          <span style={{ fontSize: `${1.0 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
             s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
           </span>
         )}
       </div>
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${(isSmallScreen ? 1.15 : 1.35) * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp3 }}>{item.judul}</span>
+        <span style={{ fontSize: `${1.9 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp2 }}>{item.judul}</span>
       </div>
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${(isSmallScreen ? 0.95 : 1.05) * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>{item.lokasi || '—'}</span>
+        <span style={{ fontSize: `${1.35 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>{item.lokasi || '—'}</span>
       </div>
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${(isSmallScreen ? 0.95 : 1.05) * s}rem`, color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText, fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500, ...clamp2, lineHeight: 1.35 }}>{pic}</span>
+        <span style={{ fontSize: `${1.35 * s}rem`, color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText, fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500, ...clamp2, lineHeight: 1.35 }}>{pic}</span>
       </div>
-      <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.2 * s}rem`, overflow: 'visible' }}>
-        <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s} compact={isSmallScreen}>
-          {isOngoing && <span style={{ width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />}
+      <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.3 * s}rem`, overflow: 'visible' }}>
+        <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s} compact={false}>
+          {isOngoing && <span style={{ width: `${6 * s}px`, height: `${6 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />}
           {sCfg.label}
         </Badge>
-        {!isSmallScreen && isOngoing && (
-          <span style={{ fontSize: `${0.85 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>
+        {isOngoing && (
+          <span style={{ fontSize: `${1.05 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>
             Berlangsung
           </span>
         )}
-        {!isSmallScreen && !isOngoing && cdLabel && (
-          <span style={{ fontSize: `${0.85 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.15 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.85 * s}rem`, height: `${0.85 * s}rem`, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+        {!isOngoing && cdLabel && (
+          <span style={{ fontSize: `${1.05 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             {cdLabel}
           </span>
         )}
@@ -416,9 +415,9 @@ export default function AgendaTVPage() {
       const h = entry.contentRect.height
       // Portrait cards lebih pendek dari baris landscape
       const minRowH = isVertical
-        ? Math.max(100, 130 * s)
-        : Math.max(140, 165 * s)
-      const maxRows = isVertical ? 8 : 6
+        ? Math.max(100, 125 * s)
+        : Math.max(110, 130 * s)
+      const maxRows = isVertical ? 8 : 7
       setRowsPerPage(Math.max(3, Math.min(maxRows, Math.floor(h / minRowH))))
     })
     obs.observe(tbodyRef.current)
@@ -592,7 +591,7 @@ export default function AgendaTVPage() {
                     {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => (
                       <div key={col} style={{
                         padding: idx === 5 ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem`,
-                        fontSize: `${(isSmallScreen ? 0.65 : 0.75) * s}rem`, fontWeight: 700,
+                        fontSize: `${0.95 * s}rem`, fontWeight: 700,
                         letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
                         whiteSpace: 'nowrap', display: 'flex', alignItems: 'center',
                       }}>
