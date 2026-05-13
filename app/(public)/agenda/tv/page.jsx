@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { getUnitColor, UNIT_COLORS } from './unit-colors'
 
 // ============ HELPERS ============
 const formatDate = (date) =>
@@ -63,9 +64,10 @@ const LIGHT = {
 const ROTATE_MS = 15000
 const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/Jo0IZcAMqvM?list=PLn75qxWu-L4XRW_AOWoEhHUNgSWkRx7t2'
 
+// Grid columns: No | Tanggal | Judul | Unit Kerja | Lokasi | PIC | Status
 const getCols = (isSmallScreen) => isSmallScreen
-  ? 'minmax(35px, 5%) minmax(75px, 11%) minmax(150px, 26%) minmax(90px, 13%) minmax(100px, 19%) minmax(110px, 26%)'
-  : 'minmax(40px, 4%) minmax(90px, 10%) minmax(220px, 30%) minmax(120px, 14%) minmax(130px, 17%) minmax(160px, 25%)'
+  ? 'minmax(30px, 4%) minmax(70px, 10%) minmax(130px, 22%) minmax(90px, 12%) minmax(80px, 11%) minmax(95px, 16%) minmax(100px, 25%)'
+  : 'minmax(35px, 3%) minmax(80px, 8%) minmax(180px, 24%) minmax(100px, 11%) minmax(100px, 10%) minmax(110px, 14%) minmax(140px, 30%)'
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -80,9 +82,7 @@ const getJenisCfg = (isDark) => ({
   pimpinan:  { label: 'Pimpinan',  color: isDark ? '#f9a8d4' : '#9d174d', bg: 'rgba(236,72,153,0.15)',  border: 'rgba(236,72,153,0.4)'  },
 })
 
-const STATUS_ACCENT = {
-  upcoming: '#6366f1', upcoming_soon: '#f59e0b', ongoing: '#10b981', completed: '#475569',
-}
+
 
 // ============ HOOK: SCALE LAYAR ============
 // Landscape: referensi lebar 1920px | Portrait: referensi lebar 1080px
@@ -143,6 +143,16 @@ function useOrientation() {
     return next
   })
   return { isVertical, toggle }
+}
+
+// ============ HOOK: REALTIME CLOCK ============
+function useClock() {
+  const [now, setNow] = useState(new Date())
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  return now
 }
 
 // ============ VIDEO PLAYER ============
@@ -206,7 +216,7 @@ const Badge = ({ bg, border, color, children, s, compact }) => (
 // ============ BARIS DATA (LANDSCAPE) ============
 function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
   const status    = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  const accent    = STATUS_ACCENT[status]
+  const unitColor = getUnitColor(item.jenis, item.penyelenggara)
   const sCfg      = getStatusCfg(isDark)[status]
   const startD    = new Date(item.tanggal_mulai)
   const endD      = new Date(item.tanggal_selesai)
@@ -218,54 +228,75 @@ function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
     if (item.pic) return item.pic.replace('Manual: ', '')
     return '—'
   })()
-  const rowBg  = isOngoing ? t.rowOngoing : rowIndex % 2 === 0 ? t.rowEven : t.rowOdd
-  const cp     = `${0.85 * s}rem`
-  const cpLast = `${0.85 * s}rem ${1.1 * s}rem ${0.85 * s}rem ${0.85 * s}rem`
+  const cp     = `${0.7 * s}rem`
+  const cpLast = `${0.7 * s}rem ${0.9 * s}rem ${0.7 * s}rem ${0.7 * s}rem`
   const COLS   = getCols(isSmallScreen)
   const cellBase = { padding: cp, display: 'flex', alignItems: 'center', overflow: 'hidden', borderBottom: `1px solid ${t.rowBorder}`, minHeight: 0 }
   const clamp2 = { overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: `${Math.max(4, Math.round(5 * s))}px solid ${accent}`, background: rowBg, transition: 'background 0.2s' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: `${Math.max(5, Math.round(6 * s))}px solid ${unitColor.border}`, background: isOngoing ? t.rowOngoing : unitColor.bg, transition: 'background 0.2s' }}>
+      {/* No */}
       <div style={{ ...cellBase, justifyContent: 'center' }}>
-        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 700, color: t.noColor }}>{rowIndex + 1}</span>
+        <span style={{ fontSize: `${1.3 * s}rem`, fontWeight: 700, color: t.noColor }}>{rowIndex + 1}</span>
       </div>
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.1 * s}rem` }}>
-        <span style={{ fontSize: `${2.4 * s}rem`, fontWeight: 900, color: accent, lineHeight: 1.05 }}>
+      {/* Tanggal */}
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.05 * s}rem` }}>
+        <span style={{ fontSize: `${2.0 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1.05 }}>
           {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${1.2 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
+        <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${1.0 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
-            s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+          <span style={{ fontSize: `${0.85 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
+            s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short' })}
           </span>
         )}
       </div>
+      {/* Judul Kegiatan */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.9 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp2 }}>{item.judul}</span>
+        <span style={{ fontSize: `${1.5 * s}rem`, fontWeight: 700, color: t.titleColor, lineHeight: 1.35, ...clamp2 }}>{item.judul}</span>
       </div>
+      {/* Unit Kerja - KOLOM BARU */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.35 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>{item.lokasi || '—'}</span>
+        <span style={{
+          fontSize: `${0.95 * s}rem`,
+          fontWeight: 700,
+          color: unitColor.text,
+          background: unitColor.bg,
+          padding: `${0.2 * s}rem ${0.6 * s}rem`,
+          borderRadius: `${6 * s}px`,
+          border: `2px solid ${unitColor.border}`,
+          whiteSpace: 'nowrap',
+          boxShadow: `0 0 10px ${unitColor.border}40`,
+        }}>
+          {unitColor.name}
+        </span>
       </div>
+      {/* Lokasi */}
       <div style={{ ...cellBase }}>
-        <span style={{ fontSize: `${1.35 * s}rem`, color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText, fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500, ...clamp2, lineHeight: 1.35 }}>{pic}</span>
+        <span style={{ fontSize: `${1.1 * s}rem`, color: t.mutedText, fontWeight: 500, ...clamp2, lineHeight: 1.35 }}>{item.lokasi || '—'}</span>
       </div>
-      <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.3 * s}rem`, overflow: 'visible' }}>
+      {/* PIC / Disposisi */}
+      <div style={{ ...cellBase }}>
+        <span style={{ fontSize: `${1.1 * s}rem`, color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText, fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 500, ...clamp2, lineHeight: 1.35 }}>{pic}</span>
+      </div>
+      {/* Status */}
+      <div style={{ ...cellBase, padding: cpLast, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.25 * s}rem`, overflow: 'visible' }}>
         <Badge bg={sCfg.bg} border={sCfg.border} color={sCfg.color} s={s} compact={false}>
-          {isOngoing && <span style={{ width: `${6 * s}px`, height: `${6 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />}
+          {isOngoing && <span style={{ width: `${5 * s}px`, height: `${5 * s}px`, borderRadius: '50%', background: sCfg.color, animation: 'pulse 2s infinite', flexShrink: 0 }} />}
           {sCfg.label}
         </Badge>
         {isOngoing && (
-          <span style={{ fontSize: `${1.05 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>
+          <span style={{ fontSize: `${0.95 * s}rem`, color: t.ongoingLabelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}><polygon points="5 3 19 12 5 21 5 3" /></svg>
             Berlangsung
           </span>
         )}
         {!isOngoing && cdLabel && (
-          <span style={{ fontSize: `${1.05 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${1.05 * s}rem`, height: `${1.05 * s}rem`, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+          <span style={{ fontSize: `${0.95 * s}rem`, color: t.countdownColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: `${0.2 * s}rem`, whiteSpace: 'nowrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.95 * s}rem`, height: `${0.95 * s}rem`, flexShrink: 0 }}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
             {cdLabel}
           </span>
         )}
@@ -277,7 +308,7 @@ function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
 // ============ CARD DATA (PORTRAIT / VERTIKAL) ============
 function AgendaCardVertical({ item, index, s, t, isDark }) {
   const status    = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  const accent    = STATUS_ACCENT[status]
+  const unitColor = getUnitColor(item.jenis, item.penyelenggara)
   const sCfg      = getStatusCfg(isDark)[status]
   const jCfg      = getJenisCfg(isDark)[item.jenis] || getJenisCfg(isDark).internal
   const startD    = new Date(item.tanggal_mulai)
@@ -290,15 +321,14 @@ function AgendaCardVertical({ item, index, s, t, isDark }) {
     if (item.pic) return item.pic.replace('Manual: ', '')
     return null
   })()
-  const rowBg = isOngoing ? t.rowOngoing : index % 2 === 0 ? t.rowEven : t.rowOdd
 
   return (
-    <div style={{ flex: 1, minHeight: 0, display: 'flex', borderLeft: `${Math.max(3, Math.round(4 * s))}px solid ${accent}`, background: rowBg, borderBottom: `1px solid ${t.rowBorder}`, overflow: 'hidden', transition: 'background 0.2s' }}>
+    <div style={{ flex: 1, minHeight: 0, display: 'flex', borderLeft: `${Math.max(5, Math.round(6 * s))}px solid ${unitColor.border}`, background: isOngoing ? t.rowOngoing : unitColor.bg, borderBottom: `1px solid ${t.rowBorder}`, overflow: 'hidden', transition: 'background 0.2s' }}>
       {/* Kolom kiri: Nomor + Tanggal */}
       <div style={{ width: `${6.5 * s}rem`, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: `${0.6 * s}rem ${0.5 * s}rem`, borderRight: `1px solid ${t.rowBorder}`, gap: `${0.1 * s}rem` }}>
         <span style={{ fontSize: `${0.75 * s}rem`, fontWeight: 700, color: t.noColor }}>{index + 1}</span>
-        <span style={{ fontSize: `${2.0 * s}rem`, fontWeight: 900, color: accent, lineHeight: 1 }}>{startD.getDate()}</span>
-        <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, color: accent }}>{startD.toLocaleDateString('id-ID', { month: 'short' })}</span>
+        <span style={{ fontSize: `${2.0 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1 }}>{startD.getDate()}</span>
+        <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, color: unitColor.border }}>{startD.toLocaleDateString('id-ID', { month: 'short' })}</span>
         <span style={{ fontSize: `${0.78 * s}rem`, color: t.subText }}>{startD.toLocaleDateString('id-ID', { weekday: 'short' })}</span>
         {multiDay && (
           <span style={{ fontSize: `${0.68 * s}rem`, color: t.mutedText, textAlign: 'center', lineHeight: 1.2 }}>
@@ -314,7 +344,7 @@ function AgendaCardVertical({ item, index, s, t, isDark }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${0.4 * s}rem ${0.8 * s}rem` }}>
           {item.lokasi && (
             <span style={{ fontSize: `${0.88 * s}rem`, color: t.mutedText, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.88 * s}rem`, height: `${0.88 * s}rem`, flexShrink: 0, color: accent }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.88 * s}rem`, height: `${0.88 * s}rem`, flexShrink: 0, color: unitColor.border }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
               </svg>
               {item.lokasi}
@@ -322,7 +352,7 @@ function AgendaCardVertical({ item, index, s, t, isDark }) {
           )}
           {pic && (
             <span style={{ fontSize: `${0.88 * s}rem`, color: item.jenis === 'pimpinan' && item.disposisi ? t.disposisiColor : t.mutedText, fontWeight: item.jenis === 'pimpinan' && item.disposisi ? 700 : 400, display: 'flex', alignItems: 'center', gap: `${0.25 * s}rem`, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.88 * s}rem`, height: `${0.88 * s}rem`, flexShrink: 0, color: accent }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: `${0.88 * s}rem`, height: `${0.88 * s}rem`, flexShrink: 0, color: unitColor.border }}>
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
               </svg>
               {pic}
@@ -353,9 +383,9 @@ function AgendaCardVertical({ item, index, s, t, isDark }) {
 const EmptyRow = ({ rowIndex, s, t, isSmallScreen }) => {
   const COLS = getCols(isSmallScreen)
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: '4px solid transparent', background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd, borderBottom: `1px solid ${t.emptyBorder}` }}>
-      {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} style={{ padding: i === 5 ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem` }} />
+    <div style={{ display: 'grid', gridTemplateColumns: COLS, flex: 1, minHeight: 0, borderLeft: '5px solid transparent', background: rowIndex % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd, borderBottom: `1px solid ${t.emptyBorder}` }}>
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} style={{ padding: i === 6 ? `${0.5 * s}rem ${0.8 * s}rem ${0.5 * s}rem ${0.5 * s}rem` : `${0.5 * s}rem` }} />
       ))}
     </div>
   )
@@ -363,7 +393,7 @@ const EmptyRow = ({ rowIndex, s, t, isSmallScreen }) => {
 
 // ============ CARD KOSONG (PORTRAIT / VERTIKAL) ============
 const EmptyCardVertical = ({ index, s, t }) => (
-  <div style={{ flex: 1, minHeight: 0, borderLeft: '4px solid transparent', background: index % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd, borderBottom: `1px solid ${t.emptyBorder}` }} />
+  <div style={{ flex: 1, minHeight: 0, borderLeft: '6px solid transparent', background: index % 2 === 0 ? t.rowEmptyEven : t.rowEmptyOdd, borderBottom: `1px solid ${t.emptyBorder}` }} />
 )
 
 // ============ PROGRESS BAR ============
@@ -392,12 +422,123 @@ const RunningText = ({ agenda, s, t }) => {
   )
 }
 
+// ============ LEGENDA UNIT KERJA (COMPACT) ============
+const UnitLegend = ({ s, t, isDark }) => {
+  // Filter hanya unit internal (bukan kategori unesa, eksternal, pimpinan)
+  const internalUnits = Object.entries(UNIT_COLORS)
+    .filter(([key]) => !['unesa', 'eksternal', 'pimpinan'].includes(key))
+    .map(([_, value]) => value)
+  
+  const categories = [
+    { ...UNIT_COLORS['unesa'], name: 'Unesa' },
+    { ...UNIT_COLORS['eksternal'], name: 'Eksternal' },
+    { ...UNIT_COLORS['pimpinan'], name: 'Pimpinan' },
+  ]
+
+  return (
+    <div style={{
+      marginTop: `${0.4 * s}rem`,
+      paddingTop: `${0.3 * s}rem`,
+      borderTop: `1px solid ${t.headerBorder}`,
+    }}>
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: `${0.2 * s}rem ${0.5 * s}rem`,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <span style={{ fontSize: `${0.65 * s}rem`, color: t.subText, fontWeight: 600 }}>Unit:</span>
+        {internalUnits.map((unit) => (
+          <div key={unit.name} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: `${0.15 * s}rem`,
+          }}>
+            <span style={{
+              width: `${8 * s}px`,
+              height: `${8 * s}px`,
+              borderRadius: '2px',
+              background: unit.border,
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: `${0.6 * s}rem`,
+              color: t.mutedText,
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+            }}>{unit.name}</span>
+          </div>
+        ))}
+        <span style={{ fontSize: `${0.6 * s}rem`, color: t.subText, marginLeft: `${0.3 * s}rem` }}>|</span>
+        {categories.map((cat) => (
+          <div key={cat.name} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: `${0.15 * s}rem`,
+          }}>
+            <span style={{
+              width: `${8 * s}px`,
+              height: `${8 * s}px`,
+              borderRadius: '2px',
+              background: cat.border,
+              flexShrink: 0,
+            }} />
+            <span style={{
+              fontSize: `${0.6 * s}rem`,
+              color: t.mutedText,
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+            }}>{cat.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ============ KOMPONEN CLOCK (INLINE) ============
+const ClockInline = ({ now, s, t }) => {
+  const hari = now.toLocaleDateString('id-ID', { weekday: 'long' })
+  const tanggal = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+  const jam = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
+  return (
+    <div style={{
+      display: 'inline-flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      marginLeft: `${0.75 * s}rem`,
+      paddingLeft: `${0.75 * s}rem`,
+      borderLeft: `2px solid ${t.headerBorder}`,
+    }}>
+      <span style={{
+        fontSize: `${0.75 * s}rem`,
+        fontWeight: 600,
+        color: t.subText,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        lineHeight: 1,
+      }}>{hari}, {tanggal}</span>
+      <span style={{
+        fontSize: `${1.6 * s}rem`,
+        fontWeight: 700,
+        color: '#6366f1',
+        fontVariantNumeric: 'tabular-nums',
+        letterSpacing: '0.02em',
+        lineHeight: 1.2,
+      }}>{jam}</span>
+    </div>
+  )
+}
+
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
   const { isVertical, toggle: toggleOrientation } = useOrientation()
   const s            = useScreenScale(isVertical)
   const isSmallScreen = useScreenSize()
   const { isDark, theme: t, toggle: toggleTheme } = useTheme()
+  const now = useClock()
   const COLS = getCols(isSmallScreen)
 
   const [agenda,      setAgenda]      = useState([])
@@ -489,35 +630,37 @@ export default function AgendaTVPage() {
     <div style={{ height: '100vh', background: t.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
 
       {/* ── HEADER ── */}
-      <header style={{ background: t.headerBg, borderBottom: `2px solid ${t.headerBorder}`, padding: `${0.7 * s}rem ${2 * s}rem`, flexShrink: 0 }}>
+      <header style={{ background: t.headerBg, borderBottom: `2px solid ${t.headerBorder}`, padding: `${0.6 * s}rem ${1.5 * s}rem`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: `${0.5 * s}rem` }}>
 
           {/* Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: `${0.875 * s}rem`, flexShrink: 0 }}>
-            <div style={{ width: `${48 * s}px`, height: `${48 * s}px`, borderRadius: `${10 * s}px`, background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'grid', placeItems: 'center', color: '#0f172a', fontWeight: 900, fontSize: `${1.6 * s}rem`, boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}>S</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: `${0.75 * s}rem`, flexShrink: 0 }}>
+            <div style={{ width: `${42 * s}px`, height: `${42 * s}px`, borderRadius: `${8 * s}px`, background: 'linear-gradient(135deg,#f59e0b,#d97706)', display: 'grid', placeItems: 'center', color: '#0f172a', fontWeight: 900, fontSize: `${1.4 * s}rem`, boxShadow: '0 4px 14px rgba(245,158,11,0.35)' }}>S</div>
             <div>
-              <strong style={{ display: 'block', fontSize: `${1.5 * s}rem`, color: t.titleColor, letterSpacing: '0.05em' }}>SIMDIR</strong>
-              <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText }}>Unesa Science Center</span>
+              <strong style={{ display: 'block', fontSize: `${1.3 * s}rem`, color: t.titleColor, letterSpacing: '0.05em' }}>SIMDIR</strong>
+              <span style={{ fontSize: `${0.9 * s}rem`, color: t.subText }}>Unesa Science Center</span>
             </div>
           </div>
 
-          {/* Judul */}
-          <div style={{ textAlign: 'center', flex: 1 }}>
-            <h1 style={{ margin: 0, fontSize: `${2.1 * s}rem`, fontWeight: 700, color: t.titleColor }}>Agenda Kegiatan</h1>
-            <p style={{ margin: `${0.2 * s}rem 0 0`, fontSize: `${1.1 * s}rem`, color: t.subText }}>
-              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            </p>
+          {/* Judul + Jam Real-time (Inline) */}
+          <div style={{ textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <h1 style={{ margin: 0, fontSize: `${1.9 * s}rem`, fontWeight: 700, color: t.titleColor }}>
+                Agenda Kegiatan
+              </h1>
+              <ClockInline now={now} s={s} t={t} />
+            </div>
           </div>
 
           {/* Stats + Tombol */}
-          <div style={{ display: 'flex', gap: `${0.75 * s}rem`, alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: `${0.5 * s}rem`, alignItems: 'center', flexShrink: 0 }}>
             {[
               { label: 'Berlangsung', value: stats.ongoing,  color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.3)' },
               { label: 'Akan Datang', value: stats.upcoming, color: '#6366f1', bg: 'rgba(99,102,241,0.1)', border: 'rgba(99,102,241,0.3)' },
             ].map((st, i) => (
-              <div key={i} style={{ textAlign: 'center', padding: `${0.5 * s}rem ${1.1 * s}rem`, background: st.bg, borderRadius: `${10 * s}px`, border: `2px solid ${st.border}`, minWidth: `${90 * s}px` }}>
-                <div style={{ fontSize: `${2.2 * s}rem`, fontWeight: 800, color: st.color, lineHeight: 1 }}>{st.value}</div>
-                <div style={{ fontSize: `${0.92 * s}rem`, color: t.subText, fontWeight: 600, marginTop: `${0.15 * s}rem` }}>{st.label}</div>
+              <div key={i} style={{ textAlign: 'center', padding: `${0.35 * s}rem ${0.8 * s}rem`, background: st.bg, borderRadius: `${8 * s}px`, border: `2px solid ${st.border}`, minWidth: `${75 * s}px` }}>
+                <div style={{ fontSize: `${1.8 * s}rem`, fontWeight: 800, color: st.color, lineHeight: 1 }}>{st.value}</div>
+                <div style={{ fontSize: `${0.8 * s}rem`, color: t.subText, fontWeight: 600, marginTop: `${0.1 * s}rem` }}>{st.label}</div>
               </div>
             ))}
 
@@ -526,7 +669,7 @@ export default function AgendaTVPage() {
               onClick={toggleOrientation}
               title={isVertical ? 'Ganti ke Mode Horizontal (Landscape)' : 'Ganti ke Mode Vertikal (Portrait)'}
               style={{
-                width: `${44 * s}px`, height: `${44 * s}px`, borderRadius: `${10 * s}px`,
+                width: `${38 * s}px`, height: `${38 * s}px`, borderRadius: `${8 * s}px`,
                 background: isVertical ? 'rgba(99,102,241,0.2)' : (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'),
                 border: `2px solid ${isVertical ? 'rgba(99,102,241,0.5)' : (isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)')}`,
                 cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.2s',
@@ -534,13 +677,13 @@ export default function AgendaTVPage() {
             >
               {isVertical ? (
                 /* Sedang vertikal → tampilkan ikon landscape (klik untuk ke horizontal) */
-                <svg viewBox="0 0 24 24" fill="none" stroke={isDark ? '#a5b4fc' : '#6366f1'} strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke={isDark ? '#a5b4fc' : '#6366f1'} strokeWidth="2" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem` }}>
                   <rect x="2" y="6" width="20" height="12" rx="2"/>
                   <path d="M8 21h8M12 18v3"/>
                 </svg>
               ) : (
                 /* Sedang horizontal → tampilkan ikon portrait (klik untuk ke vertikal) */
-                <svg viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke={isDark ? '#94a3b8' : '#475569'} strokeWidth="2" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem` }}>
                   <rect x="7" y="1" width="10" height="22" rx="2"/>
                   <path d="M11 5h2"/>
                 </svg>
@@ -552,14 +695,14 @@ export default function AgendaTVPage() {
               onClick={toggleTheme}
               title={isDark ? 'Ganti ke Mode Terang' : 'Ganti ke Mode Gelap'}
               style={{
-                width: `${44 * s}px`, height: `${44 * s}px`, borderRadius: `${10 * s}px`,
+                width: `${38 * s}px`, height: `${38 * s}px`, borderRadius: `${8 * s}px`,
                 background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
                 border: `2px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)'}`,
                 cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, transition: 'all 0.2s',
               }}
             >
               {isDark ? (
-                <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem` }}>
                   <circle cx="12" cy="12" r="5" />
                   <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
                   <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
@@ -567,31 +710,34 @@ export default function AgendaTVPage() {
                   <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                 </svg>
               ) : (
-                <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" style={{ width: `${1.4 * s}rem`, height: `${1.4 * s}rem` }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem` }}>
                   <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                 </svg>
               )}
             </button>
           </div>
         </div>
+
+        {/* Legenda Warna Unit Kerja */}
+        <UnitLegend s={s} t={t} isDark={isDark} />
       </header>
 
       {/* ── MAIN ── */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: isVertical ? 'column' : 'row', overflow: 'hidden', padding: `${0.75 * s}rem ${1.25 * s}rem ${0.6 * s}rem`, gap: `${0.75 * s}rem` }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: isVertical ? 'column' : 'row', overflow: 'hidden', padding: `${0.5 * s}rem ${1.25 * s}rem ${0.4 * s}rem`, gap: `${0.5 * s}rem` }}>
 
         {/* Agenda — tabel (landscape) atau card (portrait) */}
-        <div style={{ flex: isVertical ? (YOUTUBE_VIDEO_URL ? 3 : 1) : (YOUTUBE_VIDEO_URL ? (isSmallScreen ? 3 : 2.33) : 1), display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.6 * s}rem`, minHeight: 0 }}>
+        <div style={{ flex: isVertical ? (YOUTUBE_VIDEO_URL ? 3 : 1) : (YOUTUBE_VIDEO_URL ? (isSmallScreen ? 3 : 2.33) : 1), display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.4 * s}rem`, minHeight: 0 }}>
           {filtered.length > 0 ? (
             <>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${10 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
 
                 {/* Header kolom — hanya di landscape */}
                 {!isVertical && (
                   <div style={{ display: 'grid', gridTemplateColumns: COLS, background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, flexShrink: 0 }}>
-                    {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => (
+                    {['No', 'Tanggal', 'Judul Kegiatan', 'Unit Kerja', 'Lokasi', 'PIC / Disposisi', 'Status'].map((col, idx) => (
                       <div key={col} style={{
-                        padding: idx === 5 ? `${0.6 * s}rem ${0.9 * s}rem ${0.6 * s}rem ${0.6 * s}rem` : `${0.6 * s}rem`,
-                        fontSize: `${0.95 * s}rem`, fontWeight: 700,
+                        padding: idx === 6 ? `${0.5 * s}rem ${0.8 * s}rem ${0.5 * s}rem ${0.5 * s}rem` : `${0.5 * s}rem`,
+                        fontSize: `${0.85 * s}rem`, fontWeight: 700,
                         letterSpacing: '0.03em', textTransform: 'uppercase', color: t.colHeader,
                         whiteSpace: 'nowrap', display: 'flex', alignItems: 'center',
                       }}>
