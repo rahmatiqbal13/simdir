@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { getUnitColor, UNIT_COLORS } from './unit-colors'
+import { MEDIA_CONFIG, getActiveMedia, getPlaylistLength } from './media-config'
 
 // ============ HELPERS ============
 const formatDate = (date) =>
@@ -62,7 +63,6 @@ const LIGHT = {
 
 // ============ KONSTANTA ============
 const ROTATE_MS = 15000
-const YOUTUBE_VIDEO_URL = 'https://www.youtube.com/embed/Jo0IZcAMqvM?list=PLn75qxWu-L4XRW_AOWoEhHUNgSWkRx7t2'
 
 // Grid columns: No | Tanggal | Judul | Unit Kerja | Lokasi | PIC | Status
 const getCols = (isSmallScreen) => isSmallScreen
@@ -155,34 +155,124 @@ function useClock() {
   return now
 }
 
-// ============ VIDEO PLAYER ============
-// Menggunakan YouTube IFrame Player API agar mute tetap aktif saat playlist berganti video
-const VideoPlayer = ({ url }) => {
+// ============ MEDIA ROTATOR (Video + Gambar Pamflet) ============
+// Video YouTube playlist di-play sampai selesai, baru ganti ke pamflet
+const MediaRotator = ({ s, t }) => {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [imageError, setImageError] = useState(false)
+  const [videoEnded, setVideoEnded] = useState(false)
   const playerRef = useRef(null)
-
+  const timerRef = useRef(null)
+  const playlistLengthRef = useRef(0)
+  const currentVideoIndexRef = useRef(0)
+  
+  const playlist = MEDIA_CONFIG.playlist
+  const currentMedia = playlist[currentIndex]
+  
+  // Advance ke media berikutnya
+  const advanceToNext = useCallback(() => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % playlist.length)
+      setImageError(false)
+      setVideoEnded(false)
+      setIsTransitioning(false)
+    }, MEDIA_CONFIG.FADE_DURATION)
+  }, [playlist.length])
+  
+  // Handle timer untuk gambar (bukan untuk video)
   useEffect(() => {
-    if (!url) return
-    const videoMatch = url.match(/embed\/([^?&]+)/)
-    const listMatch  = url.match(/list=([^&]+)/)
-    const videoId    = videoMatch?.[1] || ''
-    const listId     = listMatch?.[1]  || ''
-
+    // Clear timer sebelumnya
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    
+    // Jika tipe youtube, jangan gunakan timer - tunggu video selesai
+    if (currentMedia?.type === 'youtube') {
+      return
+    }
+    
+    // Jika tipe image, gunakan timer
+    const duration = currentMedia?.duration || MEDIA_CONFIG.SLIDE_DURATION
+    
+    timerRef.current = setInterval(() => {
+      advanceToNext()
+    }, duration)
+    
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [currentIndex, playlist.length, currentMedia, advanceToNext])
+  
+  // Initialize YouTube Player
+  useEffect(() => {
+    if (currentMedia?.type !== 'youtube') return
+    
+    const url = currentMedia.url
+    const listMatch = url.match(/list=([^&]+)/)
+    const listId = listMatch?.[1] || ''
+    
     const initPlayer = () => {
-      if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null }
+      if (playerRef.current?.destroy) { 
+        playerRef.current.destroy(); 
+        playerRef.current = null 
+      }
+      
       playerRef.current = new window.YT.Player('yt-tv-player', {
-        videoId,
         playerVars: {
-          ...(listId && { listType: 'playlist', list: listId }),
-          autoplay: 1, mute: 1, rel: 0,
-          modestbranding: 1, controls: 0, iv_load_policy: 3, loop: 1,
+          listType: 'playlist',
+          list: listId,
+          autoplay: 1, 
+          mute: 1, 
+          rel: 0,
+          modestbranding: 1, 
+          controls: 0, 
+          iv_load_policy: 3,
         },
         events: {
-          onReady:       (e) => e.target.mute(),
-          onStateChange: (e) => e.target.mute(), // paksa mute setiap ganti video
+          onReady: (e) => {
+            e.target.mute()
+            // Simpan panjang playlist
+            const playlist = e.target.getPlaylist()
+            if (playlist) {
+              playlistLengthRef.current = playlist.length
+            }
+          },
+          onStateChange: (e) => {
+            e.target.mute()
+            
+            // YouTube Player State:
+            // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+            const state = e.data
+            
+            // Update index video saat ini
+            try {
+              currentVideoIndexRef.current = e.target.getPlaylistIndex()
+            } catch (err) {
+              console.log('Could not get playlist index')
+            }
+            
+            // Cek jika video berakhir (state = 0)
+            if (state === 0) {
+              // Cek apakah ini video terakhir dalam playlist
+              const isLastVideo = currentVideoIndexRef.current >= playlistLengthRef.current - 1
+              
+              if (isLastVideo || playlistLengthRef.current === 0) {
+                // Playlist selesai, advance ke media berikutnya
+                setTimeout(() => {
+                  advanceToNext()
+                }, 1000) // Tunggu 1 detik sebelum pindah
+              }
+            }
+          },
         },
       })
     }
-
+    
     if (window.YT?.Player) {
       initPlayer()
     } else {
@@ -194,11 +284,186 @@ const VideoPlayer = ({ url }) => {
         document.head.appendChild(tag)
       }
     }
+    
+    return () => { 
+      if (playerRef.current?.destroy) { 
+        playerRef.current.destroy(); 
+        playerRef.current = null 
+      } 
+    }
+  }, [currentMedia, advanceToNext])
+  
+  const handleImageError = () => {
+    setImageError(true)
+  }
+  
+  return (
+    <div style={{ 
+      position: 'relative', 
+      width: '100%', 
+      height: '100%',
+      background: '#000',
+    }}>
+      {/* Video Container */}
+      {currentMedia?.type === 'youtube' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: isTransitioning ? 0 : 1,
+            transition: `opacity ${MEDIA_CONFIG.FADE_DURATION}ms ease-in-out`,
+          }}
+        >
+          <div id="yt-tv-player" style={{ width: '100%', height: '100%' }} />
+        </div>
+      )}
+      
+      {/* Image Container */}
+      {currentMedia?.type === 'image' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: isTransitioning ? 0 : 1,
+            transition: `opacity ${MEDIA_CONFIG.FADE_DURATION}ms ease-in-out`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: t.tableBg,
+          }}
+        >
+          {imageError ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: t.subText,
+              padding: `${2 * s}rem`,
+            }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: `${4 * s}rem`, height: `${4 * s}rem`, marginBottom: `${1 * s}rem` }}>
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+              <span style={{ fontSize: `${1.2 * s}rem`, fontWeight: 500 }}>Pamflet tidak ditemukan</span>
+              <span style={{ fontSize: `${0.9 * s}rem`, color: t.mutedText, marginTop: `${0.5 * s}rem` }}>
+                {currentMedia.title}
+              </span>
+            </div>
+          ) : (
+            <img
+              src={currentMedia.src}
+              alt={currentMedia.title}
+              onError={handleImageError}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                background: '#000',
+              }}
+            />
+          )}
+        </div>
+      )}
+      
+      {/* Progress Bar - hanya untuk gambar */}
+      {currentMedia?.type === 'image' && (
+        <div style={{
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: `${4 * s}px`,
+          background: 'rgba(0,0,0,0.3)',
+        }}>
+          <MediaProgressBar 
+            duration={currentMedia?.duration || MEDIA_CONFIG.SLIDE_DURATION}
+            isActive={!isTransitioning}
+            s={s}
+            color={'#f59e0b'}
+          />
+        </div>
+      )}
+      
+      {/* Label Media Type */}
+      <div style={{
+        position: 'absolute',
+        top: `${0.5 * s}rem`,
+        right: `${0.5 * s}rem`,
+        padding: `${0.3 * s}rem ${0.6 * s}rem`,
+        background: currentMedia?.type === 'image' ? 'rgba(245,158,11,0.9)' : 'rgba(239,68,68,0.9)',
+        borderRadius: `${4 * s}px`,
+        fontSize: `${0.7 * s}rem`,
+        fontWeight: 700,
+        color: '#fff',
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+      }}>
+        {currentMedia?.type === 'image' ? 'Pamflet' : 'Video'}
+      </div>
+      
+      {/* Counter */}
+      <div style={{
+        position: 'absolute',
+        top: `${0.5 * s}rem`,
+        left: `${0.5 * s}rem`,
+        padding: `${0.3 * s}rem ${0.6 * s}rem`,
+        background: 'rgba(0,0,0,0.6)',
+        borderRadius: `${4 * s}px`,
+        fontSize: `${0.7 * s}rem`,
+        fontWeight: 600,
+        color: '#fff',
+      }}>
+        {currentIndex + 1} / {playlist.length}
+      </div>
+    </div>
+  )
+}
 
-    return () => { if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null } }
-  }, [url])
-
-  return <div id="yt-tv-player" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }} />
+// Progress bar untuk media
+const MediaProgressBar = ({ duration, isActive, s, color }) => {
+  const [progress, setProgress] = useState(0)
+  
+  useEffect(() => {
+    if (!isActive) {
+      setProgress(0)
+      return
+    }
+    
+    const interval = 100 // update setiap 100ms
+    const step = (100 / duration) * interval
+    
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) return 100
+        return prev + step
+      })
+    }, interval)
+    
+    return () => clearInterval(timer)
+  }, [duration, isActive])
+  
+  return (
+    <div style={{
+      width: '100%',
+      height: '100%',
+      background: 'rgba(255,255,255,0.1)',
+    }}>
+      <div style={{
+        width: `${progress}%`,
+        height: '100%',
+        background: color,
+        transition: 'width 0.1s linear',
+      }} />
+    </div>
+  )
 }
 
 // ============ BADGE ============
@@ -738,7 +1003,7 @@ export default function AgendaTVPage() {
       <main style={{ flex: 1, display: 'flex', flexDirection: isVertical ? 'column' : 'row', overflow: 'hidden', padding: `${0.5 * s}rem ${1.25 * s}rem ${0.4 * s}rem`, gap: `${0.5 * s}rem` }}>
 
         {/* Agenda — tabel (landscape) atau card (portrait) */}
-        <div style={{ flex: isVertical ? (YOUTUBE_VIDEO_URL ? 3 : 1) : (YOUTUBE_VIDEO_URL ? (isSmallScreen ? 3 : 2.33) : 1), display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.4 * s}rem`, minHeight: 0 }}>
+        <div style={{ flex: 2.33, display: 'flex', flexDirection: 'column', overflow: 'hidden', gap: `${0.4 * s}rem`, minHeight: 0 }}>
           {filtered.length > 0 ? (
             <>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${10 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
@@ -809,20 +1074,21 @@ export default function AgendaTVPage() {
           )}
         </div>
 
-        {/* Video YouTube — landscape (kanan) atau portrait (bawah) */}
-        {YOUTUBE_VIDEO_URL && (
-          <div style={{ flex: isVertical ? 2 : 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
-            <div style={{ background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, padding: `${0.55 * s}rem ${0.85 * s}rem`, flexShrink: 0, display: 'flex', alignItems: 'center', gap: `${0.5 * s}rem` }}>
+        {/* Media Rotator — Video + Pamflet */}
+        <div style={{ flex: isVertical ? 2 : 1, display: 'flex', flexDirection: 'column', background: t.tableBg, borderRadius: `${12 * s}px`, border: `2px solid ${t.headerBorder}`, overflow: 'hidden', minHeight: 0 }}>
+          <div style={{ background: t.theadBg, borderBottom: `2px solid ${t.theadBorder}`, padding: `${0.55 * s}rem ${0.85 * s}rem`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: `${0.5 * s}rem` }}>
               <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: `${1.2 * s}rem`, height: `${1.2 * s}rem`, color: '#ef4444' }}>
                 <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
               </svg>
-              <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.colHeader }}>Tentang USC</span>
+              <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.colHeader }}>Galeri USC</span>
             </div>
-            <div style={{ flex: 1, position: 'relative', background: '#000', minHeight: 0 }}>
-              <VideoPlayer url={YOUTUBE_VIDEO_URL} />
-            </div>
+            <span style={{ fontSize: `${0.75 * s}rem`, color: t.mutedText }}>Video & Pamflet</span>
           </div>
-        )}
+          <div style={{ flex: 1, position: 'relative', background: '#000', minHeight: 0 }}>
+            <MediaRotator s={s} t={t} />
+          </div>
+        </div>
       </main>
 
       {/* ── RUNNING TEXT ── */}

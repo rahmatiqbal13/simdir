@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Template Pamflet TV USC</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .template-container {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      max-width: 1200px;
+    }
+    
+    .template {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 40px;
+      width: 960px;
+      height: 540px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      border: 2px solid #334155;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .template::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+    
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+    
+    h1 {
+      font-size: 48px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    p {
+      font-size: 24px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    
+    .info {
+      margin-top: 30px;
+      padding: 16px 32px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 2px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      font-size: 20px;
+      color: #fbbf24;
+    }
+    
+    .watermark {
+      position: absolute;
+      bottom: 20px;
+      right: 30px;
+      font-size: 16px;
+      color: #475569;
+    }
+    
+    .instructions {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 30px;
+      border: 1px solid #334155;
+    }
+    
+    .instructions h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: #f59e0b;
+    }
+    
+    .instructions ul {
+      list-style: none;
+      padding: 0;
+    }
+    
+    .instructions li {
+      padding: 8px 0;
+      padding-left: 28px;
+      position: relative;
+      color: #cbd5e1;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+    
+    .instructions li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #10b981;
+      font-weight: bold;
+    }
+    
+    code {
+      background: #0f172a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #fbbf24;
+    }
+  </style>
+</head>
+<body>
+  <div class="template-container">
+    <!-- Template 1: Petunjuk -->
+    <div class="instructions">
+      <h2>📋 Petunjuk Penggunaan Template Pamflet</h2>
+      <ul>
+        <li>Ukuran ideal untuk TV: <strong>960x540 pixel</strong> (16:9 landscape) atau <strong>540x960 pixel</strong> (9:16 portrait)</li>
+        <li>Format file: <strong>JPG</strong> atau <strong>PNG</strong></li>
+        <li>Letakkan file di folder: <code>public/images/promo/</code></li>
+        <li>Edit konfigurasi di: <code>app/(public)/agenda/tv/media-config.js</code></li>
+        <li>Refresh halaman TV untuk melihat perubahan</li>
+        <li>Gunakan warna yang kontras agar terbaca dari jauh</li>
+        <li>Font minimal 24px untuk keterbacaan di TV</li>
+      </ul>
+    </div>
+
+    <!-- Template 2: Placeholder Pamflet -->
+    <div class="template">
+      <div class="icon">🎯</div>
+      <h1>Template Pamflet Promo</h1>
+      <p>Ganti konten ini dengan informasi promo atau event<br>dari direktorat USC</p>
+      <div class="info">
+        📅 15 Mei 2026 | 📍 Lokasi Event
+      </div>
+      <div class="watermark">USC TV Display</div>
+    </div>
+  </div>
+</body>
+</html>
