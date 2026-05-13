@@ -1,21 +1,53 @@
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  buildExcludes: [/middleware-manifest.json$/],
+  // Scope dan start URL
+  scope: '/',
+  sw: 'sw.js',
+  // Runtime caching untuk Supabase dan API
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'supabase-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 24 * 60 * 60, // 24 jam
+        },
+      },
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'image-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 hari
+        },
+      },
+    },
+    {
+      urlPattern: /\.(?:js|css)$/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'static-resources',
+        expiration: {
+          maxEntries: 60,
+          maxAgeSeconds: 24 * 60 * 60, // 24 jam
+        },
+      },
+    },
+  ],
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  
-  // UNCOMMENT untuk static export testing:
-  // output: 'export',
-  // distDir: 'dist',
-  // images: {
-  //   unoptimized: true
-  // },
-  
-  // Skip error saat build (untuk testing)
-  // typescript: {
-  //   ignoreBuildErrors: true
-  // },
-  // eslint: {
-  //   ignoreDuringBuilds: true
-  // },
   
   // Konfigurasi images (jika pakai next/image)
   images: {
@@ -39,8 +71,8 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
         ],
       },
-    ]
+    ];
   },
 };
 
-module.exports = nextConfig;
+module.exports = withPWA(nextConfig);
