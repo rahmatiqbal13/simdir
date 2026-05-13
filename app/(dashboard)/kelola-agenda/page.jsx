@@ -859,15 +859,8 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
   const endItem = Math.min(currentPage * itemsPerPage, totalItems)
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column',
-      alignItems: 'center', 
-      justifyContent: 'space-between', 
-      gap: '1rem',
-      marginTop: '1.5rem' 
-    }} className="sm:flex-row">
-      <p className="muted" style={{ fontSize: '0.8125rem' }}>
+    <div className="pagination-container">
+      <p className="muted" style={{ fontSize: '0.8125rem', textAlign: 'center' }}>
         Menampilkan <strong>{startItem}</strong> - <strong>{endItem}</strong> dari <strong>{totalItems}</strong> agenda
       </p>
 
@@ -876,13 +869,14 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 pagination-numbers">
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
             <button
               key={page}
@@ -890,6 +884,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
               className="btn icon-only"
               style={{ 
                 minWidth: '2.25rem',
+                minHeight: '2.25rem',
                 background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
                 color: currentPage === page ? 'white' : 'var(--text)',
                 border: currentPage === page ? 'none' : '1px solid var(--border)'
@@ -904,6 +899,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="9 18 15 12 9 6" />
@@ -1231,7 +1227,7 @@ export default function AgendaManagePage() {
 
       {/* Content */}
       {filteredAgenda.length === 0 ? (
-        <div className="empty-state">
+        <div className="empty-state" style={{ padding: '2rem 1rem' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
@@ -1255,7 +1251,7 @@ export default function AgendaManagePage() {
       ) : (
         <>
           {viewMode === 'card' ? (
-            <div>
+            <div className="agenda-cards-container">
               {paginatedAgenda.map((item, index) => (
                 <AgendaCard
                   key={item.id}
@@ -1268,12 +1264,30 @@ export default function AgendaManagePage() {
               ))}
             </div>
           ) : (
-            <AgendaTable
-              items={paginatedAgenda}
-              canEdit={canEdit}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-            />
+            <div className="agenda-table-view-desktop">
+              <AgendaTable
+                items={paginatedAgenda}
+                canEdit={canEdit}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+              />
+            </div>
+          )}
+          
+          {/* Mobile fallback for table view - show cards instead */}
+          {viewMode === 'table' && (
+            <div className="agenda-table-view-mobile">
+              {paginatedAgenda.map((item, index) => (
+                <AgendaCard
+                  key={item.id}
+                  item={item}
+                  index={(currentPage - 1) * ITEMS_PER_PAGE + index}
+                  canEdit={canEdit}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
           )}
 
           {/* Pagination */}

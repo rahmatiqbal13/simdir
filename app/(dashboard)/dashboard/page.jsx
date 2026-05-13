@@ -45,11 +45,11 @@ function WelcomeSection({ userName, date }) {
   if (hour >= 18) greeting = 'Selamat Malam';
 
   return (
-    <div className="card mb-6" style={{ 
+    <div className="card mb-6 welcome-card" style={{ 
       background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
       color: 'white'
     }}>
-      <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="card-body welcome-card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'white' }}>
             {greeting}, {userName}! 👋
@@ -179,14 +179,14 @@ function ProgramCard({ program, index }) {
   const progress = program.pagu > 0 ? (program.terpakai / program.pagu) * 100 : 0;
   
   return (
-    <div style={{ 
+    <div className="program-card" style={{ 
       padding: '1rem',
       background: 'var(--surface-2)',
       borderRadius: 'var(--radius)',
       marginBottom: '0.75rem'
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
           <span style={{ 
             width: '1.75rem', 
             height: '1.75rem', 
@@ -196,29 +196,31 @@ function ProgramCard({ program, index }) {
             display: 'grid',
             placeItems: 'center',
             fontSize: '0.75rem',
-            fontWeight: 600
+            fontWeight: 600,
+            flexShrink: 0
           }}>
             {index + 1}
           </span>
-          <div>
-            <strong style={{ fontSize: '0.875rem' }}>{program.nama}</strong>
+          <div style={{ minWidth: 0 }}>
+            <strong style={{ fontSize: '0.875rem', display: 'block' }} className="truncate">{program.nama}</strong>
             <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>
               {program.unit} • ID: {program.id_rka}
             </p>
           </div>
         </div>
-        <span style={{ 
+        <span className="status-badge" style={{ 
           fontSize: '0.6875rem',
           padding: '0.125rem 0.5rem',
           borderRadius: 'var(--radius-full)',
           background: progress >= 80 ? 'var(--success-bg)' : progress >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)',
-          color: progress >= 80 ? 'var(--success)' : progress >= 50 ? 'var(--warning)' : 'var(--danger)'
+          color: progress >= 80 ? 'var(--success)' : progress >= 50 ? 'var(--warning)' : 'var(--danger)',
+          flexShrink: 0
         }}>
           {Math.round(progress)}%
         </span>
       </div>
       <ProgressBar value={program.terpakai} max={program.pagu} label="" />
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem', fontSize: '0.6875rem' }}>
+      <div className="program-card-meta">
         <span className="muted">{formatRupiah(program.terpakai)}</span>
         <span className="muted">dari {formatRupiah(program.pagu)}</span>
       </div>
@@ -329,12 +331,7 @@ function ActivityItem({ activity }) {
   };
 
   return (
-    <div style={{ 
-      display: 'flex',
-      gap: '0.75rem',
-      padding: '0.75rem 0',
-      borderBottom: '1px solid var(--border)'
-    }}>
+    <div className="activity-item">
       <div style={{ 
         width: '2rem', 
         height: '2rem', 
@@ -347,7 +344,7 @@ function ActivityItem({ activity }) {
       }}>
         {iconMap[activity.type]}
       </div>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text)', marginBottom: '0.125rem' }}>
           {activity.message}
         </p>
@@ -457,14 +454,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div>
+    <div className="dashboard-page">
       {/* Welcome Section */}
       <WelcomeSection userName={userName} date={currentDate} />
 
       {/* Quick Actions */}
       <div style={{ marginBottom: '1.5rem' }}>
         <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Akses Cepat</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem' }}>
+        <div className="quick-actions-grid">
           <QuickAction 
             label="Program Kerja"
             href="/program-kerja"
@@ -614,7 +611,7 @@ export default function DashboardPage() {
       )}
 
       {/* Main Dashboard Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
         {/* Left Column */}
         <div>
           {/* Program Kerja */}

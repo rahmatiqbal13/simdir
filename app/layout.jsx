@@ -92,21 +92,3 @@ export default function RootLayout({ children }) {
     </html>
   )
 }
-
-export default function RootLayout({ children }) {
-  return (
-    <html lang="id">
-      <body>
-        <AgendaProvider>
-          <ProgramKerjaProvider>
-            <PencairanProvider>
-              <SuratProvider>
-                {children}
-              </SuratProvider>
-            </PencairanProvider>
-          </ProgramKerjaProvider>
-        </AgendaProvider>
-      </body>
-    </html>
-  )
-}

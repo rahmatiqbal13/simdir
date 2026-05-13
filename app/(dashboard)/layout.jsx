@@ -138,7 +138,20 @@ export default function DashboardLayout({ children }) {
   }
 
   if (loading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>Loading...</div>
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'var(--bg)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ margin: '0 auto 1rem' }} />
+          <p style={{ color: 'var(--text-2)', fontSize: '0.875rem' }}>Memuat...</p>
+        </div>
+      </div>
+    )
   }
 
   const userRole = profile?.role || 'admin'
@@ -150,6 +163,28 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="app-shell">
+      {/* Mobile Header */}
+      <header className="mobile-header">
+        <div className="mobile-header-brand">
+          <div className="brand-logo" style={{ width: '2rem', height: '2rem', fontSize: '1rem' }}>S</div>
+          <span style={{ fontWeight: 600, color: 'var(--navy)' }}>SIMDIR</span>
+        </div>
+        <button 
+          className="menu-toggle" 
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label={sidebarOpen ? 'Tutup menu' : 'Buka menu'}
+        >
+          {sidebarOpen ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          ) : (
+            icons.menu
+          )}
+        </button>
+      </header>
+
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-brand">
           <div className="brand-logo">S</div>
@@ -165,7 +200,12 @@ export default function DashboardLayout({ children }) {
 
         <nav className="sidebar-nav">
           {items.map((item) => (
-            <Link key={item.href} href={item.href} className={`nav-item ${pathname === item.href ? 'active' : ''}`} onClick={() => setSidebarOpen(false)}>
+            <Link 
+              key={item.href} 
+              href={item.href} 
+              className={`nav-item ${pathname === item.href ? 'active' : ''}`} 
+              onClick={() => setSidebarOpen(false)}
+            >
               <span className="nav-icon">{icons[item.icon]}</span>
               <span>{item.label}</span>
             </Link>
@@ -175,8 +215,8 @@ export default function DashboardLayout({ children }) {
         <div className="sidebar-footer">
           <div className="user-info">
             <div className="user-avatar">{userName.charAt(0).toUpperCase()}</div>
-            <div>
-              <div className="user-name">{userName}</div>
+            <div style={{ minWidth: 0 }}>
+              <div className="user-name truncate">{userName}</div>
               <div className="user-role">{userRole.replace('_', ' ')}</div>
             </div>
           </div>
@@ -190,10 +230,14 @@ export default function DashboardLayout({ children }) {
       <div className="main-content">
         <header className="topbar">
           <div className="topbar-left">
-            <button className="menu-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <button 
+              className="menu-toggle desktop-hide" 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label="Toggle menu"
+            >
               {icons.menu}
             </button>
-            <div>
+            <div className="topbar-title-wrapper">
               <h1 className="page-title">
                 {items.find(item => item.href === pathname)?.label || 'Dashboard'}
               </h1>
