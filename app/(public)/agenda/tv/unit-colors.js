@@ -59,14 +59,14 @@ export const UNIT_COLORS = {
     hue: 'Pink',
   },
   'pui-seni': {
-    name: 'PUI Seni Budaya',
+    name: 'PUI Seni',
     border: '#d946ef',      // Fuchsia-500
     bg: 'rgba(217,70,239,0.08)',
     text: '#d946ef',
     hue: 'Fuchsia',
   },
   'pui-olah': {
-    name: 'PUI Keolahragaan',
+    name: 'PUI Olahraga',
     border: '#84cc16',      // Lime-500
     bg: 'rgba(132,204,22,0.08)',
     text: '#84cc16',
@@ -80,7 +80,7 @@ export const UNIT_COLORS = {
     hue: 'Teal',
   },
   'puipt-seni': {
-    name: 'PUIPT Seni Budaya Majapahitan',
+    name: 'PUIPT Seni',
     border: '#a855f7',      // Purple-500
     bg: 'rgba(168,85,247,0.08)',
     text: '#a855f7',
@@ -96,21 +96,21 @@ export const UNIT_COLORS = {
 
   // ===== KATEGORI NON-INTERNAL =====
   'unesa': {
-    name: 'Kegiatan Unesa',
+    name: 'Unesa',
     border: '#64748b',      // Slate-500
     bg: 'rgba(100,116,139,0.06)',
     text: '#64748b',
     hue: 'Abu-abu Biru',
   },
   'eksternal': {
-    name: 'Kegiatan Eksternal',
+    name: 'Eksternal',
     border: '#f59e0b',      // Amber-500
     bg: 'rgba(245,158,11,0.08)',
     text: '#f59e0b',
     hue: 'Kuning/Amber',
   },
   'pimpinan': {
-    name: 'Kegiatan Pimpinan',
+    name: 'Pimpinan',
     border: '#ef4444',      // Red-500
     bg: 'rgba(239,68,68,0.1)',
     text: '#ef4444',
@@ -136,10 +136,10 @@ export function getUnitCodeFromPenyelenggara(penyelenggara) {
   if (p === 'kolam renang' || p === 'kolam' || p.includes('kolam')) return 'kolam'
   if (p === 'ulabk' || p.includes('ulabk')) return 'ulabk'
   if (p === 'usc' || (p.includes('usc') && !p.includes('puipt') && !p.includes('pui'))) return 'usc'
-  if (p === 'pui seni budaya' || p === 'pui-seni' || (p.includes('seni') && !p.includes('maja'))) return 'pui-seni'
-  if (p === 'pui keolahragaan' || p === 'pui-olah' || p.includes('keolahragaan') || p.includes('olahraga')) return 'pui-olah'
+  if (p === 'pui seni' || p === 'pui-seni' || p.includes('pui seni')) return 'pui-seni'
+  if (p === 'pui olahraga' || p === 'pui-olah' || p.includes('pui olahraga') || p.includes('keolahragaan')) return 'pui-olah'
   if (p === 'driving golf' || p === 'golf' || p.includes('golf')) return 'golf'
-  if (p === 'puipt seni budaya majapahitan' || p === 'puipt-seni' || p.includes('maja') || p.includes('majapahit')) return 'puipt-seni'
+  if (p === 'puipt seni' || p === 'puipt-seni' || p.includes('puipt seni') || p.includes('maja') || p.includes('majapahit')) return 'puipt-seni'
   if (p === 'pui ai' || p === 'pui-ai' || (p.includes('ai') && p.includes('pui'))) return 'pui-ai'
   
   // Default: kegiatan Unesa (fakultas/unit lain)
@@ -179,12 +179,12 @@ export const COLOR_PALETTE_PREVIEW = [
     { name: 'PUI Seni', color: '#d946ef' },
     { name: 'PUI Olahraga', color: '#84cc16' },
     { name: 'Driving Golf', color: '#14b8a6' },
-    { name: 'PUIPT Seni Maja', color: '#a855f7' },
+    { name: 'PUIPT Seni', color: '#a855f7' },
     { name: 'PUI AI', color: '#6366f1' },
   ]},
   { category: 'Kategori Lain', colors: [
-    { name: 'Kegiatan Unesa', color: '#64748b' },
-    { name: 'Kegiatan Eksternal', color: '#f59e0b' },
-    { name: 'Kegiatan Pimpinan', color: '#ef4444' },
+    { name: 'Unesa', color: '#64748b' },
+    { name: 'Eksternal', color: '#f59e0b' },
+    { name: 'Pimpinan', color: '#ef4444' },
   ]},
 ]

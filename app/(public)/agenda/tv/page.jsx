@@ -422,7 +422,7 @@ const RunningText = ({ agenda, s, t }) => {
   )
 }
 
-// ============ LEGENDA UNIT KERJA (COMPACT) ============
+// ============ LEGENDA UNIT KERJA (COMPACT 2 BARIS) ============
 const UnitLegend = ({ s, t, isDark }) => {
   // Filter hanya unit internal (bukan kategori unesa, eksternal, pimpinan)
   const internalUnits = Object.entries(UNIT_COLORS)
@@ -430,62 +430,74 @@ const UnitLegend = ({ s, t, isDark }) => {
     .map(([_, value]) => value)
   
   const categories = [
-    { ...UNIT_COLORS['unesa'], name: 'Unesa' },
-    { ...UNIT_COLORS['eksternal'], name: 'Eksternal' },
-    { ...UNIT_COLORS['pimpinan'], name: 'Pimpinan' },
+    UNIT_COLORS['unesa'],
+    UNIT_COLORS['eksternal'],
+    UNIT_COLORS['pimpinan'],
   ]
 
   return (
     <div style={{
-      marginTop: `${0.4 * s}rem`,
-      paddingTop: `${0.3 * s}rem`,
+      marginTop: `${0.35 * s}rem`,
+      paddingTop: `${0.25 * s}rem`,
       borderTop: `1px solid ${t.headerBorder}`,
     }}>
+      {/* Baris 1: Unit USC */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: `${0.2 * s}rem ${0.5 * s}rem`,
+        gap: `${0.15 * s}rem ${0.4 * s}rem`,
         alignItems: 'center',
         justifyContent: 'center',
       }}>
-        <span style={{ fontSize: `${0.65 * s}rem`, color: t.subText, fontWeight: 600 }}>Unit:</span>
+        <span style={{ fontSize: `${0.6 * s}rem`, color: t.subText, fontWeight: 600 }}>Unit USC:</span>
         {internalUnits.map((unit) => (
           <div key={unit.name} style={{
             display: 'flex',
             alignItems: 'center',
-            gap: `${0.15 * s}rem`,
+            gap: `${0.12 * s}rem`,
           }}>
             <span style={{
-              width: `${8 * s}px`,
-              height: `${8 * s}px`,
+              width: `${7 * s}px`,
+              height: `${7 * s}px`,
               borderRadius: '2px',
               background: unit.border,
               flexShrink: 0,
             }} />
             <span style={{
-              fontSize: `${0.6 * s}rem`,
+              fontSize: `${0.55 * s}rem`,
               color: t.mutedText,
               fontWeight: 500,
               whiteSpace: 'nowrap',
             }}>{unit.name}</span>
           </div>
         ))}
-        <span style={{ fontSize: `${0.6 * s}rem`, color: t.subText, marginLeft: `${0.3 * s}rem` }}>|</span>
+      </div>
+      
+      {/* Baris 2: Kategori Lain */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: `${0.15 * s}rem ${0.4 * s}rem`,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: `${0.15 * s}rem`,
+      }}>
+        <span style={{ fontSize: `${0.6 * s}rem`, color: t.subText, fontWeight: 600 }}>Lainnya:</span>
         {categories.map((cat) => (
           <div key={cat.name} style={{
             display: 'flex',
             alignItems: 'center',
-            gap: `${0.15 * s}rem`,
+            gap: `${0.12 * s}rem`,
           }}>
             <span style={{
-              width: `${8 * s}px`,
-              height: `${8 * s}px`,
+              width: `${7 * s}px`,
+              height: `${7 * s}px`,
               borderRadius: '2px',
               background: cat.border,
               flexShrink: 0,
             }} />
             <span style={{
-              fontSize: `${0.6 * s}rem`,
+              fontSize: `${0.55 * s}rem`,
               color: t.mutedText,
               fontWeight: 500,
               whiteSpace: 'nowrap',
