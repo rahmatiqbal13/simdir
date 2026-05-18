@@ -579,7 +579,13 @@ export default function LaporanPage() {
 
   // Filter data berdasarkan unit kerja dan tahun
   const filteredData = useMemo(() => {
-    let data = programData.filter(p => p.tahun === parseInt(filterTahun));
+    let data = programData
+      .filter(p => p.tahun === parseInt(filterTahun))
+      .map(p => ({
+        ...p,
+        // Normalisasi unit_kerja
+        unit_kerja: (p.unit_kerja || p.unit_kerja_id || 'Belum Ditentukan')
+      }));
     
     if (filterUnit) {
       data = data.filter(p => p.unit_kerja === filterUnit);
@@ -597,17 +603,38 @@ export default function LaporanPage() {
     return { pagu, spj, sisa, serapan };
   }, [filteredData]);
 
+  // Top 5 Program dengan SPJ Tertinggi
+  const topSerapan = useMemo(() => {
+    return programData
+      .filter(p => p.tahun === parseInt(filterTahun) && (p.total_spj || 0) > 0)
+      .map(p => ({
+        nama: p.nama || 'Program Tanpa Nama',
+        unit: (p.unit_kerja || p.unit_kerja_id || '-'),
+        pagu: p.pagu || 0,
+        spj: p.total_spj || 0,
+        persentase: (p.pagu || 0) > 0 ? Math.round(((p.total_spj || 0) / p.pagu) * 100) : 0
+      }))
+      .sort((a, b) => b.spj - a.spj)
+      .slice(0, 5);
+  }, [programData, filterTahun]);
+
   // Data rekap per unit
   const rekapUnit = useMemo(() => {
     const units = {};
     programData
       .filter(p => p.tahun === parseInt(filterTahun))
       .forEach(p => {
-        if (!units[p.unit_kerja]) {
-          units[p.unit_kerja] = { pagu: 0, spj: 0 };
+        // Handle null/undefined unit_kerja
+        const unit = p.unit_kerja || p.unit_kerja_id || 'Belum Ditentukan';
+        if (!unit || unit === 'null' || unit === 'undefined') {
+          console.warn('Program tanpa unit kerja di laporan:', p.nama);
+          return;
         }
-        units[p.unit_kerja].pagu += (p.pagu || 0);
-        units[p.unit_kerja].spj += (p.total_spj || 0);
+        if (!units[unit]) {
+          units[unit] = { pagu: 0, spj: 0 };
+        }
+        units[unit].pagu += (p.pagu || 0);
+        units[unit].spj += (p.total_spj || 0);
       });
     
     return Object.entries(units).map(([unit, data]) => ({
@@ -619,14 +646,14 @@ export default function LaporanPage() {
     })).sort((a, b) => b.serapan - a.serapan);
   }, [programData, filterTahun]);
 
-  // Data untuk chart
+  // Data untuk chart - Top 5 Program dengan SPJ Tertinggi
   const chartData = useMemo(() => {
-    return rekapUnit.slice(0, 5).map(u => ({
-      label: u.unit,
-      value: u.serapan,
-      color: u.serapan >= 80 ? 'var(--success)' : u.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'
+    return topSerapan.map((p, idx) => ({
+      label: p.nama.length > 20 ? p.nama.substring(0, 20) + '...' : p.nama,
+      value: p.spj,
+      color: idx === 0 ? 'var(--success)' : idx === 1 ? 'var(--warning)' : 'var(--primary)'
     }));
-  }, [rekapUnit]);
+  }, [topSerapan]);
 
   if (!canAccess) {
     return (
@@ -829,50 +856,69 @@ export default function LaporanPage() {
               {/* Chart */}
               <div className="card">
                 <div className="card-header">
-                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 Serapan Unit</h3>
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 Nilai SPJ</h3>
                 </div>
                 <div className="card-body">
                   <SimpleBarChart data={chartData} />
                 </div>
               </div>
 
-              {/* Rekap Unit Cards */}
+              {/* Top 5 Program dengan SPJ Tertinggi */}
               <div className="card">
                 <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Rekap per Unit</h3>
-                  <span className="muted" style={{ fontSize: '0.75rem' }}>{rekapUnit.length} unit</span>
+                  <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 SPJ Tertinggi</h3>
+                  <span className="muted" style={{ fontSize: '0.75rem' }}>Ranking</span>
                 </div>
                 <div className="card-body" style={{ padding: '0.75rem' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    {rekapUnit.slice(0, 5).map((item) => (
+                    {topSerapan.length > 0 ? topSerapan.map((item, idx) => (
                       <div 
-                        key={item.unit} 
+                        key={idx} 
                         style={{ 
                           padding: '0.75rem', 
                           background: 'var(--surface-2)', 
                           borderRadius: 'var(--radius)',
-                          borderLeft: `3px solid ${item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'}`
+                          borderLeft: `3px solid ${idx === 0 ? 'var(--success)' : idx === 1 ? 'var(--warning)' : 'var(--primary)'}`
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                          <strong style={{ fontSize: '0.8125rem' }}>{item.unit}</strong>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{
+                              width: '1.25rem',
+                              height: '1.25rem',
+                              borderRadius: '50%',
+                              background: idx === 0 ? 'var(--success)' : idx === 1 ? 'var(--warning)' : 'var(--primary)',
+                              color: 'white',
+                              display: 'grid',
+                              placeItems: 'center',
+                              fontSize: '0.625rem',
+                              fontWeight: 700
+                            }}>
+                              {idx + 1}
+                            </span>
+                            <strong style={{ fontSize: '0.8125rem' }}>{item.nama}</strong>
+                          </div>
                           <span 
                             className="badge" 
                             style={{ 
                               fontSize: '0.625rem',
-                              background: item.serapan >= 80 ? 'var(--success-bg)' : item.serapan >= 50 ? 'var(--warning-bg)' : 'var(--danger-bg)',
-                              color: item.serapan >= 80 ? 'var(--success)' : item.serapan >= 50 ? 'var(--warning)' : 'var(--danger)'
+                              background: 'var(--success-bg)',
+                              color: 'var(--success)'
                             }}
                           >
-                            {item.serapan}%
+                            {formatRupiah(item.spj)}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.6875rem' }}>
-                          <span className="muted">{formatRupiah(item.spj)}</span>
-                          <span className="muted">dari {formatRupiah(item.pagu)}</span>
+                          <span className="muted">{item.unit}</span>
+                          <span className="muted">{item.persentase}% dari {formatRupiah(item.pagu)}</span>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-2)' }}>
+                        Belum ada data SPJ
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

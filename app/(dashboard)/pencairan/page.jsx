@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { usePencairan } from '@/context/PencairanContext';
 
 const ITEMS_PER_PAGE = 5;
@@ -442,7 +442,7 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
                 </div>
               </div>
               <a 
-                href={`/pencairan/${item.id}/spj`}
+                href={`/pencairan/${item.slug || item.id}/spj`}
                 className="btn btn-primary"
                 style={{ 
                   background: status === 'completed' ? 'var(--success)' : 'var(--warning)',
@@ -565,7 +565,7 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                     <td className="text-center">
                       <div className="flex items-center justify-center gap-1">
                         <a 
-                          href={`/pencairan/${item.id}/spj`}
+                          href={`/pencairan/${item.slug || item.id}/spj`}
                           className="btn icon-only"
                           style={{ color: 'var(--primary)' }}
                           onClick={(e) => e.stopPropagation()}
@@ -634,7 +634,7 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                         {/* SPJ Quick Action */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <a 
-                            href={`/pencairan/${item.id}/spj`}
+                            href={`/pencairan/${item.slug || item.id}/spj`}
                             className="btn btn-primary"
                             style={{ fontSize: '0.8125rem' }}
                           >
@@ -714,6 +714,107 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           </svg>
         </button>
       </div>
+    </div>
+  );
+}
+
+// ============ KOMPONEN PROGRAM SEARCH SELECT ============
+function ProgramSearchSelect({ programs, onSelect }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const filtered = programs.filter(p =>
+    p.nama.toLowerCase().includes(query.toLowerCase()) ||
+    (p.unit_kerja_id && String(p.unit_kerja_id).toLowerCase().includes(query.toLowerCase()))
+  );
+
+  const handleSelect = (id) => {
+    onSelect(id);
+    setQuery('');
+    setOpen(false);
+  };
+
+  if (programs.length === 0) return null;
+
+  return (
+    <div ref={ref} style={{ position: 'relative', marginBottom: '1rem' }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <svg
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          style={{ position: 'absolute', left: '0.75rem', width: '1rem', height: '1rem', color: 'var(--text-3)', pointerEvents: 'none' }}
+        >
+          <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
+        </svg>
+        <input
+          type="text"
+          placeholder="Cari dan tambah program kerja..."
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          style={{ paddingLeft: '2.25rem', paddingRight: query ? '2.25rem' : undefined }}
+        />
+        {query && (
+          <button
+            type="button"
+            onClick={() => { setQuery(''); setOpen(false); }}
+            style={{
+              position: 'absolute', right: '0.75rem',
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-3)', display: 'grid', placeItems: 'center',
+              width: '1.25rem', height: '1.25rem', padding: 0,
+            }}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-md)',
+          maxHeight: '220px', overflowY: 'auto', zIndex: 200,
+        }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding: '0.875rem 1rem', color: 'var(--text-3)', fontSize: '0.875rem', textAlign: 'center' }}>
+              {query ? 'Program tidak ditemukan' : 'Semua program sudah dipilih'}
+            </div>
+          ) : (
+            filtered.map((p) => (
+              <div
+                key={p.id}
+                onMouseDown={(e) => { e.preventDefault(); handleSelect(p.id); }}
+                style={{
+                  padding: '0.625rem 1rem', cursor: 'pointer',
+                  borderBottom: '1px solid var(--border)',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = ''}
+              >
+                <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)' }}>{p.nama}</div>
+                {p.unit_kerja_id && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.125rem' }}>
+                    Unit: {p.unit_kerja_id}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -848,18 +949,8 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
               <div className="full">
                 <label>Program Kerja <span className="muted">(bisa pilih multiple)</span></label>
                 
-                {/* Add Program Dropdown */}
-                {availablePrograms.length > 0 && (
-                  <select 
-                    onChange={(e) => { if(e.target.value) { addProgram(e.target.value); e.target.value = ''; }}}
-                    style={{ marginBottom: '1rem' }}
-                  >
-                    <option value="">+ Tambah Program...</option>
-                    {availablePrograms.map((p) => (
-                      <option key={p.id} value={p.id}>{p.nama} ({p.unit_kerja_id})</option>
-                    ))}
-                  </select>
-                )}
+                {/* Add Program — Searchable */}
+                <ProgramSearchSelect programs={availablePrograms} onSelect={addProgram} />
                 
                 {/* Selected Programs List */}
                 {selectedPrograms.length > 0 ? (

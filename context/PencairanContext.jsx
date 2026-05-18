@@ -5,6 +5,9 @@ import { supabase } from '@/lib/supabase/client';
 
 const PencairanContext = createContext(null);
 
+const slugify = (text) =>
+  (text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
 export function PencairanProvider({ children }) {
   const [pencairan, setPencairan] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -52,13 +55,15 @@ export function PencairanProvider({ children }) {
         // Calculate total alokasi from all programs
         const totalAlokasi = programList.reduce((sum, p) => sum + p.jumlah_alokasi, 0);
 
+        const nama = item.nomor_pencairan || `Pencairan ${item.id.slice(0, 8)}`
         return {
           id: item.id,
-          nama: item.nomor_pencairan || `Pencairan ${item.id.slice(0, 8)}`,
+          nama,
+          slug: slugify(nama),
           programs: programList,
           program: programList.length > 0 ? programList.map(p => p.nama).join(', ') : '-',
           program_ids: programList.map(p => p.id),
-          unit_kerja: programList.length > 0 
+          unit_kerja: programList.length > 0
             ? [...new Set(programList.map(p => p.unit_kerja))].join(', ')
             : '-',
           tanggal: item.tanggal_pencairan,
@@ -67,7 +72,6 @@ export function PencairanProvider({ children }) {
           keterangan: item.keterangan || '',
           status: item.status,
           created_at: item.created_at,
-          // SPJ status will be determined separately
           spj_submitted: item.status === 'selesai',
           spj_partial: item.status === 'terbit',
         };
@@ -278,13 +282,15 @@ export function PencairanProvider({ children }) {
       const totalAlokasi = programList.reduce((sum, p) => sum + p.jumlah_alokasi, 0);
 
       // Transform to match component structure
+      const nama = data.nomor_pencairan || `Pencairan ${data.id.slice(0, 8)}`
       const transformed = {
         id: data.id,
-        nama: data.nomor_pencairan || `Pencairan ${data.id.slice(0, 8)}`,
+        nama,
+        slug: slugify(nama),
         programs: programList,
         program: programList.length > 0 ? programList.map(p => p.nama).join(', ') : '-',
         program_ids: programList.map(p => p.id),
-        unit_kerja: programList.length > 0 
+        unit_kerja: programList.length > 0
           ? [...new Set(programList.map(p => p.unit_kerja))].join(', ')
           : '-',
         tanggal: data.tanggal_pencairan,

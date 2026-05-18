@@ -214,7 +214,7 @@ export default function DashboardLayout({ children }) {
       </a>
 
       {/* Mobile Header */}
-      <header className="mobile-header" role="banner">
+      <header className="mobile-header" role="navigation" aria-label="Header mobile">
         <div className="mobile-header-brand">
           <div className="brand-logo" style={{ width: '2rem', height: '2rem', fontSize: '1rem' }} aria-hidden="true">S</div>
           <span style={{ fontWeight: 600, color: 'var(--navy)' }}>SIMDIR</span>
@@ -343,17 +343,10 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {sidebarOpen && (
-        <div 
-          className="sidebar-overlay" 
+        <button
+          className="sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
-          role="button"
           aria-label="Tutup menu navigasi"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setSidebarOpen(false)
-            }
-          }}
         />
       )}
 

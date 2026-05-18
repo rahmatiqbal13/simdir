@@ -183,7 +183,7 @@ export default function MobileBottomNav({ userRole = 'admin', onMenuClick }) {
                 padding: '0.5rem 0.75rem',
                 textDecoration: 'none',
                 color: isActive ? 'var(--primary)' : 'var(--text-2)',
-                fontSize: '0.625rem',
+                fontSize: '0.75rem',
                 fontWeight: isActive ? 600 : 500,
                 minWidth: '60px',
                 transition: 'all 0.2s',

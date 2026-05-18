@@ -30,11 +30,18 @@ export function ProgramKerjaProvider({ children }) {
         .select('*')
         .order('created_at', { ascending: false });
 
+      // Transform data untuk menambahkan sisa_pagu
+      const transformedData = (data || []).map(program => ({
+        ...program,
+        dana_terpakai: program.dana_terpakai || 0,
+        sisa_pagu: (program.pagu_anggaran || 0) - (program.dana_terpakai || 0)
+      }));
+
       if (supabaseError) {
         console.error('Error loading programs:', supabaseError);
-        setError('Gagal memuat data program kerja');
+        setError('Gagal memuat data program kerja: ' + (supabaseError.message || 'Unknown error'));
       } else {
-        setPrograms(data || []);
+        setPrograms(transformedData);
         setError(null);
       }
     } catch (err) {
@@ -210,6 +217,63 @@ export function ProgramKerjaProvider({ children }) {
     await loadPrograms();
   };
 
+  // Fungsi untuk recalculate dana terpakai (bisa dipanggil setelah SPJ diupdate)
+  const recalculateDanaTerpakai = async (programId) => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase belum dikonfigurasi');
+      }
+
+      // Panggil RPC function di Supabase untuk recalculate
+      const { data, error } = await supabase
+        .rpc('update_program_dana_terpakai', {
+          p_program_id: programId
+        });
+
+      if (error) {
+        console.error('Error recalculating dana terpakai:', error);
+        throw error;
+      }
+
+      // Refresh programs setelah update
+      await loadPrograms();
+      return { success: true };
+    } catch (err) {
+      console.error('Error in recalculateDanaTerpakai:', err);
+      throw err;
+    }
+  };
+
+  // Fungsi untuk recalculate semua program
+  const recalculateAllDana = async () => {
+    try {
+      if (!supabase) {
+        throw new Error('Supabase belum dikonfigurasi');
+      }
+
+      const { data, error } = await supabase
+        .rpc('recalculate_all_program_dana');
+
+      if (error) {
+        console.error('Error recalculating all dana:', error);
+        throw error;
+      }
+
+      await loadPrograms();
+      return { success: true };
+    } catch (err) {
+      console.error('Error in recalculateAllDana:', err);
+      throw err;
+    }
+  };
+
+  // Get sisa pagu untuk program tertentu
+  const getSisaPagu = (programId) => {
+    const program = programs.find(p => p.id === programId);
+    if (!program) return 0;
+    return (program.pagu_anggaran || 0) - (program.dana_terpakai || 0);
+  };
+
   const deleteAllPrograms = async () => {
     try {
       if (!supabase) throw new Error('Supabase belum dikonfigurasi')
@@ -372,6 +436,9 @@ export function ProgramKerjaProvider({ children }) {
       deleteProgram,
       deleteAllPrograms,
       refreshPrograms,
+      recalculateDanaTerpakai,
+      recalculateAllDana,
+      getSisaPagu,
       loadBiayaVariabel,
       addBiayaVariabel,
       updateBiayaVariabel,

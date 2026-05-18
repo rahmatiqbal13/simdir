@@ -4,14 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useAgenda, useProgramKerja } from '@/lib/hooks/useSupabase';
 import { OnboardingFlow, useOnboarding, RestartOnboardingButton } from '@/app/components/Onboarding';
 import { SkeletonDashboard } from '@/app/components/Skeleton';
-
-// Format helpers
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  if (num >= 1000000000) return 'Rp ' + (num / 1000000000).toFixed(1) + 'M';
-  if (num >= 1000000) return 'Rp ' + (num / 1000000).toFixed(1) + 'Jt';
-  return 'Rp ' + num.toLocaleString('id-ID');
-};
+import { formatRupiahShort as formatRupiah } from '@/lib/utils/format';
 
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString('id-ID', { 
@@ -37,37 +30,6 @@ const getAgendaStatus = (mulai, selesai) => {
   if (diffDays <= 3) return 'upcoming_soon'
   return 'upcoming'
 };
-
-// ============ KOMPONEN WELCOME SECTION ============
-function WelcomeSection({ userName, date }) {
-  const hour = new Date().getHours();
-  let greeting = 'Selamat Pagi';
-  if (hour >= 11) greeting = 'Selamat Siang';
-  if (hour >= 15) greeting = 'Selamat Sore';
-  if (hour >= 18) greeting = 'Selamat Malam';
-
-  return (
-    <div className="card mb-6 welcome-card" style={{ 
-      background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%)',
-      color: 'white'
-    }}>
-      <div className="card-body welcome-card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
-          <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'white' }}>
-            {greeting}, {userName}! <span aria-hidden="true">👋</span>
-          </h2>
-          <p style={{ opacity: 0.9, fontSize: '0.9375rem' }}>
-            Berikut ringkasan aktivitas dan anggaran hari ini.
-          </p>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '0.8125rem', opacity: 0.8 }}>{date}</p>
-          <p style={{ fontSize: '1.125rem', fontWeight: 600 }}>Dashboard SIMDIR</p>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ============ KOMPONEN STAT CARD ============
 function StatCard({ title, value, subtitle, trend, trendUp, icon, color }) {
@@ -206,7 +168,7 @@ function ProgramCard({ program, index }) {
           <div style={{ minWidth: 0 }}>
             <strong style={{ fontSize: '0.875rem', display: 'block' }} className="truncate">{program.nama}</strong>
             <p className="muted" style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>
-              {program.unit} • ID: {program.id_rka}
+              {(program.unit && program.unit !== 'null' && program.unit !== 'undefined') ? program.unit : 'Belum Ditentukan'} • ID: {program.id_rka || '-'}
             </p>
           </div>
         </div>
@@ -397,7 +359,7 @@ export default function DashboardPage() {
   const { data: agendaData, loading: agendaLoading } = useAgenda();
   const { data: programData, loading: programLoading } = useProgramKerja();
 
-  // Calculate stats from real data
+  // Calculate stats from real data - menggunakan dana_terpakai dari database
   const stats = useMemo(() => {
     const activeAgenda = agendaData.filter(item => {
       const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai);
@@ -405,24 +367,51 @@ export default function DashboardPage() {
     }).length;
 
     const totalPagu = programData.reduce((sum, p) => sum + (p.pagu_anggaran || 0), 0);
+    const totalTerpakai = programData.reduce((sum, p) => sum + (p.dana_terpakai || 0), 0);
+    const percentageTerpakai = totalPagu > 0 ? Math.round((totalTerpakai / totalPagu) * 100) : 0;
     
     return {
       agenda: { value: activeAgenda, total: agendaData.length, trend: '+0', trendUp: true },
       pagu: { value: totalPagu, trend: '+0%', trendUp: true },
-      spj: { value: 0, percentage: 0, trend: '0%', trendUp: true },
-      sisa: { value: totalPagu }
+      spj: { value: totalTerpakai, percentage: percentageTerpakai, trend: `${percentageTerpakai}%`, trendUp: true },
+      sisa: { value: totalPagu - totalTerpakai }
     };
   }, [agendaData, programData]);
 
-  // Program data (top 4)
+  // Program data (top 4) - menggunakan dana_terpakai dari database
   const programs = useMemo(() => {
-    return programData.slice(0, 4).map(p => ({
-      id_rka: p.id?.slice(0, 5) || '-',
-      nama: p.nama,
-      unit: 'Unit Kerja',
-      pagu: p.pagu_anggaran || 0,
-      terpakai: 0
-    }));
+    return programData.slice(0, 4).map(p => {
+      const unit = p.unit_kerja_id || p.unit || null;
+      return {
+        id: p.id,
+        id_rka: p.id_rka || '-',
+        nama: p.nama || 'Tanpa Nama',
+        unit: (unit && unit !== 'null' && unit !== 'undefined') ? unit : 'Belum Ditentukan',
+        pagu: p.pagu_anggaran || 0,
+        terpakai: p.dana_terpakai || 0
+      };
+    });
+  }, [programData]);
+
+  // Top 5 Serapan - ranking berdasarkan nilai SPJ (dana_terpakai) tertinggi
+  const topSerapan = useMemo(() => {
+    // Filter program yang punya SPJ (dana_terpakai > 0)
+    const programDenganSPJ = programData
+      .filter(p => (p.dana_terpakai || 0) > 0)
+      .map(p => ({
+        nama: p.nama || 'Program Tanpa Nama',
+        unit: p.unit_kerja_id || p.unit || '-',
+        pagu: p.pagu_anggaran || 0,
+        terpakai: p.dana_terpakai || 0,
+        persentase: (p.pagu_anggaran || 0) > 0 
+          ? Math.round(((p.dana_terpakai || 0) / p.pagu_anggaran) * 100) 
+          : 0
+      }));
+    
+    // Sort by dana_terpakai (SPJ) descending - Top 5
+    return programDenganSPJ
+      .sort((a, b) => b.terpakai - a.terpakai)
+      .slice(0, 5);
   }, [programData]);
 
   // Agenda data (top 3 upcoming)
@@ -562,7 +551,7 @@ export default function DashboardPage() {
         <h3 className="section-title">Menu Cepat</h3>
         <div className="quick-actions-grid-mobile">
           <a href="/program-kerja" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--primary-bg)', color: 'var(--primary)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
@@ -570,9 +559,9 @@ export default function DashboardPage() {
             </div>
             <span className="quick-action-label">Program</span>
           </a>
-          
+
           <a href="/pencairan" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="1" x2="12" y2="23" />
                 <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
@@ -580,9 +569,9 @@ export default function DashboardPage() {
             </div>
             <span className="quick-action-label">Pencairan</span>
           </a>
-          
+
           <a href="/kelola-agenda" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--warning-bg)', color: 'var(--amber)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="4" width="18" height="18" rx="2" />
                 <line x1="16" y1="2" x2="16" y2="6" />
@@ -592,9 +581,9 @@ export default function DashboardPage() {
             </div>
             <span className="quick-action-label">Agenda</span>
           </a>
-          
+
           <a href="/laporan" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--pink-bg)', color: 'var(--pink)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                 <polyline points="14 2 14 8 20 8" />
@@ -603,9 +592,9 @@ export default function DashboardPage() {
             </div>
             <span className="quick-action-label">Laporan</span>
           </a>
-          
+
           <a href="/surat" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--purple-bg)', color: 'var(--purple)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <polyline points="22,6 12,13 2,6" />
@@ -613,9 +602,9 @@ export default function DashboardPage() {
             </div>
             <span className="quick-action-label">Surat</span>
           </a>
-          
+
           <a href="/pengaturan/users" className="quick-action-mobile">
-            <div className="quick-action-icon" style={{ background: 'rgba(100, 116, 139, 0.15)', color: '#64748b' }}>
+            <div className="quick-action-icon" style={{ background: 'var(--surface-3)', color: 'var(--text-2)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="3" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
@@ -738,89 +727,122 @@ export default function DashboardPage() {
             </div>
             <div className="card-body">
               {programs.map((program, index) => (
-                <ProgramCard key={program.id_rka} program={program} index={index} />
+                <ProgramCard key={program.id || program.id_rka} program={program} index={index} />
               ))}
             </div>
           </div>
 
-          {/* Ringkasan Anggaran - Desktop Table */}
+          {/* Top 5 Serapan SPJ - Desktop Table */}
           <div className="card unit-summary-desktop">
-            <div className="card-header">
-              <h3 style={{ margin: 0, fontSize: '1rem' }}>Ringkasan Anggaran per Unit</h3>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem' }}>Top 5 Serapan SPJ Tertinggi</h3>
+              <span className="muted" style={{ fontSize: '0.75rem' }}>Ranking berdasarkan nilai SPJ</span>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Unit Kerja</th>
+                      <th style={{ width: '50px' }}>Rank</th>
+                      <th>Program Kerja</th>
+                      <th className="text-right">SPJ</th>
                       <th className="text-right">Pagu</th>
-                      <th className="text-right">Terpakai</th>
                       <th className="text-center">%</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[
-                      { unit: 'USC', pagu: 500000000, terpakai: 325000000 },
-                      { unit: 'Kolam Renang', pagu: 250000000, terpakai: 187500000 },
-                      { unit: 'PUI Keolahragaan', pagu: 400000000, terpakai: 280000000 },
-                      { unit: 'SSFC', pagu: 600000000, terpakai: 540000000 },
-                      { unit: 'Driving Golf', pagu: 837500000, terpakai: 670000000 },
-                    ].map((item, idx) => {
-                      const pct = item.pagu > 0 ? Math.round((item.terpakai / item.pagu) * 100) : 0;
-                      return (
-                        <tr key={idx}>
-                          <td>
-                            <strong style={{ fontSize: '0.8125rem' }}>{item.unit}</strong>
-                          </td>
-                          <td className="text-right">{formatRupiah(item.pagu)}</td>
-                          <td className="text-right">{formatRupiah(item.terpakai)}</td>
-                          <td style={{ width: '80px' }}>
-                            <ProgressBar value={pct} max={100} label="" />
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {topSerapan.length > 0 ? topSerapan.map((item, idx) => (
+                      <tr key={idx}>
+                        <td className="text-center">
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '1.5rem',
+                            height: '1.5rem',
+                            borderRadius: '50%',
+                            background: idx === 0 ? 'var(--success)' : idx === 1 ? 'var(--warning)' : 'var(--primary)',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            fontWeight: 700
+                          }}>
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style={{ fontSize: '0.8125rem' }}>{item.nama}</strong>
+                          <p className="muted" style={{ fontSize: '0.6875rem', margin: 0 }}>{item.unit}</p>
+                        </td>
+                        <td className="text-right" style={{ fontWeight: 600, color: 'var(--success)' }}>
+                          {formatRupiah(item.terpakai)}
+                        </td>
+                        <td className="text-right">{formatRupiah(item.pagu)}</td>
+                        <td style={{ width: '80px' }}>
+                          <ProgressBar value={item.persentase} max={100} label="" />
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-2)' }}>
+                          Belum ada data SPJ
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          {/* Ringkasan Anggaran - Mobile Card View */}
+          {/* Top 5 Serapan SPJ - Mobile Card View */}
           <div className="unit-summary-mobile">
-            <h3 className="section-title">Ringkasan Anggaran per Unit</h3>
+            <h3 className="section-title">Top 5 Serapan SPJ Tertinggi</h3>
             <div className="unit-cards">
-              {[
-                { unit: 'USC', pagu: 500000000, terpakai: 325000000 },
-                { unit: 'Kolam Renang', pagu: 250000000, terpakai: 187500000 },
-                { unit: 'PUI Keolahragaan', pagu: 400000000, terpakai: 280000000 },
-                { unit: 'SSFC', pagu: 600000000, terpakai: 540000000 },
-                { unit: 'Driving Golf', pagu: 837500000, terpakai: 670000000 },
-              ].map((item, idx) => {
-                const pct = item.pagu > 0 ? Math.round((item.terpakai / item.pagu) * 100) : 0;
-                let colorVar = 'var(--success)';
-                if (pct < 30) colorVar = 'var(--danger)';
-                else if (pct < 60) colorVar = 'var(--warning)';
+              {topSerapan.length > 0 ? topSerapan.map((item, idx) => {
+                const colorVar = idx === 0 ? 'var(--success)' : idx === 1 ? 'var(--warning)' : 'var(--primary)';
                 return (
-                  <div key={idx} className="unit-card">
+                  <div key={idx} className="unit-card" style={{ borderLeft: `3px solid ${colorVar}` }}>
                     <div className="unit-card-header">
-                      <strong className="unit-name">{item.unit}</strong>
-                      <span className="unit-pct" style={{ color: colorVar }}>{pct}%</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          width: '1.5rem',
+                          height: '1.5rem',
+                          borderRadius: '50%',
+                          background: colorVar,
+                          color: 'white',
+                          display: 'grid',
+                          placeItems: 'center',
+                          fontSize: '0.75rem',
+                          fontWeight: 700
+                        }}>
+                          {idx + 1}
+                        </span>
+                        <div style={{ minWidth: 0 }}>
+                          <strong className="unit-name" style={{ fontSize: '0.875rem', display: 'block' }}>{item.nama}</strong>
+                          <span className="muted" style={{ fontSize: '0.6875rem' }}>{item.unit}</span>
+                        </div>
+                      </div>
+                      <span className="unit-pct" style={{ color: 'var(--success)', fontWeight: 600 }}>
+                        {formatRupiah(item.terpakai)}
+                      </span>
                     </div>
-                    <div className="unit-progress">
+                    <div className="unit-progress" style={{ marginTop: '0.5rem' }}>
                       <div className="unit-progress-bar" style={{ 
-                        width: `${pct}%`,
+                        width: `${item.persentase}%`,
                         background: colorVar
                       }} />
                     </div>
-                    <div className="unit-card-footer">
-                      <span className="unit-terpakai">{formatRupiah(item.terpakai)}</span>
-                      <span className="unit-pagu">dari {formatRupiah(item.pagu)}</span>
+                    <div className="unit-card-footer" style={{ marginTop: '0.25rem' }}>
+                      <span className="muted">{item.persentase}% dari pagu</span>
+                      <span className="muted">{formatRupiah(item.pagu)}</span>
                     </div>
                   </div>
                 );
-              })}
+              }) : (
+                <div className="unit-card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-2)' }}>
+                  Belum ada data SPJ
+                </div>
+              )}
             </div>
           </div>
         </div>

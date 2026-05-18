@@ -733,8 +733,11 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
   const variabelItems = program.variabel || []
   const totalVariabel = useMemo(() => calculateTotal(variabelItems), [variabelItems])
   const paguAnggaran = program.pagu_anggaran || 0
-  const sisaPagu = paguAnggaran - totalVariabel
-  const serapan = paguAnggaran > 0 ? Math.round((totalVariabel / paguAnggaran) * 100) : 0
+  
+  // Dana terpakai dari SPJ (real-time dari database)
+  const danaTerpakai = program.dana_terpakai || 0
+  const sisaPagu = paguAnggaran - danaTerpakai
+  const serapan = paguAnggaran > 0 ? Math.round((danaTerpakai / paguAnggaran) * 100) : 0
   const isOverBudget = sisaPagu < 0
 
   const getStatusBadge = () => {
@@ -766,13 +769,13 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
               display: 'flex', 
               alignItems: 'center', 
               gap: '0.25rem',
-              color: program.unit_kerja_id === 'Belum Ditentukan' ? 'var(--warning)' : 'inherit'
+              color: (!program.unit_kerja_id || program.unit_kerja_id === 'Belum Ditentukan') ? 'var(--warning)' : 'inherit'
             }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
               </svg>
-              {program.unit_kerja_id}
-              {program.unit_kerja_id === 'Belum Ditentukan' && (
+              {program.unit_kerja_id || 'Belum Ditentukan'}
+              {(!program.unit_kerja_id || program.unit_kerja_id === 'Belum Ditentukan') && (
                 <span style={{ fontSize: '0.6875rem', marginLeft: '0.25rem' }}>⚠️ Perlu diedit</span>
               )}
             </span>
@@ -813,9 +816,9 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Bar Dana SPJ */}
       <div style={{ padding: '0 1.25rem', marginBottom: '0.75rem' }}>
-        <ProgressBar value={totalVariabel} max={paguAnggaran} />
+        <ProgressBar value={danaTerpakai} max={paguAnggaran} />
       </div>
 
       {/* Expanded Content */}
@@ -828,9 +831,9 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
               <strong>{formatRupiah(paguAnggaran)}</strong>
             </div>
             <div>
-              <span>Total Variabel</span>
-              <strong style={{ color: isOverBudget ? 'var(--danger)' : 'var(--text)' }}>
-                {formatRupiah(totalVariabel)}
+              <span>Dana Terpakai (SPJ)</span>
+              <strong style={{ color: isOverBudget ? 'var(--danger)' : 'var(--primary)' }}>
+                {formatRupiah(danaTerpakai)}
               </strong>
             </div>
             <div>
@@ -842,7 +845,30 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
             </div>
             <div>
               <span>% Penggunaan</span>
-              <strong style={{ color: isOverBudget ? 'var(--danger)' : 'var(--text)' }}>{serapan}%</strong>
+              <strong style={{ color: isOverBudget ? 'var(--danger)' : serapan >= 90 ? 'var(--warning)' : 'var(--text)' }}>
+                {serapan}%
+              </strong>
+            </div>
+          </div>
+          
+          {/* Info Biaya Variabel */}
+          <div style={{ 
+            padding: '0.75rem 1rem', 
+            background: 'var(--surface-2)', 
+            borderRadius: 'var(--radius)',
+            marginBottom: '1rem',
+            fontSize: '0.8125rem'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+              <span className="muted">Rencana Biaya (Variabel):</span>
+              <strong>{formatRupiah(totalVariabel)}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span className="muted">Selisih Rencana vs Realisasi:</span>
+              <strong style={{ color: totalVariabel > danaTerpakai ? 'var(--success)' : 'var(--warning)' }}>
+                {formatRupiah(Math.abs(totalVariabel - danaTerpakai))}
+                {totalVariabel > danaTerpakai ? ' (lebih rencana)' : totalVariabel < danaTerpakai ? ' (lebih realisasi)' : ''}
+              </strong>
             </div>
           </div>
 
@@ -1434,7 +1460,7 @@ function ProgramTable({ programs, onEdit, onDelete, onManageVariabel, canEdit })
                       </p>
                     </div>
                   </td>
-                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.unit_kerja_id}</td>
+                  <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.unit_kerja_id || 'Belum Ditentukan'}</td>
                   <td style={{ fontSize: '0.75rem' }}>
                     {program.sumber_dana && (
                       <span 
@@ -2131,18 +2157,18 @@ export default function ProgramKerjaPage() {
     setCurrentPage(1)
   }, [searchQuery, selectedUnit, selectedTahun, sortBy])
 
-  // Calculate totals
+  // Calculate totals - menggunakan dana_terpakai dari database
   const totals = useMemo(() => {
     if (!filteredPrograms || !Array.isArray(filteredPrograms)) {
-      return { pagu: 0, variabel: 0 }
+      return { pagu: 0, terpakai: 0 }
     }
     
     return filteredPrograms.reduce((acc, p) => {
       return {
         pagu: acc.pagu + (p?.pagu_anggaran || 0),
-        variabel: acc.variabel + 0, // Variabel akan diimplementasikan nanti
+        terpakai: acc.terpakai + (p?.dana_terpakai || 0), // Dana terpakai dari SPJ
       }
-    }, { pagu: 0, variabel: 0 })
+    }, { pagu: 0, terpakai: 0 })
   }, [filteredPrograms])
 
   // Handlers
@@ -2620,15 +2646,15 @@ export default function ProgramKerjaPage() {
           />
           <StatCard
             title="Total Terpakai"
-            value={formatRupiah(totals.variabel)}
-            subtitle="Biaya variabel"
+            value={formatRupiah(totals.terpakai)}
+            subtitle="Dana SPJ"
             variant="info"
           />
           <StatCard
             title="Sisa Pagu"
-            value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.variabel)}
-            subtitle={`${programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) > 0 ? Math.round((totals.variabel / programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0)) * 100) : 0}% terpakai`}
-            variant={programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.variabel < 0 ? 'danger' : 'success'}
+            value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.terpakai)}
+            subtitle={`${programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) > 0 ? Math.round((totals.terpakai / programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0)) * 100) : 0}% terpakai`}
+            variant={programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.terpakai < 0 ? 'danger' : 'success'}
           />
           <StatCard
             title="Jumlah Program"

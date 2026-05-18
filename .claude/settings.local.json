@@ -24,7 +24,9 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\HYPE FLEX\\\\Documents\\\\Codex\\\\simdir\" -Force)",
       "Bash(Select-Object Name, FullName)",
       "Bash(xargs ls -la)",
-      "Bash(dir \"c:\\\\Users\\\\HYPE FLEX\\\\Documents\\\\Codex\\\\simdir\\\\app\\\\components\")"
+      "Bash(dir \"c:\\\\Users\\\\HYPE FLEX\\\\Documents\\\\Codex\\\\simdir\\\\app\\\\components\")",
+      "Skill(ui-ux-pro-max)",
+      "Skill(ui-ux-pro-max:*)"
     ]
   }
 }
