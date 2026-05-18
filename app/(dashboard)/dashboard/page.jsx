@@ -463,7 +463,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-page dashboard-mobile">
+    <div className="dashboard-page">
       {/* Onboarding */}
       <OnboardingFlow
         pageKey="dashboard"
@@ -661,7 +661,7 @@ export default function DashboardPage() {
         <StatCard
           title="Total SPJ"
           value={formatRupiah(stats.spj.value)}
-          subtitle={`Serapan ${stats.spj.pct}%`}
+          subtitle={`Serapan ${stats.spj.percentage}%`}
           trend={stats.spj.trend}
           trendUp={stats.spj.trendUp}
           icon={

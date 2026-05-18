@@ -547,7 +547,7 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
 .stats-grid-mobile,
 .quick-actions-mobile,
 .unit-summary-mobile {
-  display: none;
+  display: none !important;
 }
 
 .dashboard-page {
@@ -555,12 +555,24 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
 }
 
 .unit-summary-desktop {
-  display: block;
+  display: block !important;
+}
+
+.sidebar {
+  display: flex !important;
+}
+
+/* Desktop stats grid — 4 columns */
+.stats-grid-desktop {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
 }
 
 /* Mobile Header (hidden on desktop) */
 .mobile-header {
-  display: none;
+  display: none !important;
 }
 
 /* Desktop Hide utility */
@@ -568,8 +580,8 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
   display: none !important;
 }
 
-/* Mobile Header Styles */
-@media (max-width: 48rem) {
+/* Mobile Styles - Up to 1024px */
+@media (max-width: 1024px) {
   .mobile-header {
     display: flex;
     align-items: center;
@@ -885,6 +897,15 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .dashboard-grid { grid-template-columns: 1fr; }
   .rekap-cards { grid-template-columns: repeat(2, 1fr); }
+
+  /* On tablet, switch to mobile-style dashboard components */
+  .stats-grid-desktop { display: none !important; }
+  .stats-grid-mobile { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+  .welcome-section-mobile { display: block !important; }
+  .quick-actions-mobile { display: block !important; }
+  .unit-summary-desktop { display: none !important; }
+  .unit-summary-mobile { display: block !important; }
+  .welcome-card { display: none !important; }
 }
 
 /* Mobile (max-width: 768px) */
@@ -914,23 +935,23 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
   /* RKA Meta */
   .rka-meta { grid-template-columns: repeat(2, 1fr); }
   
-  /* Sidebar Mobile - Completely Hidden */
+  /* Sidebar Mobile - Hidden by default */
   .sidebar { 
     transform: translateX(-100%);
     width: 280px;
     max-width: 85vw;
-    visibility: hidden;
-    opacity: 0;
-    display: none;
+    display: none !important;
   }
   .sidebar.open { 
     transform: translateX(0);
-    visibility: visible;
-    opacity: 1;
-    display: flex;
+    display: flex !important;
   }
   .main-content { margin-left: 0; }
   .menu-toggle { display: grid !important; }
+  
+  .mobile-header {
+    display: flex !important;
+  }
   
   /* Demo Grid */
   .demo-grid { grid-template-columns: 1fr; }
@@ -1176,8 +1197,31 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
   }
 
   /* Desktop elements - hide on mobile */
-  .onboarding-restart {
-    margin-bottom: 0.75rem;
+  .welcome-card,
+  .quick-actions-grid,
+  .stats-grid-desktop,
+  .unit-summary-desktop {
+    display: none !important;
+  }
+
+  /* Mobile elements - show on mobile */
+  .welcome-section-mobile,
+  .stats-grid-mobile,
+  .quick-actions-mobile,
+  .unit-summary-mobile {
+    display: block !important;
+  }
+
+  .stats-grid-mobile {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .quick-actions-grid-mobile {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
   }
 
   /* Unit Summary Mobile */
@@ -2260,8 +2304,11 @@ label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--tex
 .stat-card.danger { border-left-color: var(--danger); }
 .stat-card.info { border-left-color: var(--primary-light); }
 
-/* Dashboard Card */
-.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+/* Dashboard Card — mobile-first, expands to 2-col on desktop only */
+.dashboard-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 64.0625rem) {
+  .dashboard-grid { grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+}
 .dashboard-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
 .dashboard-card-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem; border-bottom: 1px solid var(--border); }
 .dashboard-card-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
