@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useAgenda, useProgramKerja } from '@/lib/hooks/useSupabase';
+import { OnboardingFlow, useOnboarding, RestartOnboardingButton } from '@/app/components/Onboarding';
+import { SkeletonDashboard } from '@/app/components/Skeleton';
 
 // Format helpers
 const formatRupiah = (num) => {
@@ -52,7 +54,7 @@ function WelcomeSection({ userName, date }) {
       <div className="card-body welcome-card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'white' }}>
-            {greeting}, {userName}! 👋
+            {greeting}, {userName}! <span aria-hidden="true">👋</span>
           </h2>
           <p style={{ opacity: 0.9, fontSize: '0.9375rem' }}>
             Berikut ringkasan aktivitas dan anggaran hari ini.
@@ -203,7 +205,7 @@ function ProgramCard({ program, index }) {
           </span>
           <div style={{ minWidth: 0 }}>
             <strong style={{ fontSize: '0.875rem', display: 'block' }} className="truncate">{program.nama}</strong>
-            <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>
+            <p className="muted" style={{ fontSize: '0.75rem', marginTop: '0.125rem' }}>
               {program.unit} • ID: {program.id_rka}
             </p>
           </div>
@@ -271,8 +273,8 @@ function AgendaItem({ agenda }) {
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <strong style={{ fontSize: '0.8125rem' }}>{agenda.judul}</strong>
-          <span style={{ 
-            fontSize: '0.625rem',
+          <span style={{
+            fontSize: '0.75rem',
             padding: '0.125rem 0.375rem',
             borderRadius: 'var(--radius-full)',
             background: `${statusColors[agenda.status]}15`,
@@ -320,6 +322,13 @@ function ActivityItem({ activity }) {
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
         <polyline points="22 4 12 14.01 9 11.01" />
       </svg>
+    ),
+    info: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="16" x2="12" y2="12" />
+        <line x1="12" y1="8" x2="12.01" y2="8" />
+      </svg>
     )
   };
 
@@ -327,7 +336,8 @@ function ActivityItem({ activity }) {
     agenda: 'var(--primary)',
     pencairan: 'var(--success)',
     spj: 'var(--warning)',
-    program: 'var(--success)'
+    program: 'var(--success)',
+    info: 'var(--primary)'
   };
 
   return (
@@ -364,6 +374,9 @@ export default function DashboardPage() {
     month: 'long', 
     day: 'numeric' 
   });
+  
+  // Onboarding
+  const { showOnboarding, completeOnboarding, skipOnboarding, resetOnboarding } = useOnboarding('dashboard');
 
   // Get user info from session
   useEffect(() => {
@@ -446,15 +459,26 @@ export default function DashboardPage() {
   }, [agendaData, programData]);
 
   if (agendaLoading || programLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <div>Memuat data dashboard...</div>
-      </div>
-    );
+    return <SkeletonDashboard />;
   }
 
   return (
     <div className="dashboard-page">
+      {/* Onboarding */}
+      <OnboardingFlow
+        pageKey="dashboard"
+        isOpen={showOnboarding}
+        onComplete={completeOnboarding}
+        onSkip={skipOnboarding}
+      />
+      
+      {/* Restart Onboarding Button (hanya tampil jika sudah complete) */}
+      {!showOnboarding && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <RestartOnboardingButton onClick={resetOnboarding} />
+        </div>
+      )}
+      
       {/* Welcome Section */}
       <WelcomeSection userName={userName} date={currentDate} />
 
@@ -611,7 +635,7 @@ export default function DashboardPage() {
       )}
 
       {/* Main Dashboard Grid */}
-      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-grid">
         {/* Left Column */}
         <div>
           {/* Program Kerja */}

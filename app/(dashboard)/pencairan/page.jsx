@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { usePencairan } from '@/context/PencairanContext';
 
 const ITEMS_PER_PAGE = 5;
@@ -982,8 +982,17 @@ export default function PencairanPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
-  // User Role
-  const userRole = 'super_admin';
+  // User Role — dibaca dari session, bukan hardcode
+  const [userRole, setUserRole] = useState('viewer')
+  useEffect(() => {
+    try {
+      const session = localStorage.getItem('simdir_session')
+      if (session) {
+        const parsed = JSON.parse(atob(session))
+        if (parsed.role) setUserRole(parsed.role)
+      }
+    } catch {}
+  }, [])
   const canEdit = ['super_admin', 'admin_keuangan'].includes(userRole);
 
   // Filter & Sort

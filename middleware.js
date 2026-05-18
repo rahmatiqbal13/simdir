@@ -66,8 +66,8 @@ export async function middleware(request) {
         
         role = profile?.role || 'pimpinan'
       }
-    } catch (supabaseErr) {
-      console.log('Supabase auth check failed:', supabaseErr)
+    } catch {
+      // Supabase tidak tersedia, lanjut ke local session
     }
 
     // ============================================
@@ -81,7 +81,6 @@ export async function middleware(request) {
           user = { id: localUser.id, email: localUser.email }
           role = localUser.role
           isLocalMode = true
-          console.log('Middleware: Using local session for', localUser.username)
         } catch (e) {
           console.error('Invalid local session cookie')
         }
@@ -146,6 +145,13 @@ export async function middleware(request) {
       supabaseResponse.headers.set('x-local-mode', 'true')
     }
   }
+
+  // Security headers — diterapkan ke semua response
+  supabaseResponse.headers.set('X-Frame-Options', 'SAMEORIGIN')
+  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff')
+  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  supabaseResponse.headers.set('X-XSS-Protection', '1; mode=block')
+  supabaseResponse.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
 
   return supabaseResponse
 }

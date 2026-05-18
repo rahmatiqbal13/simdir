@@ -3,15 +3,20 @@ import { AgendaProvider } from '@/context/AgendaContext'
 import { ProgramKerjaProvider } from '@/context/ProgramKerjaContext'
 import { PencairanProvider } from '@/context/PencairanContext'
 import { SuratProvider } from '@/context/SuratContext'
+import { ToastProvider } from './components/Toast'
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+
+export const viewport = {
+  themeColor: '#f59e0b',
+  width: 'device-width',
+  initialScale: 1,
+}
 
 export const metadata = {
   title: "SIMDIR - Sistem Informasi Manajemen Direktorat",
   description: "Sistem Informasi Manajemen Direktorat Unesa Science Center",
   manifest: '/manifest.json',
-  themeColor: '#f59e0b',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -75,15 +80,17 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png" />
       </head>
       <body>
-        <AgendaProvider>
-          <ProgramKerjaProvider>
-            <PencairanProvider>
-              <SuratProvider>
-                {children}
-              </SuratProvider>
-            </PencairanProvider>
-          </ProgramKerjaProvider>
-        </AgendaProvider>
+        <ToastProvider>
+          <AgendaProvider>
+            <ProgramKerjaProvider>
+              <PencairanProvider>
+                <SuratProvider>
+                  {children}
+                </SuratProvider>
+              </PencairanProvider>
+            </ProgramKerjaProvider>
+          </AgendaProvider>
+        </ToastProvider>
         
         {/* PWA Components */}
         <ServiceWorkerRegistration />

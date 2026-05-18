@@ -2,6 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useAgenda } from '@/context/AgendaContext'
+import { useToast } from '@/app/components/Toast'
+import { SearchInput } from '@/app/components/Search'
+import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -913,6 +916,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 // ============ HALAMAN UTAMA ============
 export default function AgendaManagePage() {
   const { agenda, loading: agendaLoading, error: agendaError, addAgenda, updateAgenda, deleteAgenda, refreshAgenda } = useAgenda()
+  const { success, error: showError } = useToast()
   
   // Local loading state for operations
   const [operationLoading, setOperationLoading] = useState(false)
@@ -1004,9 +1008,10 @@ export default function AgendaManagePage() {
       setOperationLoading(true)
       try {
         await deleteAgenda(id)
+        success('Agenda berhasil dihapus')
         await refreshAgenda()
       } catch (err) {
-        alert('Gagal menghapus agenda: ' + err.message)
+        showError('Gagal menghapus agenda: ' + err.message)
       } finally {
         setOperationLoading(false)
       }
@@ -1018,14 +1023,16 @@ export default function AgendaManagePage() {
     try {
       if (editingItem) {
         await updateAgenda(editingItem.id, item)
+        success('Agenda berhasil diperbarui')
       } else {
         await addAgenda(item)
+        success('Agenda baru berhasil ditambahkan')
       }
       await refreshAgenda()
       setShowModal(false)
       setEditingItem(null)
     } catch (err) {
-      alert('Gagal menyimpan agenda: ' + err.message)
+      showError('Gagal menyimpan agenda: ' + err.message)
     } finally {
       setOperationLoading(false)
     }
@@ -1041,22 +1048,27 @@ export default function AgendaManagePage() {
   const hasFilters = searchQuery || statusFilter !== 'all' || jenisFilter !== 'all'
 
   if (agendaLoading) {
+    const { SkeletonStatGrid, SkeletonCardList, SkeletonStyles } = require('@/app/components/Skeleton');
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <div>Memuat data agenda...</div>
-      </div>
-    )
+      <>
+        <SkeletonStyles />
+        <SkeletonStatGrid count={4} />
+        <div className="toolbar">
+          <div>
+            <SkeletonCardList count={1} />
+          </div>
+        </div>
+        <SkeletonCardList count={6} />
+      </>
+    );
   }
 
   if (agendaError) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--danger)' }}>
-        <h3>Error Loading Agenda</h3>
-        <p>{agendaError}</p>
-        <button onClick={refreshAgenda} className="btn btn-primary mt-4">
-          Coba Lagi
-        </button>
-      </div>
+      <EmptyStateError 
+        message={agendaError}
+        onRetry={refreshAgenda}
+      />
     )
   }
 
@@ -1137,25 +1149,13 @@ export default function AgendaManagePage() {
       <div className="card mb-4">
         <div className="card-body">
           <div className="toolbar" style={{ marginBottom: 0 }}>
-            <div className="filter-group filter-search" style={{ maxWidth: '20rem' }}>
-              <svg className="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Cari agenda, lokasi, penyelenggara..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="filter-input"
-              />
-              {searchQuery && (
-                <button className="filter-clear-btn" onClick={() => setSearchQuery('')}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            <SearchInput
+              placeholder="Cari agenda, lokasi, penyelenggara..."
+              value={searchQuery}
+              onChange={setSearchQuery}
+              recentSearchesKey="agenda_search"
+              style={{ maxWidth: '20rem' }}
+            />
 
             <div className="flex items-center gap-2">
               <select
@@ -1227,27 +1227,20 @@ export default function AgendaManagePage() {
 
       {/* Content */}
       {filteredAgenda.length === 0 ? (
-        <div className="empty-state" style={{ padding: '2rem 1rem' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-          <h3>{hasFilters ? 'Tidak ada agenda yang sesuai' : 'Belum ada agenda'}</h3>
-          <p>
-            {hasFilters 
-              ? 'Coba ubah filter atau kata kunci pencarian Anda' 
-              : canEdit 
-                ? 'Klik "Tambah Agenda" untuk membuat agenda baru'
-                : 'Tidak ada agenda kegiatan yang tersedia'}
-          </p>
-          {hasFilters && (
-            <button className="btn btn-ghost mt-4" onClick={clearFilters}>
-              Reset Filter
-            </button>
+        <>
+          {hasFilters ? (
+            searchQuery ? (
+              <EmptyStateSearch 
+                query={searchQuery} 
+                onClear={() => { setSearchQuery(''); setCurrentPage(1); }}
+              />
+            ) : (
+              <EmptyStateFilter onClear={clearFilters} />
+            )
+          ) : (
+            <EmptyStateAgenda onAddNew={handleAddNew} canEdit={canEdit} />
           )}
-        </div>
+        </>
       ) : (
         <>
           {viewMode === 'card' ? (

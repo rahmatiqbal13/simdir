@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
+import MobileBottomNav from '@/app/components/MobileBottomNav'
 
 const navItems = {
   super_admin: [
@@ -54,10 +55,60 @@ const icons = {
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
+  const sidebarRef = useRef(null)
+
+  // Track mobile viewport
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Close sidebar when pressing Escape
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false)
+      }
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [sidebarOpen])
+
+  // Focus trap for sidebar
+  useEffect(() => {
+    if (sidebarOpen && sidebarRef.current) {
+      const focusableElements = sidebarRef.current.querySelectorAll(
+        'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
+      )
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      const handleTabKey = (e) => {
+        if (e.key === 'Tab') {
+          if (e.shiftKey && document.activeElement === firstElement) {
+            e.preventDefault()
+            lastElement.focus()
+          } else if (!e.shiftKey && document.activeElement === lastElement) {
+            e.preventDefault()
+            firstElement.focus()
+          }
+        }
+      }
+
+      document.addEventListener('keydown', handleTabKey)
+      firstElement?.focus()
+
+      return () => document.removeEventListener('keydown', handleTabKey)
+    }
+  }, [sidebarOpen])
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -90,11 +141,9 @@ export default function DashboardLayout({ children }) {
         } else {
           // Fallback ke local session jika auth tidak ada
           const localSession = localStorage.getItem('simdir_session')
-          console.log('Layout - Local session:', localSession)
           if (localSession) {
             try {
               const sessionData = JSON.parse(atob(localSession))
-              console.log('Layout - Session data:', sessionData)
               setUser({
                 id: sessionData.id,
                 email: sessionData.email,
@@ -110,7 +159,6 @@ export default function DashboardLayout({ children }) {
                 nama: sessionData.username,
                 role: sessionData.role
               })
-              console.log('Layout - Profile set with role:', sessionData.role)
             } catch (e) {
               console.error('Invalid local session:', e)
             }
@@ -158,36 +206,45 @@ export default function DashboardLayout({ children }) {
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const items = navItems[userRole] || navItems.admin
 
-  // Debug
-  console.log('Layout Render - userRole:', userRole, 'profile:', profile, 'user:', user)
-
   return (
     <div className="app-shell">
+      {/* Skip to Content Link */}
+      <a href="#main-content" className="skip-to-content">
+        Loncat ke konten utama
+      </a>
+
       {/* Mobile Header */}
-      <header className="mobile-header">
+      <header className="mobile-header" role="banner">
         <div className="mobile-header-brand">
-          <div className="brand-logo" style={{ width: '2rem', height: '2rem', fontSize: '1rem' }}>S</div>
+          <div className="brand-logo" style={{ width: '2rem', height: '2rem', fontSize: '1rem' }} aria-hidden="true">S</div>
           <span style={{ fontWeight: 600, color: 'var(--navy)' }}>SIMDIR</span>
         </div>
         <button 
           className="menu-toggle" 
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label={sidebarOpen ? 'Tutup menu' : 'Buka menu'}
+          aria-label={sidebarOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
+          aria-expanded={sidebarOpen}
+          aria-controls="sidebar-nav"
         >
           {sidebarOpen ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           ) : (
-            icons.menu
+            <span aria-hidden="true">{icons.menu}</span>
           )}
         </button>
       </header>
 
-      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+      <nav
+        ref={sidebarRef}
+        className={`sidebar ${sidebarOpen ? 'open' : ''}`}
+        aria-label="Navigasi utama"
+        aria-hidden={isMobile && !sidebarOpen ? true : undefined}
+      >
         <div className="sidebar-brand">
-          <div className="brand-logo">S</div>
+          <div className="brand-logo" aria-hidden="true">S</div>
           <div>
             <strong>SIMDIR</strong>
             <span>Unesa Science Center</span>
@@ -195,68 +252,88 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <div className="sidebar-section">
-          <div className="sidebar-section-label">Menu Utama</div>
+          <div className="sidebar-section-label" id="nav-heading">Menu Utama</div>
         </div>
 
-        <nav className="sidebar-nav">
+        <div className="sidebar-nav" aria-labelledby="nav-heading">
           {items.map((item) => (
-            <Link 
-              key={item.href} 
-              href={item.href} 
-              className={`nav-item ${pathname === item.href ? 'active' : ''}`} 
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item ${pathname === item.href ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
+              aria-current={pathname === item.href ? 'page' : undefined}
             >
-              <span className="nav-icon">{icons[item.icon]}</span>
+              <span className="nav-icon" aria-hidden="true">{icons[item.icon]}</span>
               <span>{item.label}</span>
             </Link>
           ))}
-        </nav>
+        </div>
 
         <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="user-avatar">{userName.charAt(0).toUpperCase()}</div>
+          <div className="user-info" role="region" aria-label="Informasi pengguna">
+            <div className="user-avatar" aria-hidden="true">{userName.charAt(0).toUpperCase()}</div>
             <div style={{ minWidth: 0 }}>
               <div className="user-name truncate">{userName}</div>
               <div className="user-role">{userRole.replace('_', ' ')}</div>
             </div>
           </div>
-          <button className="logout-btn" onClick={handleLogout}>
-            <span>{icons.logout}</span>
+          <button 
+            className="logout-btn" 
+            onClick={handleLogout}
+            aria-label="Keluar dari aplikasi"
+          >
+            <span aria-hidden="true">{icons.logout}</span>
             Logout
           </button>
         </div>
-      </aside>
+      </nav>
 
       <div className="main-content">
-        <header className="topbar">
+        <header className="topbar" role="banner">
           <div className="topbar-left">
             <button 
               className="menu-toggle desktop-hide" 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Toggle menu"
+              aria-label="Buka menu navigasi"
+              aria-expanded={sidebarOpen}
+              aria-controls="sidebar-nav"
             >
-              {icons.menu}
+              <span aria-hidden="true">{icons.menu}</span>
             </button>
             <div className="topbar-title-wrapper">
-              <h1 className="page-title">
+              <h1 className="page-title" id="page-title">
                 {items.find(item => item.href === pathname)?.label || 'Dashboard'}
               </h1>
-              <div className="breadcrumb">
-                <span>Home</span>
-                <span className="breadcrumb-sep">{icons.chevron}</span>
-                <span>{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
-              </div>
+              <nav className="breadcrumb" aria-label="Breadcrumb">
+                <ol style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', listStyle: 'none', margin: 0, padding: 0 }}>
+                  <li><span>Home</span></li>
+                  <li aria-hidden="true"><span className="breadcrumb-sep">{icons.chevron}</span></li>
+                  <li aria-current="page">
+                    <span>{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
+                  </li>
+                </ol>
+              </nav>
             </div>
           </div>
           <div className="topbar-right">
-            <button className="topbar-btn" title="Notifications">
-              {icons.bell}
-              <span className="badge">0</span>
+            <button 
+              className="topbar-btn" 
+              aria-label="Notifikasi - 0 belum dibaca"
+              title="Notifikasi"
+            >
+              <span aria-hidden="true">{icons.bell}</span>
             </button>
           </div>
         </header>
 
-        <main className="content-area">
+        <main 
+          id="main-content" 
+          className="content-area"
+          role="main"
+          aria-labelledby="page-title"
+          tabIndex={-1}
+        >
           <UsersProvider>
             <UnitKerjaProvider>
               {children}
@@ -266,8 +343,25 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {sidebarOpen && (
-        <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
+        <div 
+          className="sidebar-overlay" 
+          onClick={() => setSidebarOpen(false)}
+          role="button"
+          aria-label="Tutup menu navigasi"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              setSidebarOpen(false)
+            }
+          }}
+        />
       )}
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav 
+        userRole={userRole} 
+        onMenuClick={() => setSidebarOpen(true)}
+      />
     </div>
   )
 }

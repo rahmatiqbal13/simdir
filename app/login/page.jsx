@@ -6,6 +6,7 @@ import { createBrowserClient } from '@supabase/ssr'
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState({
     identifier: '',
     password: ''
@@ -54,16 +55,6 @@ export default function LoginPage() {
       // Trim password untuk menghilangkan whitespace
       const inputPassword = formData.password.trim()
       const dbPassword = userData.password.trim()
-      
-      // Debug: Log password comparison (remove in production)
-      console.log('Debug Login:', {
-        username: userData.username,
-        dbPassword: dbPassword,
-        dbPasswordLength: dbPassword.length,
-        inputPassword: inputPassword,
-        inputPasswordLength: inputPassword.length,
-        match: dbPassword === inputPassword
-      })
 
       // Verifikasi password
       if (dbPassword !== inputPassword) {
@@ -130,8 +121,6 @@ export default function LoginPage() {
         role: userData.role
       }
       
-      console.log('Login Success - Saving session:', sessionPayload)
-      
       await fetch('/api/auth/local-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,33 +142,36 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-container">
+    <div className="login-container" role="main" aria-labelledby="login-title">
       <div className="login-card">
         <div className="login-header">
           <div className="login-brand">
-            <div className="brand-logo">S</div>
+            <div className="brand-logo" aria-hidden="true">S</div>
             <strong>SIMDIR</strong>
           </div>
-          <h1>Masuk</h1>
+          <h1 id="login-title">Masuk</h1>
           <p>Sistem Informasi Manajemen Direktorat USC</p>
         </div>
 
         {error && (
-          <div className="error-msg" style={{ 
-            background: '#fee2e2', 
-            color: '#dc2626', 
-            padding: '0.75rem', 
-            borderRadius: '8px',
-            marginBottom: '1rem',
-            fontSize: '0.875rem'
-          }}>
+          <div 
+            className="error-msg" 
+            role="alert"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', marginRight: '0.5rem', flexShrink: 0 }} aria-hidden="true">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
-            <label htmlFor="identifier">Username atau Email</label>
+            <label htmlFor="identifier">Username atau Email <span aria-label="wajib diisi">*</span></label>
             <input
               type="text"
               id="identifier"
@@ -188,24 +180,84 @@ export default function LoginPage() {
               value={formData.identifier}
               onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
               required
+              autoComplete="username"
+              aria-required="true"
+              aria-describedby="identifier-help"
+              disabled={loading}
             />
+            <span id="identifier-help" className="sr-only">Masukkan username atau alamat email Anda</span>
           </div>
 
           <div className="form-group">
-            <label htmlFor="password">Kata Sandi</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              placeholder="Masukkan kata sandi"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required
-            />
+            <label htmlFor="password">Kata Sandi <span aria-label="wajib diisi">*</span></label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                placeholder="Masukkan kata sandi"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+                autoComplete="current-password"
+                aria-required="true"
+                aria-describedby="password-help"
+                disabled={loading}
+                style={{ paddingRight: '2.75rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                aria-pressed={showPassword}
+                disabled={loading}
+                style={{
+                  position: 'absolute',
+                  right: '0.75rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text-3)',
+                  padding: '0.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  minHeight: '44px',
+                  minWidth: '44px',
+                  lineHeight: 1,
+                  borderRadius: 'var(--radius)'
+                }}
+              >
+                {showPassword ? (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }} aria-hidden="true">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                    <line x1="1" y1="1" x2="23" y2="23" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }} aria-hidden="true">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <span id="password-help" className="sr-only">Masukkan kata sandi Anda</span>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-            {loading ? 'Memproses...' : 'Masuk'}
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            disabled={loading} 
+            style={{ width: '100%', minHeight: '44px' }}
+            aria-busy={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner" style={{ width: '1rem', height: '1rem', borderWidth: '2px', marginRight: '0.5rem' }} aria-hidden="true" />
+                Memproses...
+              </>
+            ) : 'Masuk'}
           </button>
         </form>
 

@@ -56,16 +56,41 @@ export function ProgramKerjaProvider({ children }) {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
+      // Valid sumber_dana values based on database constraint
+      const VALID_SUMBER_DANA = ['UKT', 'UU', 'BPPTN', 'SPP', 'Sponsor', 'Lainnya']
+      const normalizeSumberDana = (val) => {
+        if (!val) return 'UKT'
+        const v = val.toString().trim().toUpperCase()
+        if (VALID_SUMBER_DANA.includes(v)) return v
+        if (v === 'SA' || v.includes('SWADANA')) return 'Lainnya'
+        if (v === 'DJRP' || v.includes('DJARUM')) return 'Sponsor'
+        return 'UKT'
+      }
+
       const programData = {
         nama: program.nama_program || program.nama || '',
         id_rka: program.id_rka || null,
         unit_kerja_id: program.unit_kerja_id || program.unit_kerja || null,
-        sumber_dana: program.sumber_dana || 'UKT',
-        pagu_anggaran: program.pagu || program.pagu_anggaran || 0,
-        tahun: program.tahun || new Date().getFullYear(),
+        sumber_dana: normalizeSumberDana(program.sumber_dana),
+        pagu_anggaran: Number(program.pagu || program.pagu_anggaran || 0),
+        tahun: Number(program.tahun || new Date().getFullYear()),
         status: program.status || 'aktif',
         created_by: user?.id || null
       };
+
+      // Validasi tipe data
+      if (typeof programData.nama !== 'string' || programData.nama.trim() === '') {
+        throw new Error('Nama program harus diisi')
+      }
+      if (!programData.id_rka) {
+        throw new Error('ID RKA harus diisi')
+      }
+      if (isNaN(programData.pagu_anggaran) || programData.pagu_anggaran < 0) {
+        throw new Error('Pagu anggaran tidak valid')
+      }
+      if (isNaN(programData.tahun) || programData.tahun < 2000 || programData.tahun > 2100) {
+        throw new Error('Tahun tidak valid')
+      }
 
       console.log('Program data to insert:', programData);
 
@@ -77,7 +102,29 @@ export function ProgramKerjaProvider({ children }) {
 
       if (supabaseError) {
         console.error('Error adding program:', supabaseError);
-        throw new Error(supabaseError.message || 'Gagal menambahkan program');
+        console.error('Failed program data:', programData);
+        // Handle empty object error
+        let errorMsg = 'Gagal menambahkan program';
+        if (supabaseError && typeof supabaseError === 'object') {
+          if (supabaseError.message) {
+            errorMsg = supabaseError.message;
+          } else if (supabaseError.code) {
+            errorMsg = `Error code: ${supabaseError.code}`;
+            // Handle PostgreSQL error codes
+            if (supabaseError.code === '23505') {
+              errorMsg = `Program dengan ID RKA "${programData.id_rka}" untuk tahun ${programData.tahun} sudah ada (duplicate)`;
+            } else if (supabaseError.code === '23502') {
+              errorMsg = `Field wajib tidak diisi: ${supabaseError.column || 'unknown'}`;
+            } else if (supabaseError.code === '23503') {
+              errorMsg = `Foreign key constraint failed: ${supabaseError.message || 'unknown reference'}`;
+            }
+          } else if (supabaseError.details) {
+            errorMsg = supabaseError.details;
+          } else {
+            errorMsg = `Unknown error: ${JSON.stringify(supabaseError)}`;
+          }
+        }
+        throw new Error(errorMsg);
       }
 
       console.log('Program added:', data);
@@ -95,11 +142,22 @@ export function ProgramKerjaProvider({ children }) {
         throw new Error('Supabase belum dikonfigurasi');
       }
 
+      // Valid sumber_dana values based on database constraint
+      const VALID_SUMBER_DANA = ['UKT', 'UU', 'BPPTN', 'SPP', 'Sponsor', 'Lainnya']
+      const normalizeSumberDana = (val) => {
+        if (!val) return 'UKT'
+        const v = val.toString().trim().toUpperCase()
+        if (VALID_SUMBER_DANA.includes(v)) return v
+        if (v === 'SA' || v.includes('SWADANA')) return 'Lainnya'
+        if (v === 'DJRP' || v.includes('DJARUM')) return 'Sponsor'
+        return 'UKT'
+      }
+
       const programData = {
         nama: program.nama_program || program.nama,
         id_rka: program.id_rka || null,
         unit_kerja_id: program.unit_kerja_id || program.unit_kerja || null,
-        sumber_dana: program.sumber_dana || 'UKT',
+        sumber_dana: normalizeSumberDana(program.sumber_dana),
         pagu_anggaran: program.pagu || program.pagu_anggaran,
         tahun: program.tahun,
         status: program.status || 'aktif'
@@ -150,6 +208,45 @@ export function ProgramKerjaProvider({ children }) {
 
   const refreshPrograms = async () => {
     await loadPrograms();
+  };
+
+  const deleteAllPrograms = async () => {
+    try {
+      if (!supabase) throw new Error('Supabase belum dikonfigurasi')
+      
+      console.log('Menghapus semua data dari biaya_variabel...')
+      // Delete biaya_variabel first (no guaranteed cascade)
+      const { error: bvErr, data: bvData } = await supabase
+        .from('biaya_variabel')
+        .delete()
+        .not('id', 'is', null)
+        .select()
+      
+      if (bvErr) {
+        console.error('Error menghapus biaya_variabel:', bvErr)
+        throw bvErr
+      }
+      console.log('Berhasil menghapus biaya_variabel:', bvData)
+      
+      console.log('Menghapus semua data dari program_kerja...')
+      const { error, data } = await supabase
+        .from('program_kerja')
+        .delete()
+        .not('id', 'is', null)
+        .select()
+      
+      if (error) {
+        console.error('Error menghapus program_kerja:', error)
+        throw error
+      }
+      console.log('Berhasil menghapus program_kerja:', data)
+      
+      setPrograms([])
+      console.log('State programs direset')
+    } catch (err) {
+      console.error('Error di deleteAllPrograms:', err)
+      throw err
+    }
   };
 
   // Load biaya variabel untuk program tertentu
@@ -266,13 +363,14 @@ export function ProgramKerjaProvider({ children }) {
   };
 
   return (
-    <ProgramKerjaContext.Provider value={{ 
-      programs, 
-      loading, 
+    <ProgramKerjaContext.Provider value={{
+      programs,
+      loading,
       error,
-      addProgram, 
-      updateProgram, 
-      deleteProgram, 
+      addProgram,
+      updateProgram,
+      deleteProgram,
+      deleteAllPrograms,
       refreshPrograms,
       loadBiayaVariabel,
       addBiayaVariabel,

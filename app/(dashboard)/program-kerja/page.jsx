@@ -6,12 +6,338 @@ import { useProgramKerja } from '@/context/ProgramKerjaContext'
 const UNIT_KERJA_LIST = [
   'USC', 'PUI Keolahragaan', 'PUI Disabilitas', 'PUI Seni Budaya',
   'Kolam Renang', 'Driving Golf', 'ULABK', 'SSFC',
-  'PUIPT Seni Budaya Majapahitan', 'PUIPT DIC', 'PUIPT SERC'
+  'PUIPT Seni Budaya Majapahitan', 'PUIPT DIC', 'PUIPT SERC', 'PUI AI',
+  'Belum Ditentukan' // Untuk program yang unit kerjanya tidak terdeteksi saat import
 ]
 
 const TAHUN_LIST = [2024, 2025, 2026, 2027]
 
+// Sumber dana dari CSV POK (akan dinormalize saat import)
+const SUMBER_DANA_LIST = [
+  { value: 'UKT', label: 'UKT', color: '#3b82f6' },
+  { value: 'UU', label: 'UU', color: '#10b981' },
+  { value: 'DJRP', label: 'DJRP (Djarum)', color: '#f59e0b' },
+  { value: 'SA', label: 'SA (Swadana)', color: '#8b5cf6' },
+  { value: 'BPPTN', label: 'BPPTN', color: '#ec4899' },
+  { value: 'SPP', label: 'SPP', color: '#06b6d4' },
+  { value: 'Sponsor', label: 'Sponsor', color: '#f97316' },
+  { value: 'Lainnya', label: 'Lainnya', color: '#64748b' }
+]
+
 const ITEMS_PER_PAGE = 5
+
+// ============ IMPORT HELPERS ============
+
+function parseCSVText(text) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim())
+  if (lines.length < 2) return []
+  const parseLine = (line) => {
+    const cells = []; let cur = '', inQ = false
+    for (const ch of line) {
+      if (ch === '"') inQ = !inQ
+      else if (ch === ',' && !inQ) { cells.push(cur.trim()); cur = '' }
+      else cur += ch
+    }
+    cells.push(cur.trim())
+    return cells
+  }
+  const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, ''))
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line)
+    const obj = {}
+    headers.forEach((h, i) => { obj[h] = (vals[i] || '').replace(/^"|"$/g, '') })
+    return obj
+  })
+}
+
+function processImportRows(rows) {
+  if (!rows.length) return { programs: [], warnings: ['File kosong atau tidak ada data'] }
+
+  const findCol = (row, aliases) => {
+    for (const key of Object.keys(row)) {
+      const norm = key.toLowerCase().trim().replace(/[\s-]/g, '_')
+      if (aliases.some(a => norm === a || norm.startsWith(a))) return row[key]?.toString().trim() || ''
+    }
+    return ''
+  }
+  const parseNum = (val) => {
+    if (!val) return 0
+    return parseFloat(val.toString().replace(/[^0-9.,]/g, '').replace(',', '.')) || 0
+  }
+
+  const programMap = new Map()
+  const warnings = []
+  const skippedRows = []
+
+  rows.forEach((row, idx) => {
+    const nama = findCol(row, ['nama_program', 'namaprogram', 'nama', 'program'])
+    const id_rka = findCol(row, ['id_rka', 'idrka', 'rka', 'kode'])
+    const tahun = parseInt(findCol(row, ['tahun', 'tahun_anggaran'])) || new Date().getFullYear()
+    const pagu = parseNum(findCol(row, ['pagu_anggaran', 'pagu', 'anggaran']))
+    
+    // Log untuk debugging
+    console.log(`Baris ${idx + 2}: nama="${nama}", id_rka="${id_rka}", pagu=${pagu}`)
+    
+    // Skip baris tanpa nama
+    if (!nama) {
+      skippedRows.push(`Baris ${idx + 2}: Nama program kosong`)
+      return
+    }
+    
+    // Skip baris dengan pagu 0 (kemungkinan header atau data invalid)
+    if (pagu <= 0) {
+      skippedRows.push(`Baris ${idx + 2}: "${nama}" - Pagu anggaran nol/invalid (${findCol(row, ['pagu_anggaran', 'pagu', 'anggaran'])})`)
+      return
+    }
+    
+    // Gunakan kombinasi id_rka + tahun sebagai key utama
+    const key = id_rka ? `${id_rka}|${tahun}` : `${nama}|${tahun}`
+
+    if (!programMap.has(key)) {
+      let unit_kerja = findCol(row, ['unit_kerja', 'unitkerja', 'unit'])
+      const matched = UNIT_KERJA_LIST.find(u => u.toLowerCase() === unit_kerja.toLowerCase())
+      if (unit_kerja && !UNIT_KERJA_LIST.includes(unit_kerja)) {
+        if (matched) unit_kerja = matched
+        else warnings.push(`Baris ${idx + 2}: Unit Kerja "${unit_kerja}" tidak dikenal untuk "${nama}"`)
+      }
+      programMap.set(key, {
+        id_rka: id_rka || `AUTO-${idx}`,
+        nama,
+        unit_kerja_id: unit_kerja || '',
+        tahun,
+        pagu_anggaran: pagu,
+        sumber_dana: findCol(row, ['sumber_dana', 'sumberdana', 'sumber']) || 'UKT',
+        variabel: [],
+      })
+    } else {
+      // Jika sudah ada, tambahkan pagu (merge duplicate)
+      const existing = programMap.get(key)
+      existing.pagu_anggaran += pagu
+      warnings.push(`Baris ${idx + 2}: "${nama}" - Duplicate dengan baris lain, pagu ditambahkan`)
+    }
+
+    const nama_variabel = findCol(row, ['nama_variabel', 'namavariabel', 'variabel', 'item', 'kegiatan'])
+    if (nama_variabel && programMap.has(key)) {
+      programMap.get(key).variabel.push({
+        nama_variabel,
+        jumlah: parseInt(findCol(row, ['jumlah', 'qty', 'volume'])) || 1,
+        satuan: findCol(row, ['satuan', 'unit_satuan']) || '',
+        harga_satuan: parseNum(findCol(row, ['harga_satuan', 'harga', 'hargasatuan'])),
+      })
+    }
+  })
+
+  const programs = Array.from(programMap.values())
+  
+  // Hitung total
+  const totalPagu = programs.reduce((sum, p) => sum + (p.pagu_anggaran || 0), 0)
+  
+  console.log('Import Summary:', {
+    totalRows: rows.length,
+    skippedRows: skippedRows.length,
+    importedPrograms: programs.length,
+    totalPagu,
+    warnings: warnings.length
+  })
+  
+  // Tambahkan summary ke warnings
+  if (skippedRows.length > 0) {
+    warnings.unshift(`⚠️ ${skippedRows.length} baris di-skip (lihat detail di console)`)
+    console.log('Skipped rows:', skippedRows)
+  }
+  
+  warnings.unshift(`📊 Total: ${programs.length} program, Rp ${totalPagu.toLocaleString('id-ID')}`)
+  
+  return { programs, warnings }
+}
+
+function parsePOKCSV(text) {
+  const parseNum = (val) => {
+    if (!val) return 0
+    // Indonesian format: dots = thousand sep, comma = decimal
+    const s = val.toString().replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '')
+    return parseFloat(s) || 0
+  }
+
+  // Valid sumber_dana values based on database constraint
+  const VALID_SUMBER_DANA = ['UKT', 'UU', 'BPPTN', 'SPP', 'Sponsor', 'Lainnya']
+  
+  const normalizeSumberDana = (val) => {
+    if (!val) return 'UKT'
+    const v = val.toString().trim().toUpperCase()
+    // Check if it's already valid
+    if (VALID_SUMBER_DANA.includes(v)) return v
+    // Mapping for common variations
+    if (v === 'SA' || v.includes('SWADANA')) return 'Lainnya'
+    if (v === 'DJRP' || v.includes('DJARUM')) return 'Sponsor'
+    // Default fallback
+    return 'UKT'
+  }
+
+  const UNIT_MAP = [
+    [/\bAI\b|PUI.?AI/i,                      'PUI AI'],
+    [/keolahrag/i,                             'PUI Keolahragaan'],
+    [/disabilit/i,                             'PUI Disabilitas'],
+    [/majapahit/i,                             'PUIPT Seni Budaya Majapahitan'],
+    [/seni.?budaya/i,                          'PUI Seni Budaya'],
+    [/\bDIC\b/,                                'PUIPT DIC'],
+    [/\bSERC\b/,                               'PUIPT SERC'],
+    [/\bULABK\b/i,                             'ULABK'],
+    [/\bSSFC\b/i,                              'SSFC'],
+    [/kolam.?renang/i,                         'Kolam Renang'],
+    [/driving.?golf|lapangan.?golf|\bgolf\b/i, 'Driving Golf'],
+    [/\bUSC\b|science.?center/i,               'USC'],
+  ]
+
+  const extractUnit = (str) => {
+    if (!str) return ''
+    const parenMatch = str.match(/\(([^)]+)\)/)
+    if (parenMatch) {
+      const inner = parenMatch[1]
+      for (const [re, unit] of UNIT_MAP) {
+        if (re.test(inner)) return unit
+      }
+    }
+    for (const [re, unit] of UNIT_MAP) {
+      if (re.test(str)) return unit
+    }
+    return ''
+  }
+
+  const cleanName = (name) => name
+    .replace(/\(\*\)/g, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+  const warnings = []
+  const programMap = new Map()
+
+  let currentPCode = ''
+  let currentROCode = ''
+  let currentUnit = ''
+  let currentProgram = null
+
+  // Skip metadata header rows — find first row starting with P\d{3} or "Kode"
+  let startIdx = 0
+  for (let i = 0; i < Math.min(15, lines.length); i++) {
+    const first = lines[i].split(';')[0]?.trim() || ''
+    if (/^Kode$/i.test(first)) { startIdx = i + 1; break }
+    if (/^P\d{3}$/.test(first)) { startIdx = i; break }
+  }
+
+  for (let i = startIdx; i < lines.length; i++) {
+    const line = lines[i]
+    if (!line.trim()) continue
+    const cols = line.split(';').map(c => c.trim())
+    if (cols.length < 2) continue
+    const kode = cols[0] || ''
+    const uraian = cols[1] || ''
+
+    // Top-level program: P001
+    if (/^P\d{3}$/.test(kode)) {
+      currentPCode = kode
+      const u = extractUnit(uraian); if (u) currentUnit = u
+      currentROCode = ''
+      currentProgram = null
+      continue
+    }
+
+    // Hierarchical dot codes: P001.101 / P001.101.001 / P001.101.001.001
+    if (/^P\d{3}(\.\d{3})+$/.test(kode)) {
+      if (/^P\d{3}(\.\d{3}){3}$/.test(kode)) currentROCode = kode
+      const u = extractUnit(uraian); if (u) currentUnit = u
+      currentProgram = null
+      continue
+    }
+
+    // Budget account code (6-digit) — skip
+    if (/^\d{6}$/.test(kode)) continue
+
+    // Sub-activity (1-3 digit) → Program Kerja entry
+    if (/^\d{1,3}$/.test(kode)) {
+      const mapKey = `${currentROCode || currentPCode}-${kode}`
+      if (!programMap.has(mapKey)) {
+        const unit = extractUnit(uraian) || currentUnit
+        const rawSumberDana = (cols[10] || '').trim()
+        programMap.set(mapKey, {
+          id_rka: `${currentPCode}-${kode}`,
+          nama: cleanName(uraian),
+          unit_kerja_id: unit,
+          tahun: 2026,
+          pagu_anggaran: parseNum(cols[9]),
+          sumber_dana: normalizeSumberDana(rawSumberDana),
+          _rawSumberDana: rawSumberDana, // Save original for tracking
+          variabel: [],
+        })
+      } else {
+        programMap.get(mapKey).pagu_anggaran += parseNum(cols[9])
+      }
+      currentProgram = programMap.get(mapKey)
+      continue
+    }
+
+    // Empty kode = line item → biaya_variabel
+    if (!kode && currentProgram && uraian) {
+      const vol1 = parseNum(cols[2]) || 1
+      const vol2 = parseNum(cols[4]) || 1
+      const vol3 = parseNum(cols[6]) || 1
+      currentProgram.variabel.push({
+        nama_variabel: cleanName(uraian),
+        jumlah: vol1 * vol2 * vol3 || 1,
+        satuan: cols[3] || cols[5] || cols[7] || '',
+        harga_satuan: parseNum(cols[8]),
+      })
+    }
+  }
+
+  const programs = []
+  let unitNotDetectedCount = 0
+  let sumberDanaNormalizedCount = 0
+  
+  for (const prog of programMap.values()) {
+    if (!prog.unit_kerja_id) {
+      warnings.push(`"${prog.nama}": Unit Kerja tidak terdeteksi → di-set ke "Belum Ditentukan"`)
+      prog.unit_kerja_id = 'Belum Ditentukan' // Tetap import, tandai sebagai belum ditentukan
+      unitNotDetectedCount++
+    }
+    if (!prog.pagu_anggaran) {
+      warnings.push(`"${prog.nama}": Pagu Anggaran nol`)
+    }
+    // Track sumber_dana normalization
+    const rawSumberDana = prog._rawSumberDana || prog.sumber_dana
+    if (rawSumberDana && !VALID_SUMBER_DANA.includes(rawSumberDana)) {
+      sumberDanaNormalizedCount++
+    }
+    programs.push(prog)
+  }
+  
+  // Hitung total
+  const totalPagu = programs.reduce((sum, p) => sum + (p.pagu_anggaran || 0), 0)
+  
+  console.log('POK Import Summary:', {
+    totalLines: lines.length,
+    startIndex: startIdx,
+    importedPrograms: programs.length,
+    totalPagu,
+    unitNotDetected: unitNotDetectedCount,
+    warnings: warnings.length
+  })
+  
+  // Tambahkan summary ke warnings
+  if (sumberDanaNormalizedCount > 0) {
+    warnings.unshift(`⚠️ ${sumberDanaNormalizedCount} program dengan sumber dana tidak standar → di-set ke "UKT/Lainnya"`)
+  }
+  if (unitNotDetectedCount > 0) {
+    warnings.unshift(`⚠️ ${unitNotDetectedCount} program dengan unit kerja "Belum Ditentukan"`)
+  }
+  warnings.unshift(`📊 Total: ${programs.length} program, Rp ${totalPagu.toLocaleString('id-ID')}`)
+  
+  return { programs, warnings }
+}
+
+// ============ END IMPORT HELPERS ============
 
 const formatRupiah = (num) => {
   if (!num || isNaN(num)) return 'Rp 0'
@@ -50,6 +376,8 @@ function FilterBar({
   setSelectedUnit,
   selectedTahun,
   setSelectedTahun,
+  selectedSumberDana,
+  setSelectedSumberDana,
   sortBy,
   setSortBy,
   viewMode,
@@ -193,6 +521,20 @@ function FilterBar({
             </div>
 
             <div>
+              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Sumber Dana</label>
+              <select
+                value={selectedSumberDana}
+                onChange={(e) => setSelectedSumberDana(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="">Semua Sumber Dana</option>
+                {SUMBER_DANA_LIST.map((sd) => (
+                  <option key={sd.value} value={sd.value}>{sd.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Urutkan</label>
               <select
                 value={sortBy}
@@ -231,24 +573,24 @@ function ExportDropdown({ onExport }) {
   }, [])
 
   const exportOptions = [
-    { 
-      id: 'print', 
-      label: '🖨️ Print / PDF', 
-      desc: 'Cetak atau simpan sebagai PDF',
-      color: 'var(--primary)'
-    },
-    { 
-      id: 'csv', 
-      label: '📊 Export CSV', 
-      desc: 'Download file Excel (.csv)',
+    {
+      id: 'xlsx',
+      label: '📊 Export Excel (.xlsx)',
+      desc: 'Download file Excel — bisa dipakai untuk import ulang',
       color: 'var(--success)'
     },
-    { 
-      id: 'json', 
-      label: '💾 Export JSON', 
-      desc: 'Download data mentah (.json)',
-      color: 'var(--warning)'
-    }
+    {
+      id: 'csv',
+      label: '📄 Export CSV',
+      desc: 'Download file teks terpisah koma (.csv)',
+      color: 'var(--primary)'
+    },
+    {
+      id: 'print',
+      label: '🖨️ Print / PDF',
+      desc: 'Cetak atau simpan sebagai PDF',
+      color: 'var(--text-2)'
+    },
   ]
 
   return (
@@ -420,11 +762,19 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
           </div>
           <strong style={{ fontSize: '1rem', display: 'block', marginBottom: '0.25rem' }}>{program.nama}</strong>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <span style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.25rem',
+              color: program.unit_kerja_id === 'Belum Ditentukan' ? 'var(--warning)' : 'inherit'
+            }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                 <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" />
               </svg>
               {program.unit_kerja_id}
+              {program.unit_kerja_id === 'Belum Ditentukan' && (
+                <span style={{ fontSize: '0.6875rem', marginLeft: '0.25rem' }}>⚠️ Perlu diedit</span>
+              )}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
@@ -432,6 +782,26 @@ function ProgramCard({ program, onEdit, onDelete, canEdit }) {
               </svg>
               {program.tahun}
             </span>
+            {program.sumber_dana && (
+              <span 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.25rem',
+                  padding: '0.125rem 0.5rem',
+                  borderRadius: '999px',
+                  backgroundColor: `${SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.color || '#64748b'}20`,
+                  color: SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.color || '#64748b',
+                  fontWeight: 500,
+                  fontSize: '0.75rem'
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.75rem', height: '0.75rem' }}>
+                  <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+                </svg>
+                {SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.label || program.sumber_dana}
+              </span>
+            )}
           </div>
         </div>
 
@@ -1022,6 +1392,7 @@ function ProgramTable({ programs, onEdit, onDelete, onManageVariabel, canEdit })
           <tr>
             <th>Program</th>
             <th>Unit Kerja</th>
+            <th>Sumber Dana</th>
             <th className="text-right">Pagu</th>
             <th className="text-right">Terpakai</th>
             <th className="text-right">Sisa</th>
@@ -1064,6 +1435,24 @@ function ProgramTable({ programs, onEdit, onDelete, onManageVariabel, canEdit })
                     </div>
                   </td>
                   <td style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>{program.unit_kerja_id}</td>
+                  <td style={{ fontSize: '0.75rem' }}>
+                    {program.sumber_dana && (
+                      <span 
+                        style={{ 
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.25rem',
+                          padding: '0.125rem 0.5rem',
+                          borderRadius: '999px',
+                          backgroundColor: `${SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.color || '#64748b'}20`,
+                          color: SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.color || '#64748b',
+                          fontWeight: 500
+                        }}
+                      >
+                        {SUMBER_DANA_LIST.find(sd => sd.value === program.sumber_dana)?.label || program.sumber_dana}
+                      </span>
+                    )}
+                  </td>
                   <td className="text-right" style={{ fontSize: '0.875rem', fontWeight: 600 }}>{formatRupiah(paguAnggaran)}</td>
                   <td className="text-right" style={{ fontSize: '0.875rem' }}>{formatRupiah(totalVariabel)}</td>
                   <td className="text-right" style={{ fontSize: '0.875rem' }}>
@@ -1209,6 +1598,7 @@ function ProgramModal({ program, onSave, onClose }) {
     unit_kerja: program?.unit_kerja_id || 'USC',
     tahun: program?.tahun || new Date().getFullYear(),
     pagu: program?.pagu_anggaran || 0,
+    sumber_dana: program?.sumber_dana || 'UKT',
   })
   const [error, setError] = useState('')
 
@@ -1230,6 +1620,7 @@ function ProgramModal({ program, onSave, onClose }) {
       unit_kerja_id: form.unit_kerja,
       tahun: form.tahun,
       pagu_anggaran: form.pagu,
+      sumber_dana: form.sumber_dana,
       variabel: program?.variabel || []
     }
     onSave(dataToSave)
@@ -1298,6 +1689,17 @@ function ProgramModal({ program, onSave, onClose }) {
                 </select>
               </div>
               <div>
+                <label>Sumber Dana</label>
+                <select
+                  value={form.sumber_dana}
+                  onChange={(e) => setForm({ ...form, sumber_dana: e.target.value })}
+                >
+                  {SUMBER_DANA_LIST.map((sd) => (
+                    <option key={sd.value} value={sd.value}>{sd.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
                 <label>Pagu Anggaran (Rp)</label>
                 <input
                   type="number"
@@ -1322,14 +1724,303 @@ function ProgramModal({ program, onSave, onClose }) {
   )
 }
 
+// ============ KOMPONEN IMPORT MODAL ============
+function ImportModal({ onImport, onClose }) {
+  const [file, setFile] = useState(null)
+  const [parsing, setParsing] = useState(false)
+  const [parsed, setParsed] = useState(null)
+  const [importing, setImporting] = useState(false)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const [result, setResult] = useState(null)
+  const fileInputRef = useRef(null)
+  const dropRef = useRef(null)
+
+  const parseFile = async (f) => {
+    setParsing(true); setParsed(null)
+    try {
+      let rows = []
+      const ext = f.name.split('.').pop().toLowerCase()
+      if (ext === 'csv') {
+        const text = await f.text()
+        const isPOK = text.includes('RINCIAN KERTAS KERJA') ||
+          (text.split('\n')[0] || '').split(';').length >= 8
+        if (isPOK) {
+          setParsed(parsePOKCSV(text))
+          return
+        }
+        rows = parseCSVText(text)
+      } else if (ext === 'xlsx' || ext === 'xls') {
+        const XLSX = (await import('xlsx')).default || await import('xlsx')
+        const buf = await f.arrayBuffer()
+        const wb = XLSX.read(buf)
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' })
+      } else {
+        throw new Error('Format tidak didukung. Gunakan .csv atau .xlsx')
+      }
+      setParsed(processImportRows(rows))
+    } catch (err) {
+      setParsed({ programs: [], warnings: [`Error: ${err.message}`] })
+    } finally {
+      setParsing(false)
+    }
+  }
+
+  const handleFileSelect = (f) => {
+    if (!f) return
+    setFile(f); setResult(null)
+    parseFile(f)
+  }
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    const f = e.dataTransfer.files[0]
+    if (f) handleFileSelect(f)
+  }
+
+  const downloadTemplate = async (format) => {
+    const headers = ['ID RKA', 'Nama Program', 'Unit Kerja', 'Tahun', 'Pagu Anggaran', 'Sumber Dana', 'Nama Variabel', 'Jumlah', 'Satuan', 'Harga Satuan']
+    const example = [
+      ['14406', 'Program Pengembangan Kolam Renang', 'Kolam Renang', '2025', '150000000', 'UKT', 'Beli alat renang', '5', 'Unit', '2000000'],
+      ['14406', 'Program Pengembangan Kolam Renang', 'Kolam Renang', '2025', '150000000', 'UKT', 'Pelatihan instruktur', '2', 'Kali', '5000000'],
+      ['14407', 'Program IT Support USC', 'USC', '2025', '80000000', 'UKT', 'Pengadaan laptop', '2', 'Unit', '20000000'],
+    ]
+    if (format === 'csv') {
+      const csv = [headers, ...example].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+      const blob = new Blob([csv], { type: 'text/csv' })
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+      a.download = 'template_program_kerja.csv'; a.click()
+    } else {
+      const XLSX = (await import('xlsx')).default || await import('xlsx')
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...example])
+      ws['!cols'] = headers.map(() => ({ wch: 22 }))
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Program Kerja')
+      XLSX.writeFile(wb, 'template_program_kerja.xlsx')
+    }
+  }
+
+  const handleImport = async () => {
+    if (!parsed?.programs?.length) return
+    setImporting(true)
+    setProgress({ done: 0, total: parsed.programs.length })
+    try {
+      const res = await onImport(parsed.programs, (done) => setProgress(p => ({ ...p, done })))
+      setResult(res)
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const hasData = parsed?.programs?.length > 0
+  const hasErrors = parsed?.warnings?.some(w => w.startsWith('Error:'))
+
+  return (
+    <div className="modal-backdrop" onClick={!importing ? onClose : undefined}>
+      <div className="modal-content" style={{ maxWidth: '760px' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <h2>Import Data Program Kerja</h2>
+          <button onClick={onClose} disabled={importing}>✕</button>
+        </div>
+
+        <div className="card-form-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+          {/* Template Download */}
+          <div style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '1rem', marginBottom: '1.25rem', border: '1px solid var(--border)' }}>
+            <p style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.625rem', color: 'var(--text)' }}>
+              1. Download template terlebih dahulu
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={() => downloadTemplate('xlsx')} className="btn ghost" style={{ fontSize: '0.8125rem' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Template Excel (.xlsx)
+              </button>
+              <button onClick={() => downloadTemplate('csv')} className="btn ghost" style={{ fontSize: '0.8125rem' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Template CSV
+              </button>
+            </div>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.5rem' }}>
+              Kolom wajib: <strong>Nama Program, Unit Kerja, Tahun, Pagu Anggaran</strong>.
+              Satu program bisa banyak baris jika ada rincian variabel.
+            </p>
+          </div>
+
+          {/* File Drop Zone */}
+          {!result && (
+            <div style={{ marginBottom: '1.25rem' }}>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.625rem', color: 'var(--text)' }}>
+                2. Upload file data
+              </p>
+              <div
+                ref={dropRef}
+                onDrop={handleDrop}
+                onDragOver={e => e.preventDefault()}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: `2px dashed ${file ? 'var(--primary)' : 'var(--border)'}`,
+                  borderRadius: 'var(--radius)',
+                  padding: '2rem',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                  background: file ? 'rgba(59,130,246,0.04)' : 'var(--surface-2)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {parsing ? (
+                  <p style={{ color: 'var(--text-2)', fontSize: '0.875rem' }}>Membaca file...</p>
+                ) : file ? (
+                  <>
+                    <p style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--primary)' }}>{file.name}</p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>
+                      Klik untuk ganti file
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '2.5rem', height: '2.5rem', color: 'var(--text-3)', margin: '0 auto 0.75rem' }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <p style={{ fontSize: '0.9375rem', color: 'var(--text-2)' }}>Drop file di sini atau klik untuk pilih</p>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>Mendukung: .csv, .xlsx, .xls</p>
+                  </>
+                )}
+                <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" onChange={e => handleFileSelect(e.target.files[0])} style={{ display: 'none' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Result setelah import */}
+          {result && (
+            <div style={{
+              padding: '1rem',
+              borderRadius: 'var(--radius)',
+              border: `1px solid ${result.errors?.length ? 'var(--warning)' : 'var(--success)'}`,
+              background: result.errors?.length ? 'var(--warning-bg)' : 'var(--success-bg)',
+              marginBottom: '1rem',
+            }}>
+              <p style={{ fontWeight: 600, fontSize: '0.9375rem', marginBottom: '0.5rem' }}>
+                {result.imported > 0 && `${result.imported} program ditambahkan`}
+                {result.imported > 0 && result.updated > 0 && ', '}
+                {result.updated > 0 && `${result.updated} program diperbarui`}
+                {result.imported === 0 && result.updated === 0 && 'Tidak ada program yang diimport'}
+                {result.errors?.length ? ` — ${result.errors.length} gagal` : ''}
+              </p>
+              {result.errors?.map((e, i) => (
+                <p key={i} style={{ fontSize: '0.8125rem', color: 'var(--danger)' }}>✕ {e}</p>
+              ))}
+            </div>
+          )}
+
+          {/* Preview */}
+          {parsed && !result && (
+            <div>
+              {/* Warnings */}
+              {parsed.warnings?.length > 0 && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: 'var(--warning-bg)', border: '1px solid var(--warning)', borderRadius: 'var(--radius)' }}>
+                  <p style={{ fontWeight: 600, fontSize: '0.8125rem', marginBottom: '0.375rem', color: 'var(--warning)' }}>Peringatan:</p>
+                  {parsed.warnings.map((w, i) => (
+                    <p key={i} style={{ fontSize: '0.8125rem', color: 'var(--warning)' }}>• {w}</p>
+                  ))}
+                </div>
+              )}
+
+              {parsed.programs.length > 0 ? (
+                <>
+                  <p style={{ fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.625rem', color: 'var(--text)' }}>
+                    3. Preview — {parsed.programs.length} program akan diimport
+                  </p>
+                  <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                      <thead>
+                        <tr style={{ background: 'var(--surface-2)' }}>
+                          {['Nama Program', 'Unit Kerja', 'Tahun', 'Pagu Anggaran', 'Variabel'].map(h => (
+                            <th key={h} style={{ padding: '0.625rem 0.75rem', textAlign: 'left', fontWeight: 600, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border)' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsed.programs.slice(0, 10).map((p, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '0.625rem 0.75rem' }}>
+                              <div style={{ fontWeight: 500 }}>{p.nama}</div>
+                              {p.id_rka && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{p.id_rka}</div>}
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem', color: UNIT_KERJA_LIST.includes(p.unit_kerja_id) ? 'var(--text)' : 'var(--danger)' }}>
+                              {p.unit_kerja_id || '—'}
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem' }}>{p.tahun}</td>
+                            <td style={{ padding: '0.625rem 0.75rem', fontWeight: 500, color: p.pagu_anggaran > 0 ? 'var(--text)' : 'var(--danger)' }}>
+                              {p.pagu_anggaran > 0 ? formatRupiah(p.pagu_anggaran) : '—'}
+                            </td>
+                            <td style={{ padding: '0.625rem 0.75rem', color: 'var(--text-3)' }}>
+                              {p.variabel.length > 0 ? `${p.variabel.length} item` : '—'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {parsed.programs.length > 10 && (
+                      <p style={{ padding: '0.5rem 0.75rem', fontSize: '0.75rem', color: 'var(--text-3)', background: 'var(--surface-2)' }}>
+                        ...dan {parsed.programs.length - 10} program lainnya
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-3)' }}>
+                  <p>Tidak ada data valid yang ditemukan</p>
+                  <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>Periksa format file dan coba lagi</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Progress */}
+          {importing && (
+            <div style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem' }}>
+                <span>Mengimport...</span>
+                <span>{progress.done} / {progress.total}</span>
+              </div>
+              <div style={{ height: '6px', background: 'var(--surface-3)', borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: 'var(--primary)', borderRadius: '999px', width: `${(progress.done / progress.total) * 100}%`, transition: 'width 0.3s' }} />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="card-form-footer">
+          <button className="btn btn-ghost" onClick={onClose} disabled={importing}>
+            {result ? 'Tutup' : 'Batal'}
+          </button>
+          {!result && (
+            <button
+              className="btn btn-primary"
+              onClick={handleImport}
+              disabled={!hasData || hasErrors || importing}
+            >
+              {importing ? 'Mengimport...' : `Import ${parsed?.programs?.length || 0} Program`}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ============ HALAMAN UTAMA ============
 export default function ProgramKerjaPage() {
-  const { programs, loading, error, addProgram, updateProgram, deleteProgram, refreshPrograms } = useProgramKerja()
+  const { programs, loading, error, addProgram, updateProgram, deleteProgram, deleteAllPrograms, refreshPrograms, loadBiayaVariabel, addBiayaVariabel, deleteBiayaVariabel } = useProgramKerja()
 
   // Filter & Search States
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUnit, setSelectedUnit] = useState('')
   const [selectedTahun, setSelectedTahun] = useState('')
+  const [selectedSumberDana, setSelectedSumberDana] = useState('')
   const [sortBy, setSortBy] = useState('newest')
   const [viewMode, setViewMode] = useState('card')
   const [currentPage, setCurrentPage] = useState(1)
@@ -1341,6 +2032,13 @@ export default function ProgramKerjaPage() {
   // Variabel Modal States
   const [showVariabelModal, setShowVariabelModal] = useState(false)
   const [selectedProgram, setSelectedProgram] = useState(null)
+
+  // Import Modal State
+  const [showImportModal, setShowImportModal] = useState(false)
+
+  // Delete-all confirm state
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
 
   // Handler untuk membuka modal variabel
   const handleOpenVariabel = (program) => {
@@ -1357,51 +2055,69 @@ export default function ProgramKerjaPage() {
   // User Role (nantinya dari context/auth)
   const userRole = 'super_admin'
   const canEdit = ['super_admin', 'admin_keuangan'].includes(userRole)
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('Debug - canEdit:', canEdit)
+    console.log('Debug - programs.length:', programs?.length)
+    console.log('Debug - showDeleteAllModal:', showDeleteAllModal)
+    console.log('Debug - programs:', programs)
+  }, [canEdit, programs, showDeleteAllModal])
 
   // Filter & Sort Programs
   const filteredPrograms = useMemo(() => {
+    // Guard clause for null/undefined programs
+    if (!programs || !Array.isArray(programs)) {
+      return []
+    }
+    
     let result = [...programs]
 
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       result = result.filter(p => 
-        (p.nama || '').toLowerCase().includes(query) ||
-        (p.unit_kerja_id || '').toLowerCase().includes(query)
+        (p?.nama || '').toLowerCase().includes(query) ||
+        (p?.unit_kerja_id || '').toLowerCase().includes(query)
       )
     }
 
     // Unit filter
     if (selectedUnit) {
-      result = result.filter(p => p.unit_kerja_id === selectedUnit)
+      result = result.filter(p => p?.unit_kerja_id === selectedUnit)
     }
 
     // Tahun filter
     if (selectedTahun) {
-      result = result.filter(p => p.tahun === parseInt(selectedTahun))
+      result = result.filter(p => p?.tahun === parseInt(selectedTahun))
+    }
+
+    // Sumber Dana filter
+    if (selectedSumberDana) {
+      result = result.filter(p => p?.sumber_dana === selectedSumberDana)
     }
 
     // Sorting
     result.sort((a, b) => {
       switch (sortBy) {
         case 'name_asc':
-          return (a.nama || '').localeCompare(b.nama || '')
+          return (a?.nama || '').localeCompare(b?.nama || '')
         case 'name_desc':
-          return (b.nama || '').localeCompare(a.nama || '')
+          return (b?.nama || '').localeCompare(a?.nama || '')
         case 'pagu_asc':
-          return (a.pagu_anggaran || 0) - (b.pagu_anggaran || 0)
+          return (a?.pagu_anggaran || 0) - (b?.pagu_anggaran || 0)
         case 'pagu_desc':
-          return (b.pagu_anggaran || 0) - (a.pagu_anggaran || 0)
+          return (b?.pagu_anggaran || 0) - (a?.pagu_anggaran || 0)
         case 'oldest':
-          return new Date(a.created_at || 0) - new Date(b.created_at || 0)
+          return new Date(a?.created_at || 0) - new Date(b?.created_at || 0)
         case 'newest':
         default:
-          return new Date(b.created_at || 0) - new Date(a.created_at || 0)
+          return new Date(b?.created_at || 0) - new Date(a?.created_at || 0)
       }
     })
 
     return result
-  }, [programs, searchQuery, selectedUnit, selectedTahun, sortBy])
+  }, [programs, searchQuery, selectedUnit, selectedTahun, selectedSumberDana, sortBy])
 
   // Pagination
   const totalPages = Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE)
@@ -1417,9 +2133,13 @@ export default function ProgramKerjaPage() {
 
   // Calculate totals
   const totals = useMemo(() => {
+    if (!filteredPrograms || !Array.isArray(filteredPrograms)) {
+      return { pagu: 0, variabel: 0 }
+    }
+    
     return filteredPrograms.reduce((acc, p) => {
       return {
-        pagu: acc.pagu + (p.pagu_anggaran || 0),
+        pagu: acc.pagu + (p?.pagu_anggaran || 0),
         variabel: acc.variabel + 0, // Variabel akan diimplementasikan nanti
       }
     }, { pagu: 0, variabel: 0 })
@@ -1452,14 +2172,200 @@ export default function ProgramKerjaPage() {
     }
   }
 
-  const handleExport = async (type = 'print') => {
-    if (filteredPrograms.length === 0) {
+  const handleImportData = async (importList, onProgress) => {
+    if (!importList || !Array.isArray(importList) || importList.length === 0) {
+      alert('Tidak ada data untuk diimport')
+      return { imported: 0, updated: 0, errors: ['Data kosong'] }
+    }
+    
+    let imported = 0
+    let updated = 0
+    const errors = []
+
+    // Build lookup from current state: "id_rka|tahun" → existing program
+    const existingMap = new Map()
+    for (const p of programs || []) {
+      if (p?.id_rka) existingMap.set(`${p.id_rka}|${p.tahun}`, p)
+    }
+
+    // Check for duplicates within import list
+    const importIdSet = new Set()
+    for (let i = 0; i < importList.length; i++) {
+      const p = importList[i]
+      if (p?.id_rka && p?.tahun) {
+        const key = `${p.id_rka}|${p.tahun}`
+        if (importIdSet.has(key)) {
+          console.warn(`Duplicate in import list: "${p.nama}" (id_rka: ${p.id_rka})`)
+        }
+        importIdSet.add(key)
+      }
+    }
+
+    console.log('Starting import:', {
+      total: importList.length,
+      uniqueIds: importIdSet.size,
+      existingInDb: existingMap.size
+    })
+
+    for (let i = 0; i < importList.length; i++) {
+      const p = importList[i]
+      if (!p || typeof p !== 'object') {
+        errors.push(`Baris ${i + 1}: Data tidak valid`)
+        continue
+      }
+      
+      try {
+        const dupeKey = p.id_rka ? `${p.id_rka}|${p.tahun}` : null
+        const existing = dupeKey ? existingMap.get(dupeKey) : null
+
+        let programId
+        if (existing) {
+          // Update existing program fields
+          await updateProgram(existing.id, {
+            id_rka: p.id_rka, nama: p.nama,
+            unit_kerja_id: p.unit_kerja_id, tahun: p.tahun,
+            pagu_anggaran: p.pagu_anggaran, sumber_dana: p.sumber_dana,
+          })
+          programId = existing.id
+          // Replace biaya_variabel: delete old then insert new
+          const oldVars = await loadBiayaVariabel(programId)
+          if (oldVars && Array.isArray(oldVars)) {
+            for (const v of oldVars) {
+              if (v?.id) await deleteBiayaVariabel(v.id)
+            }
+          }
+          updated++
+        } else {
+          // Validasi field required sebelum insert
+          if (!p.id_rka) {
+            throw new Error('id_rka tidak boleh kosong')
+          }
+          if (!p.nama || p.nama.trim() === '') {
+            throw new Error('nama program tidak boleh kosong')
+          }
+          if (!p.tahun) {
+            throw new Error('tahun tidak boleh kosong')
+          }
+          
+          console.log(`Inserting program ${i + 1}/${importList.length}:`, {
+            id_rka: p.id_rka,
+            nama: p.nama,
+            unit_kerja_id: p.unit_kerja_id || 'Belum Ditentukan'
+          })
+          
+          const newProg = await addProgram({
+            id_rka: p.id_rka, nama: p.nama,
+            unit_kerja_id: p.unit_kerja_id, tahun: p.tahun,
+            pagu_anggaran: p.pagu_anggaran, sumber_dana: p.sumber_dana,
+          })
+          programId = newProg?.id
+          imported++
+        }
+
+        if (programId && p.variabel && Array.isArray(p.variabel)) {
+          for (const v of p.variabel) {
+            if (v) await addBiayaVariabel(programId, v)
+          }
+        }
+      } catch (err) {
+        const errorMsg = err?.message || err?.toString() || 'Unknown error'
+        errors.push(`"${p.nama || 'Unknown'}": ${errorMsg}`)
+        console.error(`Error importing program ${i + 1}:`, {
+          nama: p.nama,
+          id_rka: p.id_rka,
+          tahun: p.tahun,
+          unit_kerja_id: p.unit_kerja_id,
+          pagu_anggaran: p.pagu_anggaran,
+          error: err
+        })
+      }
+      onProgress(i + 1)
+    }
+    
+    await refreshPrograms()
+    
+    // Log summary
+    console.log('Import Complete:', {
+      total: importList.length,
+      imported,
+      updated,
+      errors: errors.length
+    })
+    
+    // Alert summary
+    const totalProcessed = imported + updated
+    const skipped = importList.length - totalProcessed
+    let message = `✅ Import selesai!\n\n`
+    message += `📊 Total: ${importList.length} program\n`
+    message += `✨ Baru: ${imported} program\n`
+    message += `🔄 Update: ${updated} program\n`
+    if (skipped > 0) message += `⏭️ Skip: ${skipped} program\n`
+    if (errors.length > 0) message += `❌ Error: ${errors.length} program`
+    
+    alert(message)
+    
+    return { imported, updated, errors }
+  }
+
+  const handleDeleteAll = async () => {
+    if (!programs || programs.length === 0) {
+      alert('Tidak ada data untuk dihapus')
+      setShowDeleteAllModal(false)
+      return
+    }
+    
+    setDeletingAll(true)
+    try {
+      console.log('Menghapus semua program, jumlah:', programs.length)
+      await deleteAllPrograms()
+      console.log('Berhasil menghapus semua program')
+      
+      // Refresh data
+      await refreshPrograms()
+      
+      // Tutup modal
+      setShowDeleteAllModal(false)
+      
+      // Tampilkan pesan sukses
+      alert(`Berhasil menghapus ${programs.length} program kerja`)
+    } catch (err) {
+      console.error('Error saat menghapus semua data:', err)
+      alert('Gagal menghapus data: ' + (err.message || 'Terjadi kesalahan'))
+    } finally {
+      setDeletingAll(false)
+    }
+  }
+
+  const handleExport = async (type = 'xlsx') => {
+    if (!filteredPrograms || !Array.isArray(filteredPrograms) || filteredPrograms.length === 0) {
       alert('Tidak ada data untuk diexport')
       return
     }
 
     const timestamp = new Date().toISOString().split('T')[0]
     const filename = `Program_Kerja_${timestamp}`
+
+    if (type === 'xlsx') {
+      const XLSX = (await import('xlsx')).default || await import('xlsx')
+      const rows = [
+        ['ID RKA', 'Nama Program', 'Unit Kerja', 'Tahun', 'Pagu Anggaran', 'Sumber Dana', 'Status'],
+        ...filteredPrograms.map(p => [
+          p.id_rka || '',
+          p.nama || '',
+          p.unit_kerja_id || '',
+          p.tahun || '',
+          p.pagu_anggaran || 0,
+          p.sumber_dana || 'UKT',
+          p.status || 'aktif',
+        ])
+      ]
+      const ws = XLSX.utils.aoa_to_sheet(rows)
+      ws['!cols'] = [8, 36, 22, 8, 18, 12, 10].map(w => ({ wch: w }))
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Program Kerja')
+      XLSX.writeFile(wb, `${filename}.xlsx`)
+      return
+    }
 
     if (type === 'print') {
       // Buka window print dengan data
@@ -1571,15 +2477,19 @@ export default function ProgramKerjaPage() {
 
   // Helper untuk generate CSV
   const generateCSV = (programs) => {
+    if (!programs || !Array.isArray(programs)) {
+      return ''
+    }
+    
     const headers = ['No', 'Nama Program', 'Unit Kerja', 'Tahun', 'Pagu Anggaran', 'Status', 'Sumber Dana']
     const rows = programs.map((p, idx) => [
       idx + 1,
-      `"${(p.nama || '').replace(/"/g, '""')}"`,
-      p.unit_kerja_id || '-',
-      p.tahun || '-',
-      p.pagu_anggaran || 0,
-      p.status || 'aktif',
-      p.sumber_dana || 'UKT'
+      `"${(p?.nama || '').replace(/"/g, '""')}"`,
+      p?.unit_kerja_id || '-',
+      p?.tahun || '-',
+      p?.pagu_anggaran || 0,
+      p?.status || 'aktif',
+      p?.sumber_dana || 'UKT'
     ])
     
     return [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
@@ -1630,45 +2540,185 @@ export default function ProgramKerjaPage() {
           </p>
         </div>
         {canEdit && (
-          <button
-            className="btn btn-primary"
-            onClick={() => { setEditing(null); setShowModal(true) }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Tambah Program
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            {programs && programs.length > 0 && (
+              <>
+                {/* Tombol dengan Modal */}
+                <button
+                  className="btn ghost"
+                  onClick={() => {
+                    console.log('Tombol Hapus Semua diklik')
+                    setShowDeleteAllModal(true)
+                  }}
+                  title={`Hapus ${programs.length} program kerja`}
+                  style={{ 
+                    color: 'var(--danger)', 
+                    borderColor: 'var(--danger)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Hapus Semua ({programs.length})
+                </button>
+                
+                {/* Tombol Hapus Langsung (Tanpa Modal) - Alternatif */}
+                <button
+                  className="btn ghost"
+                  onClick={async () => {
+                    if (confirm(`Yakin ingin menghapus ${programs.length} program kerja?\n\nSemua data akan dihapus permanen!`)) {
+                      await handleDeleteAll()
+                    }
+                  }}
+                  title="Hapus semua (konfirmasi)"
+                  style={{ 
+                    color: 'var(--danger)', 
+                    borderColor: 'var(--danger)',
+                    fontSize: '0.75rem',
+                    padding: '0.375rem 0.75rem'
+                  }}
+                >
+                  Hapus Langsung
+                </button>
+              </>
+            )}
+            <button
+              className="btn ghost"
+              onClick={() => setShowImportModal(true)}
+              title="Import dari Excel/CSV"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              Import
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => { setEditing(null); setShowModal(true) }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Tambah Program
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="stats-grid mb-6">
-        <StatCard
-          title="Total Pagu"
-          value={formatRupiah(totals.pagu)}
-          subtitle="Anggaran tersedia"
-          variant="default"
-        />
-        <StatCard
-          title="Total Terpakai"
-          value={formatRupiah(totals.variabel)}
-          subtitle="Biaya variabel"
-          variant="info"
-        />
-        <StatCard
-          title="Sisa Pagu"
-          value={formatRupiah(totals.pagu - totals.variabel)}
-          subtitle={`${totals.pagu > 0 ? Math.round((totals.variabel / totals.pagu) * 100) : 0}% terpakai`}
-          variant={totals.pagu - totals.variabel < 0 ? 'danger' : 'success'}
-        />
-        <StatCard
-          title="Jumlah Program"
-          value={`${filteredPrograms.length}`}
-          subtitle={`Dari ${programs.length} total program`}
-          variant="warning"
-        />
-      </div>
+      {/* Stats Cards - Total Keseluruhan (tanpa filter) */}
+      {programs && programs.length > 0 && (
+        <div className="stats-grid mb-6">
+          <StatCard
+            title="Total Pagu"
+            value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0))}
+            subtitle="Anggaran tersedia"
+            variant="default"
+          />
+          <StatCard
+            title="Total Terpakai"
+            value={formatRupiah(totals.variabel)}
+            subtitle="Biaya variabel"
+            variant="info"
+          />
+          <StatCard
+            title="Sisa Pagu"
+            value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.variabel)}
+            subtitle={`${programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) > 0 ? Math.round((totals.variabel / programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0)) * 100) : 0}% terpakai`}
+            variant={programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.variabel < 0 ? 'danger' : 'success'}
+          />
+          <StatCard
+            title="Jumlah Program"
+            value={`${programs.length}`}
+            subtitle={`${filteredPrograms.length !== programs.length ? `Menampilkan ${filteredPrograms.length} dari ` : ''}${programs.length} total program`}
+            variant="warning"
+          />
+        </div>
+      )}
+
+      {/* Stats Cards - Breakdown per Sumber Dana */}
+      {programs && programs.length > 0 && (
+        <div className="card mb-6">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h3 className="card-title">Pembagian per Sumber Dana</h3>
+            <span className="text-sm" style={{ color: 'var(--text-2)' }}>
+              Klik untuk filter
+            </span>
+          </div>
+          <div className="card-body">
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(10rem, 1fr))', 
+              gap: '0.75rem' 
+            }}>
+              {SUMBER_DANA_LIST.map((sd) => {
+                const programsBySD = programs.filter(p => p?.sumber_dana === sd.value)
+                const totalPaguBySD = programsBySD.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0)
+                const isActive = selectedSumberDana === sd.value
+                
+                if (programsBySD.length === 0) return null
+                
+                return (
+                  <button
+                    key={sd.value}
+                    onClick={() => setSelectedSumberDana(isActive ? '' : sd.value)}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '0.5rem',
+                      border: `2px solid ${isActive ? sd.color : 'transparent'}`,
+                      backgroundColor: isActive ? `${sd.color}15` : 'var(--bg-2)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      textAlign: 'left',
+                      width: '100%'
+                    }}
+                  >
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      marginBottom: '0.25rem'
+                    }}>
+                      <span style={{
+                        width: '0.75rem',
+                        height: '0.75rem',
+                        borderRadius: '50%',
+                        backgroundColor: sd.color
+                      }} />
+                      <span style={{ 
+                        fontSize: '0.8125rem', 
+                        fontWeight: 600,
+                        color: 'var(--text)'
+                      }}>
+                        {sd.label}
+                      </span>
+                    </div>
+                    <div style={{ 
+                      fontSize: '1rem', 
+                      fontWeight: 700,
+                      color: sd.color
+                    }}>
+                      {formatRupiah(totalPaguBySD)}
+                    </div>
+                    <div style={{ 
+                      fontSize: '0.75rem', 
+                      color: 'var(--text-2)'
+                    }}>
+                      {programsBySD.length} program
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <FilterBar
@@ -1678,6 +2728,8 @@ export default function ProgramKerjaPage() {
         setSelectedUnit={setSelectedUnit}
         selectedTahun={selectedTahun}
         setSelectedTahun={setSelectedTahun}
+        selectedSumberDana={selectedSumberDana}
+        setSelectedSumberDana={setSelectedSumberDana}
         sortBy={sortBy}
         setSortBy={setSortBy}
         viewMode={viewMode}
@@ -1685,6 +2737,50 @@ export default function ProgramKerjaPage() {
         onExport={handleExport}
         totalItems={filteredPrograms.length}
       />
+
+      {/* Warning untuk program dengan unit kerja belum ditentukan */}
+      {programs.some(p => p.unit_kerja_id === 'Belum Ditentukan') && (
+        <div style={{
+          padding: '1rem',
+          background: 'var(--warning-bg)',
+          border: '1px solid var(--warning)',
+          borderRadius: 'var(--radius)',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem'
+        }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--warning)" strokeWidth="2" style={{ width: '1.5rem', height: '1.5rem', flexShrink: 0 }}>
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <div>
+            <strong style={{ color: 'var(--warning)', display: 'block', marginBottom: '0.25rem' }}>
+              Perhatian: Ada {programs.filter(p => p.unit_kerja_id === 'Belum Ditentukan').length} program dengan Unit Kerja belum ditentukan
+            </strong>
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-2)' }}>
+              Silakan edit program tersebut untuk menentukan unit kerja yang benar
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedUnit('Belum Ditentukan')}
+            style={{
+              marginLeft: 'auto',
+              padding: '0.5rem 1rem',
+              background: 'var(--warning)',
+              color: 'white',
+              border: 'none',
+              borderRadius: 'var(--radius)',
+              fontSize: '0.8125rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Lihat Program
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       {filteredPrograms.length === 0 ? (
@@ -1739,6 +2835,49 @@ export default function ProgramKerjaPage() {
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditing(null) }}
         />
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportModal
+          onImport={handleImportData}
+          onClose={() => setShowImportModal(false)}
+        />
+      )}
+
+      {/* Hapus Semua Confirm Modal */}
+      {showDeleteAllModal && (
+        <div className="modal-overlay" onClick={() => !deletingAll && setShowDeleteAllModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 style={{ color: 'var(--danger)' }}>Hapus Semua Data</h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ marginBottom: '0.75rem' }}>
+                Semua <strong>{programs.length} program kerja</strong> dan seluruh biaya variabelnya akan dihapus permanen.
+              </p>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-3)' }}>
+                Tindakan ini tidak dapat dibatalkan. Lakukan ini jika ingin import data baru dari awal.
+              </p>
+            </div>
+            <div className="card-form-footer">
+              <button className="btn btn-ghost" onClick={() => setShowDeleteAllModal(false)} disabled={deletingAll}>
+                Batal
+              </button>
+              <button
+                onClick={handleDeleteAll}
+                disabled={deletingAll}
+                style={{
+                  padding: '0.5rem 1.25rem', background: deletingAll ? '#fca5a5' : 'var(--danger)',
+                  color: '#fff', border: 'none', borderRadius: 'var(--radius)',
+                  fontWeight: 600, cursor: deletingAll ? 'not-allowed' : 'pointer', fontSize: '0.9rem',
+                }}
+              >
+                {deletingAll ? 'Menghapus...' : `Hapus ${programs.length} Program`}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Variabel Modal */}

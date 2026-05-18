@@ -162,19 +162,47 @@ const MediaRotator = ({ s, t }) => {
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [imageError, setImageError] = useState(false)
   const [videoEnded, setVideoEnded] = useState(false)
+  const [dbPamflets, setDbPamflets] = useState([])
   const playerRef = useRef(null)
   const timerRef = useRef(null)
   const playlistLengthRef = useRef(0)
   const currentVideoIndexRef = useRef(0)
-  
-  const playlist = MEDIA_CONFIG.playlist
-  const currentMedia = playlist[currentIndex]
+
+  // Fetch pamflets from DB; refresh every 5 minutes so TV picks up changes automatically
+  useEffect(() => {
+    const fetchPamflets = async () => {
+      try {
+        const res = await fetch('/api/tv-pamflets')
+        if (res.ok) {
+          const data = await res.json()
+          setDbPamflets(data)
+        }
+      } catch {}
+    }
+    fetchPamflets()
+    const interval = setInterval(fetchPamflets, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // YouTube items from static config + image items from DB
+  const playlist = useMemo(() => {
+    const youtubeItems = MEDIA_CONFIG.playlist.filter(m => m.type === 'youtube')
+    const imageItems = dbPamflets.map(p => ({
+      type: 'image',
+      src: p.src_url,
+      title: p.title,
+      duration: p.duration * 1000,
+    }))
+    return [...youtubeItems, ...imageItems]
+  }, [dbPamflets])
+
+  const currentMedia = playlist.length > 0 ? playlist[currentIndex % Math.max(1, playlist.length)] : null
   
   // Advance ke media berikutnya
   const advanceToNext = useCallback(() => {
     setIsTransitioning(true)
     setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % playlist.length)
+      setCurrentIndex((prev) => (prev + 1) % Math.max(1, playlist.length))
       setImageError(false)
       setVideoEnded(false)
       setIsTransitioning(false)
