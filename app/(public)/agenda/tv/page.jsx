@@ -66,8 +66,8 @@ const ROTATE_MS = 15000
 
 // Grid columns: No | Tanggal | Judul | Unit Kerja | Lokasi | PIC | Status
 const getCols = (isSmallScreen) => isSmallScreen
-  ? 'minmax(30px, 4%) minmax(70px, 10%) minmax(130px, 22%) minmax(90px, 12%) minmax(80px, 11%) minmax(95px, 16%) minmax(100px, 25%)'
-  : 'minmax(35px, 3%) minmax(80px, 8%) minmax(180px, 24%) minmax(100px, 11%) minmax(100px, 10%) minmax(110px, 14%) minmax(140px, 30%)'
+  ? 'minmax(30px, 4%) minmax(100px, 13%) minmax(130px, 22%) minmax(90px, 12%) minmax(80px, 11%) minmax(95px, 16%) minmax(100px, 25%)'
+  : 'minmax(35px, 3%) minmax(110px, 11%) minmax(180px, 24%) minmax(100px, 11%) minmax(100px, 10%) minmax(110px, 14%) minmax(140px, 30%)'
 
 const getStatusCfg = (isDark) => ({
   upcoming:      { label: 'Akan Datang', color: isDark ? '#818cf8' : '#3730a3', bg: 'rgba(99,102,241,0.15)',  border: 'rgba(99,102,241,0.4)'  },
@@ -534,16 +534,16 @@ function AgendaRow({ item, rowIndex, s, t, isDark, isSmallScreen }) {
         <span style={{ fontSize: `${1.3 * s}rem`, fontWeight: 700, color: t.noColor }}>{rowIndex + 1}</span>
       </div>
       {/* Tanggal */}
-      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.05 * s}rem` }}>
-        <span style={{ fontSize: `${2.0 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1.05 }}>
-          {startD.getDate()}&nbsp;{startD.toLocaleDateString('id-ID', { month: 'short' })}
+      <div style={{ ...cellBase, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: `${0.1 * s}rem` }}>
+        <span style={{ fontSize: `${1.6 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
+          {startD.getDate()} {startD.toLocaleDateString('id-ID', { month: 'short' })}
         </span>
-        <span style={{ fontSize: `${1.0 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
+        <span style={{ fontSize: `${0.9 * s}rem`, color: t.subText, lineHeight: 1.2 }}>
           {startD.toLocaleDateString('id-ID', { weekday: 'long' })}
         </span>
         {multiDay && (
-          <span style={{ fontSize: `${0.85 * s}rem`, color: t.mutedText, lineHeight: 1.2 }}>
-            s/d {endD.getDate()}&nbsp;{endD.toLocaleDateString('id-ID', { month: 'short' })}
+          <span style={{ fontSize: `${0.8 * s}rem`, color: t.mutedText, lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+            s/d {endD.getDate()} {endD.toLocaleDateString('id-ID', { month: 'short' })}
           </span>
         )}
       </div>
@@ -618,13 +618,13 @@ function AgendaCardVertical({ item, index, s, t, isDark }) {
   return (
     <div style={{ flex: 1, minHeight: 0, display: 'flex', borderLeft: `${Math.max(5, Math.round(6 * s))}px solid ${unitColor.border}`, background: isOngoing ? t.rowOngoing : unitColor.bg, borderBottom: `1px solid ${t.rowBorder}`, overflow: 'hidden', transition: 'background 0.2s' }}>
       {/* Kolom kiri: Nomor + Tanggal */}
-      <div style={{ width: `${6.5 * s}rem`, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: `${0.6 * s}rem ${0.5 * s}rem`, borderRight: `1px solid ${t.rowBorder}`, gap: `${0.1 * s}rem` }}>
+      <div style={{ width: `${7.5 * s}rem`, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: `${0.6 * s}rem ${0.5 * s}rem`, borderRight: `1px solid ${t.rowBorder}`, gap: `${0.1 * s}rem` }}>
         <span style={{ fontSize: `${0.75 * s}rem`, fontWeight: 700, color: t.noColor }}>{index + 1}</span>
-        <span style={{ fontSize: `${2.0 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1 }}>{startD.getDate()}</span>
-        <span style={{ fontSize: `${0.9 * s}rem`, fontWeight: 700, color: unitColor.border }}>{startD.toLocaleDateString('id-ID', { month: 'short' })}</span>
-        <span style={{ fontSize: `${0.78 * s}rem`, color: t.subText }}>{startD.toLocaleDateString('id-ID', { weekday: 'short' })}</span>
+        <span style={{ fontSize: `${1.8 * s}rem`, fontWeight: 900, color: unitColor.border, lineHeight: 1, whiteSpace: 'nowrap' }}>{startD.getDate()}</span>
+        <span style={{ fontSize: `${0.85 * s}rem`, fontWeight: 700, color: unitColor.border, whiteSpace: 'nowrap' }}>{startD.toLocaleDateString('id-ID', { month: 'short' })}</span>
+        <span style={{ fontSize: `${0.75 * s}rem`, color: t.subText, whiteSpace: 'nowrap' }}>{startD.toLocaleDateString('id-ID', { weekday: 'short' })}</span>
         {multiDay && (
-          <span style={{ fontSize: `${0.68 * s}rem`, color: t.mutedText, textAlign: 'center', lineHeight: 1.2 }}>
+          <span style={{ fontSize: `${0.65 * s}rem`, color: t.mutedText, textAlign: 'center', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
             s/d {endD.getDate()} {endD.toLocaleDateString('id-ID', { month: 'short' })}
           </span>
         )}
@@ -1126,7 +1126,8 @@ export default function AgendaTVPage() {
         @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.4} }
         @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
         * { box-sizing: border-box; }
-        body { margin: 0; }
+        body { margin: 0; -webkit-font-smoothing: antialiased; }
+        .tv-btn:active { transform: scale(0.96); transition-property: transform, background-color, border-color !important; }
       `}</style>
     </div>
   )

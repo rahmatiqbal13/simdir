@@ -463,7 +463,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-page">
+    <div className="dashboard-page dashboard-mobile">
       {/* Onboarding */}
       <OnboardingFlow
         pageKey="dashboard"
@@ -472,72 +472,162 @@ export default function DashboardPage() {
         onSkip={skipOnboarding}
       />
       
-      {/* Restart Onboarding Button (hanya tampil jika sudah complete) */}
+      {/* Restart Onboarding Button */}
       {!showOnboarding && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+        <div className="onboarding-restart">
           <RestartOnboardingButton onClick={resetOnboarding} />
         </div>
       )}
       
-      {/* Welcome Section */}
-      <WelcomeSection userName={userName} date={currentDate} />
-
-      {/* Quick Actions */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h3 style={{ fontSize: '1rem', marginBottom: '1rem' }}>Akses Cepat</h3>
-        <div className="quick-actions-grid">
-          <QuickAction 
-            label="Program Kerja"
-            href="/program-kerja"
-            color="var(--primary)"
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-            }
-          />
-          <QuickAction 
-            label="Pencairan"
-            href="/pencairan"
-            color="var(--success)"
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-                <line x1="12" y1="1" x2="12" y2="23" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-            }
-          />
-          <QuickAction 
-            label="Laporan"
-            href="/laporan"
-            color="var(--warning)"
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-            }
-          />
-          <QuickAction 
-            label="Pengaturan"
-            href="/pengaturan/users"
-            color="var(--danger)"
-            icon={
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v6m0 6v6m4.22-10.22l4.24-4.24M6.34 6.34L2.1 2.1m17.8 17.8l-4.24-4.24M6.34 17.66l-4.24 4.24M23 12h-6m-6 0H1m20.07-4.93l-4.24 4.24M6.34 6.34l-4.24-4.24" />
-              </svg>
-            }
-          />
+      {/* Welcome Section - Simplified for Mobile */}
+      <div className="welcome-section-mobile">
+        <div className="welcome-header">
+          <div>
+            <p className="welcome-greeting">{(() => {
+              const hour = new Date().getHours();
+              if (hour >= 18) return 'Selamat Malam';
+              if (hour >= 15) return 'Selamat Sore';
+              if (hour >= 11) return 'Selamat Siang';
+              return 'Selamat Pagi';
+            })()},</p>
+            <h1 className="welcome-name">{userName}!</h1>
+          </div>
+          <div className="welcome-date">
+            <span className="date-day">{new Date().toLocaleDateString('id-ID', { weekday: 'long' })}</span>
+            <span className="date-full">{currentDate}</span>
+          </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="stats-grid mb-6">
+      {/* Stats Grid - Mobile Optimized 2x2 */}
+      <div className="stats-grid-mobile">
+        <div className="stat-card-mobile stat-card-primary">
+          <div className="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{stats.agenda.value}</span>
+            <span className="stat-label">Agenda Aktif</span>
+          </div>
+        </div>
+        
+        <div className="stat-card-mobile stat-card-success">
+          <div className="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{formatRupiah(stats.pagu.value)}</span>
+            <span className="stat-label">Total Pagu</span>
+          </div>
+        </div>
+        
+        <div className="stat-card-mobile stat-card-warning">
+          <div className="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{formatRupiah(stats.spj.value)}</span>
+            <span className="stat-label">Total SPJ</span>
+          </div>
+        </div>
+        
+        <div className="stat-card-mobile stat-card-info">
+          <div className="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+          </div>
+          <div className="stat-content">
+            <span className="stat-value">{formatRupiah(stats.pagu.value - stats.spj.value)}</span>
+            <span className="stat-label">Sisa Anggaran</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions - Mobile Grid 3 Column */}
+      <div className="quick-actions-mobile">
+        <h3 className="section-title">Menu Cepat</h3>
+        <div className="quick-actions-grid-mobile">
+          <a href="/program-kerja" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#6366f1' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Program</span>
+          </a>
+          
+          <a href="/pencairan" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10b981' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Pencairan</span>
+          </a>
+          
+          <a href="/kelola-agenda" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Agenda</span>
+          </a>
+          
+          <a href="/laporan" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(236, 72, 153, 0.15)', color: '#ec4899' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Laporan</span>
+          </a>
+          
+          <a href="/surat" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(139, 92, 246, 0.15)', color: '#8b5cf6' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Surat</span>
+          </a>
+          
+          <a href="/pengaturan/users" className="quick-action-mobile">
+            <div className="quick-action-icon" style={{ background: 'rgba(100, 116, 139, 0.15)', color: '#64748b' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+            </div>
+            <span className="quick-action-label">Setting</span>
+          </a>
+        </div>
+      </div>
+
+      {/* Desktop Stats Grid - Hidden on Mobile */}
+      <div className="stats-grid-desktop">
         <StatCard
           title="Agenda Aktif"
           value={stats.agenda.value}
@@ -571,7 +661,7 @@ export default function DashboardPage() {
         <StatCard
           title="Total SPJ"
           value={formatRupiah(stats.spj.value)}
-          subtitle={`Serapan ${stats.spj.percentage}%`}
+          subtitle={`Serapan ${stats.spj.pct}%`}
           trend={stats.spj.trend}
           trendUp={stats.spj.trendUp}
           icon={
@@ -653,8 +743,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Tabel Ringkasan */}
-          <div className="card">
+          {/* Ringkasan Anggaran - Desktop Table */}
+          <div className="card unit-summary-desktop">
             <div className="card-header">
               <h3 style={{ margin: 0, fontSize: '1rem' }}>Ringkasan Anggaran per Unit</h3>
             </div>
@@ -694,6 +784,43 @@ export default function DashboardPage() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+
+          {/* Ringkasan Anggaran - Mobile Card View */}
+          <div className="unit-summary-mobile">
+            <h3 className="section-title">Ringkasan Anggaran per Unit</h3>
+            <div className="unit-cards">
+              {[
+                { unit: 'USC', pagu: 500000000, terpakai: 325000000 },
+                { unit: 'Kolam Renang', pagu: 250000000, terpakai: 187500000 },
+                { unit: 'PUI Keolahragaan', pagu: 400000000, terpakai: 280000000 },
+                { unit: 'SSFC', pagu: 600000000, terpakai: 540000000 },
+                { unit: 'Driving Golf', pagu: 837500000, terpakai: 670000000 },
+              ].map((item, idx) => {
+                const pct = item.pagu > 0 ? Math.round((item.terpakai / item.pagu) * 100) : 0;
+                let colorVar = 'var(--success)';
+                if (pct < 30) colorVar = 'var(--danger)';
+                else if (pct < 60) colorVar = 'var(--warning)';
+                return (
+                  <div key={idx} className="unit-card">
+                    <div className="unit-card-header">
+                      <strong className="unit-name">{item.unit}</strong>
+                      <span className="unit-pct" style={{ color: colorVar }}>{pct}%</span>
+                    </div>
+                    <div className="unit-progress">
+                      <div className="unit-progress-bar" style={{ 
+                        width: `${pct}%`,
+                        background: colorVar
+                      }} />
+                    </div>
+                    <div className="unit-card-footer">
+                      <span className="unit-terpakai">{formatRupiah(item.terpakai)}</span>
+                      <span className="unit-pagu">dari {formatRupiah(item.pagu)}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
