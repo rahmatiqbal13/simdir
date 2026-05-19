@@ -86,18 +86,102 @@ const WMO = {
 }
 
 const ROTATE_MS = 15000
-const PER_PAGE  = 6
+const DEFAULT_PER_PAGE = 6
 
 // ============ HOOKS ============
 function useStageScale() {
-  const [sc, setSc] = useState({ sx: 1, sy: 1 })
+  const [scale, setScale] = useState({ 
+    sx: 1, 
+    sy: 1, 
+    s: 1,
+    width: 1920, 
+    height: 1080,
+    is4K: false,
+    isPortrait: false 
+  })
+  
   useEffect(() => {
-    const update = () => setSc({ sx: window.innerWidth / 1920, sy: window.innerHeight / 1080 })
+    const update = () => {
+      const w = window.innerWidth
+      const h = window.innerHeight
+      const isPortrait = h > w
+      
+      // Reference size 1920x1080 (Full HD)
+      // For 4K (3840x2160), scale will be 2
+      // For 720p (1280x720), scale will be ~0.67
+      let sx = w / 1920
+      let sy = h / 1080
+      
+      // Use uniform scale to maintain aspect ratio (use smaller value to fit screen)
+      // But limit max scale to 2.5 for very large screens
+      let s = Math.min(sx, sy)
+      s = Math.max(0.5, Math.min(2.5, s))
+      
+      // For portrait mode on TV/mobile, adjust differently
+      if (isPortrait) {
+        // In portrait, prioritize width scaling
+        s = Math.min(w / 1080, 2.5)
+        s = Math.max(0.5, s)
+      }
+      
+      setScale({ 
+        sx, 
+        sy, 
+        s,
+        width: w, 
+        height: h,
+        is4K: w >= 3840 || h >= 2160,
+        isPortrait 
+      })
+    }
+    
     update()
     window.addEventListener('resize', update)
     return () => window.removeEventListener('resize', update)
   }, [])
-  return sc
+  
+  return scale
+}
+
+// Hook untuk menghitung rows per page secara dinamis
+function useDynamicRowsPerPage(containerRef, scale) {
+  const [rowsPerPage, setRowsPerPage] = useState(6)
+  
+  useEffect(() => {
+    if (!containerRef.current) return
+    
+    const calculateRows = () => {
+      const container = containerRef.current
+      if (!container) return
+      
+      // Get container height
+      const containerHeight = container.clientHeight
+      
+      // Header height (approx 60px at scale 1)
+      const headerHeight = 60 * scale.s
+      
+      // Row minimum height (approx 85px at scale 1)
+      const minRowHeight = Math.max(70, 85 * scale.s)
+      
+      // Available height for rows
+      const availableHeight = containerHeight - headerHeight
+      
+      // Calculate max rows
+      const maxRows = Math.max(4, Math.min(14, Math.floor(availableHeight / minRowHeight)))
+      
+      setRowsPerPage(maxRows)
+    }
+    
+    calculateRows()
+    
+    // Use ResizeObserver for accurate container size changes
+    const observer = new ResizeObserver(calculateRows)
+    observer.observe(containerRef.current)
+    
+    return () => observer.disconnect()
+  }, [containerRef, scale.s])
+  
+  return rowsPerPage
 }
 
 function useTheme() {
@@ -395,7 +479,7 @@ const FeaturedCard = ({ agenda, t }) => {
 }
 
 // ============ TABLE ROW ============
-const AgendaTableRow = ({ item, num, t }) => {
+const AgendaTableRow = ({ item, num, t, scale = 1 }) => {
   const st        = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
   const d         = new Date(item.tanggal_mulai)
   const unitColor = getUnitColor(item.jenis, item.penyelenggara)
@@ -416,37 +500,56 @@ const AgendaTableRow = ({ item, num, t }) => {
     ? `→ ${item.disposisi}`
     : (item.pic || '-').replace(/^Manual:\s*/, '')
 
-  const COLS = '68px 160px 1fr 220px 200px 160px'
-  const cell = { padding: '18px 0', display: 'flex', alignItems: 'center', overflow: 'hidden', minWidth: 0 }
+  // Responsive columns based on scale
+  const colWidths = scale < 0.8 
+    ? '52px 130px 1fr 180px 160px 120px'  // Smaller screens
+    : scale > 1.5 
+    ? '80px 180px 1fr 260px 240px 180px'  // 4K screens
+    : '68px 160px 1fr 220px 200px 160px'  // Default FHD
+
+  const cell = { padding: `${14 * scale}px 0`, display: 'flex', alignItems: 'center', overflow: 'hidden', minWidth: 0 }
+
+  // Font sizes that scale with screen
+  const fs = {
+    num: Math.max(16, Math.min(26, 22 * scale)),
+    date: Math.max(16, Math.min(24, 22 * scale)),
+    month: Math.max(13, Math.min(19, 17 * scale)),
+    time: Math.max(11, Math.min(15, 13 * scale)),
+    title: Math.max(15, Math.min(21, 19 * scale)),
+    badge: Math.max(10, Math.min(14, 12 * scale)),
+    loc: Math.max(13, Math.min(17, 16 * scale)),
+    pic: Math.max(12, Math.min(16, 15 * scale)),
+    status: Math.max(11, Math.min(15, 13 * scale)),
+  }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 16, paddingLeft: pleft, paddingRight: 28, alignItems: 'center', borderBottom: `1px solid ${t.border}`, flex: 1, minHeight: 0, background: rowBg, borderLeft: borderL }}>
+    <div style={{ display: 'grid', gridTemplateColumns: colWidths, gap: 12 * scale, paddingLeft: pleft, paddingRight: 20 * scale, alignItems: 'center', borderBottom: `1px solid ${t.border}`, flex: 1, minHeight: 0, background: rowBg, borderLeft: borderL }}>
       <div style={{ ...cell }}>
-        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 22, fontWeight: 700, color: t.text3 }}>
+        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: fs.num, fontWeight: 700, color: t.text3 }}>
           {String(num).padStart(2, '0')}
         </span>
       </div>
-      <div style={{ ...cell, flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+      <div style={{ ...cell, flexDirection: 'column', alignItems: 'flex-start', gap: 3 }}>
         <div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: t.text }}>{d.getDate()}</span>
+          <span style={{ fontSize: fs.date, fontWeight: 700, color: t.text }}>{d.getDate()}</span>
           {' '}
-          <span style={{ fontSize: 17, fontWeight: 600, color: t.text }}>{MONTHS[d.getMonth()]}</span>
+          <span style={{ fontSize: fs.month, fontWeight: 600, color: t.text }}>{MONTHS[d.getMonth()]}</span>
         </div>
-        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 13, color: t.text3, letterSpacing: '0.04em' }}>
+        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: fs.time, color: t.text3, letterSpacing: '0.04em' }}>
           {formatTime(item.waktu_mulai)} – {formatTime(item.waktu_selesai)}
         </span>
       </div>
-      <div style={{ ...cell, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 5 }}>
-        <span style={{ fontSize: 19, fontWeight: 700, lineHeight: 1.25, color: t.text, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+      <div style={{ ...cell, flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: 4 }}>
+        <span style={{ fontSize: fs.title, fontWeight: 700, lineHeight: 1.25, color: t.text, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
           {item.judul}
         </span>
         {item.penyelenggara && (
           <span style={{
-            fontSize: 12, fontWeight: 700,
+            fontSize: fs.badge, fontWeight: 700,
             color: unitColor.text,
             background: unitColor.bg,
             border: `1.5px solid ${unitColor.border}`,
-            padding: '2px 10px', borderRadius: 999,
+            padding: `${2}px ${8 * scale}px`, borderRadius: 999,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
             display: 'inline-block',
           }}>
@@ -454,17 +557,17 @@ const AgendaTableRow = ({ item, num, t }) => {
           </span>
         )}
       </div>
-      <div style={{ ...cell, gap: 8 }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: 16, height: 16, flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span style={{ fontSize: 16, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.lokasi || '—'}</span>
+      <div style={{ ...cell, gap: 6 }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: Math.max(14, 16 * scale), height: Math.max(14, 16 * scale), flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span style={{ fontSize: fs.loc, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.lokasi || '—'}</span>
       </div>
       <div style={{ ...cell }}>
-        <span style={{ fontSize: 15, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pic}</span>
+        <span style={{ fontSize: fs.pic, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{pic}</span>
       </div>
       <div style={{ ...cell }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 999, fontSize: 13, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: sCfg.bg, color: sCfg.fg, whiteSpace: 'nowrap' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: `${6 * scale}px ${12 * scale}px`, borderRadius: 999, fontSize: fs.status, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: sCfg.bg, color: sCfg.fg, whiteSpace: 'nowrap' }}>
           {sCfg.pulse && (
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor', animation: 'dotpulse 1.5s infinite' }} />
+            <span style={{ width: Math.max(6, 8 * scale), height: Math.max(6, 8 * scale), borderRadius: '50%', background: 'currentColor', animation: 'dotpulse 1.5s infinite' }} />
           )}
           {sCfg.txt}
         </span>
@@ -475,10 +578,12 @@ const AgendaTableRow = ({ item, num, t }) => {
 
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
-  const { sx, sy }            = useStageScale()
+  const scale                 = useStageScale()
   const { isDark, t, toggle } = useTheme()
   const now                   = useClock()
   const weather               = useWeather()
+  const tableContainerRef     = useRef(null)
+  const rowsPerPage           = useDynamicRowsPerPage(tableContainerRef, scale)
 
   // Load fonts
   useEffect(() => {
@@ -513,7 +618,8 @@ export default function AgendaTVPage() {
     const handler = (e) => {
       if (e.key === 'ArrowLeft')  setCurrentPage(p => Math.max(0, p - 1))
       if (e.key === 'ArrowRight') setCurrentPage(p => Math.min(totalPages - 1, p + 1))
-      if (e.key === 'f' || e.key === 'F') {
+      if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
+        e.preventDefault()
         if (!document.fullscreenElement) document.documentElement.requestFullscreen?.()
         else document.exitFullscreen?.()
       }
@@ -521,7 +627,7 @@ export default function AgendaTVPage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggle])
+  }, [toggle, totalPages])
 
   const filtered = useMemo(() =>
     agenda
@@ -529,9 +635,9 @@ export default function AgendaTVPage() {
       .sort((a, b) => new Date(a.tanggal_mulai + 'T' + (a.waktu_mulai || '00:00')) - new Date(b.tanggal_mulai + 'T' + (b.waktu_mulai || '00:00')))
   , [agenda])
 
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
-  const currentRows = useMemo(() => filtered.slice(currentPage * PER_PAGE, (currentPage + 1) * PER_PAGE), [filtered, currentPage])
-  const emptyCount  = Math.max(0, PER_PAGE - currentRows.length)
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
+  const currentRows = useMemo(() => filtered.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage), [filtered, currentPage, rowsPerPage])
+  const emptyCount  = Math.max(0, rowsPerPage - currentRows.length)
 
   const pageRef = useRef(currentPage)
   useEffect(() => { pageRef.current = currentPage }, [currentPage])
@@ -587,17 +693,25 @@ export default function AgendaTVPage() {
     )
   }
 
-  const COLS = '68px 160px 1fr 220px 200px 160px'
+  // Responsive columns based on scale
+const getCols = (scale) => scale < 0.8 
+  ? '52px 130px 1fr 180px 160px 120px'  // Smaller screens
+  : scale > 1.5 
+  ? '80px 180px 1fr 260px 240px 180px'  // 4K screens
+  : '68px 160px 1fr 220px 200px 160px'  // Default FHD
+
+const COLS = '68px 160px 1fr 220px 200px 160px'
 
   return (
     <>
       <div style={{ position: 'fixed', inset: 0, background: '#000', overflow: 'hidden' }}>
         <div style={{
-          width: 1920, height: 1080,
+          width: 1920, 
+          height: 1080,
           background: t.bg,
           backgroundImage: t.stageBg,
           transformOrigin: 'top left',
-          transform: `scale(${sx}, ${sy})`,
+          transform: `scale(${scale.s})`,
           display: 'grid',
           gridTemplateRows: 'auto 1fr auto',
           fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
@@ -627,8 +741,26 @@ export default function AgendaTVPage() {
                 <p style={{ fontSize: 15, color: t.text2, margin: '5px 0 0', textTransform: 'capitalize' }}>{dateLong}</p>
               </div>
 
-              {/* Right: Theme + Weather + Clock */}
+              {/* Right: Theme + Weather + Clock + Resolution Indicator */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+                {/* Resolution indicator (hidden on small screens) */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  padding: '4px 10px',
+                  background: 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 8,
+                  minWidth: 60
+                }}>
+                  <span style={{ fontSize: 10, color: t.text3, fontWeight: 600, letterSpacing: '0.04em' }}>RES</span>
+                  <span style={{ fontSize: 12, color: t.accent, fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                    {scale.is4K ? '4K' : scale.width >= 2560 ? 'QHD' : scale.width >= 1920 ? 'FHD' : 'HD'}
+                  </span>
+                </div>
+
                 {/* Theme toggle */}
                 <button
                   onClick={toggle}
@@ -686,9 +818,9 @@ export default function AgendaTVPage() {
           <main style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 24, padding: '24px 48px', minHeight: 0, overflow: 'hidden' }}>
 
             {/* LEFT: Table */}
-            <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 20, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div ref={tableContainerRef} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 20, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Table head */}
-              <div style={{ display: 'grid', gridTemplateColumns: COLS, gap: 16, padding: '20px 28px', background: t.theadBg, borderBottom: `1px solid ${t.border}`, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2, flexShrink: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: getCols(scale.s), gap: Math.max(10, 16 * scale.s), padding: `${16 * scale.s}px ${24 * scale.s}px`, background: t.theadBg, borderBottom: `1px solid ${t.border}`, fontSize: Math.max(11, 13 * scale.s), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2, flexShrink: 0 }}>
                 {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map(col => (
                   <div key={col}>{col}</div>
                 ))}
@@ -696,7 +828,7 @@ export default function AgendaTVPage() {
               {/* Table body */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 {currentRows.map((item, i) => (
-                  <AgendaTableRow key={item.id} item={item} num={currentPage * PER_PAGE + i + 1} t={t} />
+                  <AgendaTableRow key={item.id} item={item} num={currentPage * rowsPerPage + i + 1} t={t} scale={scale.s} />
                 ))}
                 {Array.from({ length: emptyCount }).map((_, i) => (
                   <div key={`e${i}`} style={{ flex: 1, minHeight: 0, borderBottom: `1px solid ${t.border}` }} />
@@ -737,6 +869,17 @@ export default function AgendaTVPage() {
                 <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 14, color: t.text2, fontWeight: 600 }}>
                   {currentPage + 1}/{totalPages}
                 </span>
+              </div>
+
+              {/* Info panel */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: `1px solid ${t.border}`, flexShrink: 0 }}>
+                <div style={{ fontSize: 11, color: t.text3 }}>
+                  <span style={{ color: t.text2, fontWeight: 600 }}>{filtered.length}</span> agenda • 
+                  <span style={{ color: t.text2, fontWeight: 600 }}>{rowsPerPage}</span> baris/hal
+                </div>
+                <div style={{ fontSize: 10, color: t.text3, opacity: 0.7 }}>
+                  F11: Fullscreen • ← →: Navigasi
+                </div>
               </div>
             </aside>
           </main>
