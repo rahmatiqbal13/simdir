@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
@@ -122,14 +122,114 @@ const icons = {
   ),
 }
 
+// ===================== COMMAND PALETTE =====================
+const ALL_NAV = [
+  { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['super_admin','admin_keuangan','admin','pimpinan'] },
+  { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar', roles: ['super_admin','admin','pimpinan'] },
+  { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv', roles: ['super_admin','admin'] },
+  { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail', roles: ['super_admin','pimpinan'] },
+  { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase', roles: ['super_admin','admin_keuangan','pimpinan'] },
+  { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet', roles: ['super_admin','admin_keuangan','pimpinan'] },
+  { href: '/laporan', label: 'Laporan', icon: 'chart', roles: ['super_admin'] },
+  { href: '/pengaturan/users', label: 'Pengaturan Pengguna', icon: 'settings', roles: ['super_admin'] },
+]
+
+function CommandPalette({ open, onClose, items, icons }) {
+  const [query, setQuery] = useState('')
+  const inputRef = useRef(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    if (open) {
+      setQuery('')
+      setTimeout(() => inputRef.current?.focus(), 50)
+    }
+  }, [open])
+
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    if (open) document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  const filtered = items.filter(i =>
+    !query || i.label.toLowerCase().includes(query.toLowerCase())
+  )
+
+  if (!open) return null
+
+  return (
+    <div
+      style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'80px 20px 20px' }}
+      onClick={onClose}
+    >
+      <div
+        style={{ background:'white', borderRadius:16, width:'100%', maxWidth:560, boxShadow:'0 20px 40px rgba(15,23,42,0.18)', overflow:'hidden', animation:'modalIn .18s ease' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Search input */}
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width:18, height:18, color:'var(--text-3)', flexShrink:0 }}>
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Cari halaman atau fitur..."
+            style={{ flex:1, border:'none', outline:'none', fontSize:'0.9375rem', color:'var(--text)', background:'transparent' }}
+          />
+          <kbd style={{ fontSize:'0.6875rem', padding:'2px 6px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text-3)', fontFamily:'monospace' }}>ESC</kbd>
+        </div>
+        {/* Results */}
+        <div style={{ maxHeight:360, overflowY:'auto' }}>
+          {filtered.length === 0 ? (
+            <div style={{ padding:'32px 20px', textAlign:'center', color:'var(--text-3)', fontSize:'0.875rem' }}>
+              Tidak ada hasil untuk "{query}"
+            </div>
+          ) : (
+            <>
+              <div style={{ padding:'8px 18px 4px', fontSize:'0.6875rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.07em', color:'var(--text-3)' }}>Navigasi</div>
+              {filtered.map(item => (
+                <button
+                  key={item.href}
+                  onClick={() => { router.push(item.href); onClose() }}
+                  style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'10px 18px', background:'none', border:'none', cursor:'pointer', textAlign:'left', transition:'background .12s', borderRadius:0 }}
+                  onMouseEnter={e => e.currentTarget.style.background='var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background='transparent'}
+                >
+                  <span style={{ width:32, height:32, borderRadius:8, background:'var(--primary-50)', color:'var(--primary)', display:'grid', placeItems:'center', flexShrink:0 }}>
+                    <span style={{ width:16, height:16 }}>{icons[item.icon]}</span>
+                  </span>
+                  <span style={{ fontSize:'0.9375rem', fontWeight:500, color:'var(--text)' }}>{item.label}</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width:14, height:14, color:'var(--text-3)', marginLeft:'auto' }}>
+                    <path d="M7 17L17 7"/><path d="M7 7h10v10"/>
+                  </svg>
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+        <div style={{ padding:'8px 18px', borderTop:'1px solid var(--border)', background:'var(--surface-2)', display:'flex', gap:16, fontSize:'0.75rem', color:'var(--text-3)' }}>
+          <span>↵ untuk buka</span>
+          <span>ESC untuk tutup</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showSearch, setShowSearch] = useState(false)
   const pathname = usePathname()
   const sidebarRef = useRef(null)
+  const userMenuRef = useRef(null)
 
   // Track mobile viewport
   useEffect(() => {
@@ -140,16 +240,32 @@ export default function DashboardLayout({ children }) {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // Close sidebar when pressing Escape
+  // Ctrl+K opens command palette, Escape closes sidebar/menus
   useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === 'Escape' && sidebarOpen) {
-        setSidebarOpen(false)
+    const handler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        setShowSearch(true)
+      }
+      if (e.key === 'Escape') {
+        if (sidebarOpen) setSidebarOpen(false)
+        setShowUserMenu(false)
       }
     }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
   }, [sidebarOpen])
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handler = (e) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -241,6 +357,7 @@ export default function DashboardLayout({ children }) {
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const userInitial = userName.charAt(0).toUpperCase()
   const items = navItems[userRole] || navItems.admin
+  const paletteItems = ALL_NAV.filter(i => i.roles.includes(userRole))
 
   return (
     <div className="app-shell">
@@ -248,6 +365,14 @@ export default function DashboardLayout({ children }) {
       <a href="#main-content" className="skip-to-content">
         Loncat ke konten utama
       </a>
+
+      {/* Command Palette */}
+      <CommandPalette
+        open={showSearch}
+        onClose={() => setShowSearch(false)}
+        items={paletteItems}
+        icons={icons}
+      />
 
       {/* Sidebar */}
       <nav
@@ -282,6 +407,7 @@ export default function DashboardLayout({ children }) {
               className={`nav-item ${pathname === item.href ? 'active' : ''}`}
               onClick={() => setSidebarOpen(false)}
               aria-current={pathname === item.href ? 'page' : undefined}
+              title={item.label}
             >
               <span className="nav-icon">{icons[item.icon]}</span>
               <span className="nav-label">{item.label}</span>
@@ -313,11 +439,21 @@ export default function DashboardLayout({ children }) {
             <span className="crumb-current">{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
           </div>
 
-          {/* Search */}
-          <div className="topbar-search">
+          {/* Search — klik untuk buka command palette */}
+          <button
+            className="topbar-search"
+            onClick={() => setShowSearch(true)}
+            aria-label="Cari (Ctrl+K)"
+            style={{ cursor: 'text', textAlign: 'left' }}
+          >
             <span className="topbar-search-icon">{icons.search}</span>
-            <input type="text" placeholder="Cari agenda, program, surat..." />
-          </div>
+            <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-3)', pointerEvents: 'none' }}>
+              Cari agenda, program, surat...
+            </span>
+            <kbd style={{ fontSize: '0.6875rem', padding: '2px 6px', background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-3)', fontFamily: 'monospace', flexShrink: 0 }}>
+              Ctrl K
+            </kbd>
+          </button>
 
           {/* Actions */}
           <div className="topbar-actions">
@@ -325,12 +461,54 @@ export default function DashboardLayout({ children }) {
               <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
               <span className="dot" aria-hidden="true" />
             </button>
-            <div className="topbar-user">
-              <div className="topbar-user-avatar">{userInitial}</div>
-              <div className="topbar-user-meta">
-                <span className="topbar-user-name">{userName}</span>
-                <span className="topbar-user-role">{userRole.replace('_', ' ')}</span>
-              </div>
+
+            {/* User menu */}
+            <div ref={userMenuRef} style={{ position: 'relative' }}>
+              <button
+                className="topbar-user"
+                onClick={() => setShowUserMenu(v => !v)}
+                aria-expanded={showUserMenu}
+                aria-label="Menu pengguna"
+              >
+                <div className="topbar-user-avatar">{userInitial}</div>
+                <div className="topbar-user-meta">
+                  <span className="topbar-user-name">{userName}</span>
+                  <span className="topbar-user-role">{userRole.replace('_', ' ')}</span>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, color: 'var(--text-3)', marginLeft: 4, transition: 'transform .15s', transform: showUserMenu ? 'rotate(180deg)' : 'rotate(0)' }}>
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </button>
+
+              {showUserMenu && (
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', minWidth: 200, zIndex: 100, animation: 'modalIn .15s ease', overflow: 'hidden' }}>
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text)' }}>{userName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 2 }}>{userRole.replace('_', ' ')}</div>
+                  </div>
+                  {userRole === 'super_admin' && (
+                    <Link
+                      href="/pengaturan/users"
+                      onClick={() => setShowUserMenu(false)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', fontSize: '0.875rem', color: 'var(--text)', transition: 'background .12s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ width: 16, height: 16 }}>{icons.settings}</span>
+                      Pengaturan
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => { setShowUserMenu(false); handleLogout() }}
+                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--danger)', textAlign: 'left', transition: 'background .12s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-50)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ width: 16, height: 16 }}>{icons.logout}</span>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>

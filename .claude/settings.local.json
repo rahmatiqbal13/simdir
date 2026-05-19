@@ -30,7 +30,10 @@
       "WebFetch(domain:api.anthropic.com)",
       "Read(//c/Users/HYPE FLEX/AppData/Local/Temp/**)",
       "Bash(tar xf *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(wc -l \"/tmp/design2/simdir/project/SIMDIR Public - TV.html\")",
+      "Read(//tmp/design2/simdir/project/**)",
+      "Bash(npx kill-port *)"
     ]
   }
 }

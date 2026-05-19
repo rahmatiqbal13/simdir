@@ -29,6 +29,36 @@ const formatDateFull = (date) => {
   });
 };
 
+// ============ CONFIRM MODAL ============
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Konfirmasi Hapus</h3>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onCancel} aria-label="Tutup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--danger-50)', color: 'var(--danger)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </div>
+            <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>{message}</p>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-secondary" onClick={onCancel}>Batal</button>
+          <button className="btn btn-danger" onClick={onConfirm}>Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ============ KOMPONEN STAT CARD ============
 function StatCard({ title, value, subtitle, variant, icon }) {
   const colorMap = {
@@ -176,9 +206,10 @@ function FilterBar({
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Program Kerja</label>
               <select
+                className="select"
                 value={selectedProgram}
                 onChange={(e) => setSelectedProgram(e.target.value)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: 40 }}
               >
                 <option value="">Semua Program</option>
                 {programs.map((p) => (
@@ -190,9 +221,10 @@ function FilterBar({
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Status SPJ</label>
               <select
+                className="select"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: 40 }}
               >
                 <option value="">Semua Status</option>
                 <option value="pending">Menunggu SPJ</option>
@@ -204,9 +236,10 @@ function FilterBar({
             <div>
               <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Urutkan</label>
               <select
+                className="select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{ width: '100%' }}
+                style={{ width: '100%', height: 40 }}
               >
                 <option value="newest">Terbaru</option>
                 <option value="oldest">Terlama</option>
@@ -241,7 +274,7 @@ function StatusBadge({ status }) {
 }
 
 // ============ KOMPONEN PENCARIAN CARD ============
-function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpandedId, programs = [] }) {
+function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpandedId }) {
   const isExpanded = expandedId === item.id;
   const program = { nama: item.program, unit_kerja: item.unit_kerja || '-' };
   
@@ -263,12 +296,18 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
   return (
     <div className="card program-panel" style={{ marginBottom: '0.75rem' }}>
       {/* Header Card */}
-      <div 
+      <div
         className="program-summary"
         onClick={() => setExpandedId(isExpanded ? null : item.id)}
         style={{ cursor: 'pointer' }}
+        aria-expanded={isExpanded}
       >
-        <div className="collapse-mark" />
+        <svg
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+          style={{ width: 16, height: 16, color: 'var(--text-3)', flexShrink: 0, transition: 'transform .2s', transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+        >
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
             <StatusBadge status={status} />
@@ -498,7 +537,7 @@ function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpande
 }
 
 // ============ KOMPONEN PENCARIAN TABLE ============
-function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpandedId, programs = [] }) {
+function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpandedId }) {
   return (
     <div className="table-wrap">
       <table style={{ minWidth: '48rem' }}>
@@ -517,7 +556,7 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
           {items.map((item) => {
             const isExpanded = expandedId === item.id;
             const programCount = item.programs?.length || 0;
-            const program = programs.find(p => p.id === item.program_id) || { nama: item.program, unit_kerja: item.unit_kerja };
+            const program = { nama: item.program, unit_kerja: item.unit_kerja || '-' };
             const totalKegiatan = item.kegiatan?.length || 0;
             const totalNilai = item.kegiatan?.reduce((sum, k) => sum + (k.jumlah || 0), 0) || item.jumlah || 0;
             
@@ -933,8 +972,10 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>{item?.id ? 'Edit' : 'Tambah'} Pencairan Dana</h2>
-          <button onClick={onClose}>✕</button>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit' : 'Tambah'} Pencairan Dana</h3>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -970,12 +1011,15 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
               <div>
                 <label>Jumlah Total (Rp)</label>
                 <input
-                  type="number"
-                  value={form.jumlah}
-                  onChange={(e) => setForm({ ...form, jumlah: parseInt(e.target.value) || 0 })}
+                  type="text"
+                  inputMode="numeric"
+                  value={form.jumlah > 0 ? form.jumlah.toLocaleString('id-ID') : ''}
+                  onChange={(e) => {
+                    const raw = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0;
+                    setForm({ ...form, jumlah: raw });
+                  }}
                   required
-                  min="1"
-                  placeholder="50000000"
+                  placeholder="50.000.000"
                 />
               </div>
               
@@ -1018,10 +1062,13 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
                             <div>
                               <label style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Alokasi Dana (Rp)</label>
                               <input
-                                type="number"
-                                value={sp.jumlah_alokasi}
-                                onChange={(e) => updateProgramAllocation(sp.id, 'jumlah_alokasi', parseInt(e.target.value) || 0)}
-                                min="0"
+                                type="text"
+                                inputMode="numeric"
+                                value={sp.jumlah_alokasi > 0 ? Number(sp.jumlah_alokasi).toLocaleString('id-ID') : ''}
+                                onChange={(e) => {
+                                  const raw = parseInt(e.target.value.replace(/\D/g, ''), 10) || 0;
+                                  updateProgramAllocation(sp.id, 'jumlah_alokasi', raw);
+                                }}
                                 placeholder="0"
                                 style={{ fontSize: '0.8125rem' }}
                               />
@@ -1108,6 +1155,7 @@ export default function PencairanPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // User Role — dibaca dari session, bukan hardcode
   const [userRole, setUserRole] = useState('viewer')
@@ -1213,13 +1261,15 @@ export default function PencairanPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Hapus pencairan ini?')) {
-      const result = await deletePencairan(id);
-      if (!result.success) {
-        alert('Error: ' + result.error);
-      }
-    }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDeleteId) return;
+    const result = await deletePencairan(confirmDeleteId);
+    setConfirmDeleteId(null);
+    if (!result.success) alert('Error: ' + result.error);
   };
 
   const handleExport = () => {
@@ -1356,7 +1406,6 @@ export default function PencairanPage() {
                   canEdit={canEdit}
                   expandedId={expandedId}
                   setExpandedId={setExpandedId}
-                  programs={programs}
                 />
               ))}
             </div>
@@ -1368,7 +1417,6 @@ export default function PencairanPage() {
               canEdit={canEdit}
               expandedId={expandedId}
               setExpandedId={setExpandedId}
-              programs={programs}
             />
           )}
 
@@ -1383,6 +1431,15 @@ export default function PencairanPage() {
             />
           )}
         </>
+      )}
+
+      {/* Confirm Delete */}
+      {confirmDeleteId && (
+        <ConfirmModal
+          message="Pencairan ini akan dihapus permanen beserta seluruh data kegiatan. Lanjutkan?"
+          onConfirm={confirmDeleteAction}
+          onCancel={() => setConfirmDeleteId(null)}
+        />
       )}
 
       {/* Modal */}

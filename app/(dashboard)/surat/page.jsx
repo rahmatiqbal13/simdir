@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useSurat } from '@/context/SuratContext';
+
+const ITEMS_PER_PAGE = 15;
 
 const JENIS_SURAT = [
   { value: 'undangan', label: 'Undangan' },
@@ -23,6 +25,35 @@ const UNIT_KERJA_LIST = [
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+        <div className="modal-head">
+          <h3>Konfirmasi Hapus</h3>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onCancel} aria-label="Tutup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="modal-body">
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--danger-50)', color: 'var(--danger)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </div>
+            <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>{message}</p>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn btn-secondary" onClick={onCancel}>Batal</button>
+          <button className="btn btn-danger" onClick={onConfirm}>Ya, Hapus</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SuratPage() {
   const [activeTab, setActiveTab] = useState('masuk');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +61,9 @@ export default function SuratPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const fileInputRef = useRef(null);
 
   const { suratMasuk, suratKeluar, loading, addSuratMasuk, addSuratKeluar, updateSurat, deleteSurat, getStats } = useSurat();
 
@@ -38,6 +72,7 @@ export default function SuratPage() {
   const stats = getStats();
 
   const filteredList = useMemo(() => {
+    setCurrentPage(1);
     return currentList.filter(item => {
       const q = searchQuery.toLowerCase();
       const matchSearch = !q ||
@@ -49,11 +84,46 @@ export default function SuratPage() {
     });
   }, [currentList, searchQuery, jenisFilter]);
 
-  const handleDelete = async (id) => {
-    if (confirm('Hapus surat ini?')) {
-      const result = await deleteSurat(id, activeTab);
-      if (!result.success) alert('Error: ' + result.error);
-    }
+  const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+  const paginatedList = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredList.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredList, currentPage]);
+
+  const handleDelete = (id) => {
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDelete) return;
+    const result = await deleteSurat(confirmDelete, activeTab);
+    setConfirmDelete(null);
+    if (!result.success) alert('Error: ' + result.error);
+  };
+
+  const handleExport = () => {
+    const data = filteredList.map((item, idx) => ({
+      'No': idx + 1,
+      'Nomor Surat': item.nomor_surat || '',
+      'Perihal': item.perihal || '',
+      'Jenis': JENIS_SURAT.find(j => j.value === item.jenis)?.label || item.jenis || '',
+      ...(activeTab === 'masuk'
+        ? { 'Asal': item.asal || '', 'Tertuju': item.tertuju || '', 'Tgl Surat': fmtDate(item.tanggal_surat), 'Tgl Diterima': fmtDate(item.tanggal_diterima) }
+        : { 'Tujuan': item.tujuan || '', 'Tanggal': fmtDate(item.tanggal), 'Unit Kerja': item.unit_kerja_peminta || '', 'Pemohon': item.pemohon || '' }
+      ),
+      'Lampiran': item.lampiran ? 'Ada' : 'Tidak',
+    }));
+    const headers = Object.keys(data[0] || {});
+    const rows = data.map(r => headers.map(h => {
+      const v = String(r[h] ?? '');
+      return v.includes(',') || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v;
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `surat-${activeTab}-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
   };
 
   const handleSubmit = async (e) => {
@@ -96,9 +166,9 @@ export default function SuratPage() {
           <p className="page-subtitle">Catat surat masuk dan keluar, kelola disposisi dan lampiran.</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-secondary hide-mobile">
+          <button className="btn btn-secondary hide-mobile" onClick={handleExport}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Export
+            Export CSV
           </button>
           <button className="btn btn-primary" onClick={() => { setEditingItem(null); setShowModal(true); }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -177,17 +247,18 @@ export default function SuratPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredList.length === 0 ? (
+              {paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={10} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-3)' }}>
                     Belum ada surat {activeTab} yang sesuai
                   </td>
                 </tr>
-              ) : filteredList.map((item, idx) => {
+              ) : paginatedList.map((item, idx) => {
+                const globalIdx = (currentPage - 1) * ITEMS_PER_PAGE + idx + 1;
                 const jenisLabel = JENIS_SURAT.find(j => j.value === item.jenis)?.label || item.jenis || 'Lainnya';
                 return (
                   <tr key={item.id}>
-                    <td className="muted num">{String(idx + 1).padStart(2, '0')}</td>
+                    <td className="muted num">{String(globalIdx).padStart(2, '0')}</td>
                     <td className="num" style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{item.nomor_surat}</td>
                     {activeTab === 'masuk' ? (
                       <>
@@ -231,15 +302,35 @@ export default function SuratPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
+              {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filteredList.length)} dari {filteredList.length} surat
+            </span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} aria-label="Halaman sebelumnya">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                <button key={p} className={`btn btn-sm btn-icon${p === currentPage ? ' btn-primary' : ' btn-ghost'}`} onClick={() => setCurrentPage(p)} style={{ minWidth: 32 }}>{p}</button>
+              ))}
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} aria-label="Halaman berikutnya">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Mobile list */}
       <div className="hide-desktop">
-        {filteredList.length === 0 ? (
+        {paginatedList.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-title">Belum ada surat {activeTab}</div>
           </div>
-        ) : filteredList.map((item, idx) => {
+        ) : paginatedList.map((item, idx) => {
           const jenisLabel = JENIS_SURAT.find(j => j.value === item.jenis)?.label || 'Lainnya';
           return (
             <div className="list-card" key={item.id}>
@@ -268,7 +359,29 @@ export default function SuratPage() {
             </div>
           );
         })}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 4px', marginTop: 8 }}>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
+              Hal {currentPage} / {totalPages}
+            </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn btn-secondary btn-sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>← Prev</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>Next →</button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <ConfirmModal
+          message="Surat ini akan dihapus permanen. Lanjutkan?"
+          onConfirm={confirmDeleteAction}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -345,11 +458,17 @@ export default function SuratPage() {
                   </div>
                   <div className="field full">
                     <label className="field-label">Lampiran</label>
-                    <div style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 20, textAlign: 'center', color: 'var(--text-3)' }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24, marginBottom: 8 }}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>Tarik file ke sini atau klik untuk upload</div>
-                      <input type="file" name="lampiran" accept=".pdf,.jpg,.png,.doc,.docx" style={{ display: 'none' }} />
-                    </div>
+                    <label
+                      htmlFor="lampiran-upload"
+                      style={{ border: '2px dashed var(--border)', borderRadius: 10, padding: 20, textAlign: 'center', color: 'var(--text-3)', cursor: 'pointer', display: 'block', transition: 'border-color .15s, background .15s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--primary-50)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 24, height: 24, marginBottom: 8, display: 'block', margin: '0 auto 8px' }}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>Klik untuk pilih file</div>
+                      <div style={{ fontSize: '0.75rem', marginTop: 4 }}>PDF, JPG, PNG, DOC, DOCX (maks. 10MB)</div>
+                      <input id="lampiran-upload" type="file" name="lampiran" accept=".pdf,.jpg,.png,.doc,.docx" style={{ display: 'none' }} ref={fileInputRef} onChange={e => { if (e.target.files[0]) { e.currentTarget.parentElement.querySelector('div').textContent = e.target.files[0].name; } }} />
+                    </label>
                   </div>
                 </div>
               </div>

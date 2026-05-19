@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase/client'
 
 // USC Logo Component - Using official logo file
 const USCLogo = () => (
@@ -25,11 +25,6 @@ export default function LoginPage() {
     identifier: '',
     password: ''
   })
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-  )
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -334,9 +329,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)', textAlign: 'center', marginTop: 28 }}>
-            © 2026 Direktorat Unesa Science Center
-          </p>
         </div>
       </div>
     </div>

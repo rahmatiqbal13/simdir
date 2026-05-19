@@ -130,7 +130,6 @@ export function ProgramKerjaProvider({ children }) {
         throw new Error(errorMsg);
       }
 
-      console.log('Program added:', data);
       setPrograms(prev => [data, ...prev]);
       return data;
     } catch (err) {

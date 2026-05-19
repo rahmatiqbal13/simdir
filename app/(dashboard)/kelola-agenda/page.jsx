@@ -308,8 +308,8 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
               </div>
               {canEdit && (
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
-                  <button 
-                    className="ghost icon-only" 
+                  <button
+                    className="btn btn-ghost btn-sm btn-icon"
                     onClick={() => onEdit(item)}
                     title="Edit"
                   >
@@ -318,8 +318,8 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
-                  <button 
-                    className="ghost icon-only" 
+                  <button
+                    className="btn btn-ghost btn-sm btn-icon"
                     onClick={() => onDelete(item.id)}
                     title="Hapus"
                     style={{ color: 'var(--danger)' }}
@@ -584,8 +584,10 @@ function AgendaModal({ item, onSave, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>{item?.id ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h2>
-          <button onClick={onClose}>✕</button>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h3>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="card-form-body">
@@ -906,10 +908,8 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 export default function AgendaManagePage() {
   const { agenda, loading: agendaLoading, error: agendaError, addAgenda, updateAgenda, deleteAgenda, refreshAgenda } = useAgenda()
   const { success, error: showError } = useToast()
-  
-  // Local loading state for operations
-  const [operationLoading, setOperationLoading] = useState(false)
 
+  const [operationLoading, setOperationLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -918,6 +918,7 @@ export default function AgendaManagePage() {
   const [viewMode, setViewMode] = useState('card')
   const [currentPage, setCurrentPage] = useState(1)
   const [userRole, setUserRole] = useState('admin')
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
   
   useEffect(() => {
     // Get user role from session
@@ -992,18 +993,22 @@ export default function AgendaManagePage() {
     setShowModal(true)
   }
 
-  const handleDelete = async (id) => {
-    if (confirm('Apakah Anda yakin ingin menghapus agenda ini?')) {
-      setOperationLoading(true)
-      try {
-        await deleteAgenda(id)
-        success('Agenda berhasil dihapus')
-        await refreshAgenda()
-      } catch (err) {
-        showError('Gagal menghapus agenda: ' + err.message)
-      } finally {
-        setOperationLoading(false)
-      }
+  const handleDelete = (id) => {
+    setConfirmDeleteId(id)
+  }
+
+  const confirmDeleteAction = async () => {
+    if (!confirmDeleteId) return
+    setOperationLoading(true)
+    try {
+      await deleteAgenda(confirmDeleteId)
+      success('Agenda berhasil dihapus')
+      await refreshAgenda()
+    } catch (err) {
+      showError('Gagal menghapus agenda: ' + err.message)
+    } finally {
+      setOperationLoading(false)
+      setConfirmDeleteId(null)
     }
   }
 
@@ -1148,8 +1153,10 @@ export default function AgendaManagePage() {
 
             <div className="flex items-center gap-2">
               <select
+                className="select"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
+                style={{ height: 40, width: 'auto' }}
               >
                 {STATUS_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1157,8 +1164,10 @@ export default function AgendaManagePage() {
               </select>
 
               <select
+                className="select"
                 value={jenisFilter}
                 onChange={(e) => setJenisFilter(e.target.value)}
+                style={{ height: 40, width: 'auto' }}
               >
                 {JENIS_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1287,6 +1296,35 @@ export default function AgendaManagePage() {
 
       {showModal && (
         <AgendaModal item={editingItem} onSave={handleSave} onClose={() => { setShowModal(false); setEditingItem(null) }} />
+      )}
+
+      {confirmDeleteId && (
+        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
+          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>Konfirmasi Hapus</h3>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setConfirmDeleteId(null)} aria-label="Tutup">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--danger-50)', color: 'var(--danger)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                </div>
+                <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>Agenda ini akan dihapus permanen. Lanjutkan?</p>
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn btn-secondary" onClick={() => setConfirmDeleteId(null)}>Batal</button>
+              <button className="btn btn-danger" onClick={confirmDeleteAction} disabled={operationLoading}>
+                {operationLoading ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
