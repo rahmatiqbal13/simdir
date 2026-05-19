@@ -504,11 +504,11 @@ const FeaturedCard = ({ agenda, t }) => {
   const item = ongoingList.length > 0 ? ongoingList[activeIdx] : fallback
 
   if (!item) return (
-    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: 20, padding: '22px 26px', flexShrink: 0 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.accent }}>
+    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: 16, padding: '18px 22px', flexShrink: 0 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.accent }}>
         ⭐ Agenda Berikutnya
       </div>
-      <div style={{ marginTop: 12, color: t.text2, fontSize: 16 }}>Tidak ada agenda mendatang</div>
+      <div style={{ marginTop: 10, color: t.text2, fontSize: 14 }}>Tidak ada agenda mendatang</div>
     </div>
   )
 
@@ -520,32 +520,32 @@ const FeaturedCard = ({ agenda, t }) => {
   const countdown = getCountdown(item)
 
   return (
-    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: 20, padding: '22px 26px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: -100, right: -80, width: 280, height: 280, background: 'radial-gradient(circle, rgba(245,185,21,0.25), transparent 65%)', pointerEvents: 'none' }} />
+    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: 16, padding: '18px 22px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -80, right: -60, width: 240, height: 240, background: 'radial-gradient(circle, rgba(245,185,21,0.25), transparent 65%)', pointerEvents: 'none' }} />
 
       {/* Content — fade on carousel switch */}
       <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.accent, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.accent, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
           {eyebrow}
         </div>
-        <h2 style={{ margin: '0 0 12px', fontSize: 22, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.018em', color: t.text }}>{item.judul}</h2>
-        <div style={{ display: 'grid', gap: 6, fontSize: 14, color: t.text2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: 16, height: 16, flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <h2 style={{ margin: '0 0 10px', fontSize: 20, fontWeight: 800, lineHeight: 1.25, letterSpacing: '-0.018em', color: t.text }}>{item.judul}</h2>
+        <div style={{ display: 'grid', gap: 5, fontSize: 13, color: t.text2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: 14, height: 14, flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span>{DAYS[d.getDay()]}, {d.getDate()} {MONTHS_L[d.getMonth()]} · {formatTime(item.waktu_mulai)}</span>
           </div>
           {item.lokasi && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: 16, height: 16, flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: 14, height: 14, flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
               <span>{item.lokasi}</span>
             </div>
           )}
         </div>
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text3 }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text3 }}>
             {st === 'ongoing' ? 'STATUS' : 'DIMULAI DALAM'}
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em', color: t.accent, textAlign: 'right' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em', color: t.accent, textAlign: 'right' }}>
             {countdown}
           </div>
         </div>
@@ -553,10 +553,10 @@ const FeaturedCard = ({ agenda, t }) => {
 
       {/* Dot indicators — hanya muncul jika carousel */}
       {isCarousel && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 12 }}>
           {ongoingList.map((_, i) => (
             <span key={i} style={{
-              width: i === activeIdx ? 20 : 6, height: 6, borderRadius: 999,
+              width: i === activeIdx ? 18 : 5, height: 5, borderRadius: 999,
               background: i === activeIdx ? t.accent : t.border,
               transition: 'all 0.3s ease', display: 'block',
             }} />
@@ -846,42 +846,42 @@ const COLS = '68px 160px 1fr 220px 200px 160px'
         }}>
 
           {/* ── HEADER ── */}
-          <header style={{ padding: '20px 48px 12px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
+          <header style={{ padding: '16px 40px 10px', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
             {/* Main row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
               {/* Brand */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0 }}>
-                <div style={{ width: 64, height: 64, background: isDark ? '#ffffff' : '#1e3a8a', borderRadius: 16, padding: 6, flexShrink: 0, transition: 'background 0.35s ease' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+                <div style={{ width: 56, height: 56, background: isDark ? '#ffffff' : '#1e3a8a', borderRadius: 14, padding: 5, flexShrink: 0, transition: 'background 0.35s ease' }}>
                   <img src="/images/logo USC.png" alt="USC" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 28, fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1, color: t.text }}>SIMDIR · USC</div>
-                  <div style={{ fontSize: 13, color: t.text2, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginTop: 5 }}>Unesa Science Center</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1, color: t.text }}>SIMDIR · USC</div>
+                  <div style={{ fontSize: 12, color: t.text2, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginTop: 4 }}>Unesa Science Center</div>
                 </div>
               </div>
 
               {/* Title */}
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '0.04em', color: t.accent }}>AGENDA DIREKTORAT</h1>
-                <p style={{ fontSize: 15, color: t.text2, margin: '5px 0 0', textTransform: 'capitalize' }}>{dateLong}</p>
+                <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, letterSpacing: '0.04em', color: t.accent }}>AGENDA DIREKTORAT</h1>
+                <p style={{ fontSize: 14, color: t.text2, margin: '4px 0 0', textTransform: 'capitalize' }}>{dateLong}</p>
               </div>
 
               {/* Right: Theme + Weather + Clock + Resolution Indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
                 {/* Resolution indicator (hidden on small screens) */}
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   alignItems: 'center', 
                   gap: 2,
-                  padding: '4px 10px',
+                  padding: '4px 8px',
                   background: 'rgba(255,255,255,0.04)',
                   border: `1px solid ${t.border}`,
                   borderRadius: 8,
-                  minWidth: 60
+                  minWidth: 50
                 }}>
-                  <span style={{ fontSize: 10, color: t.text3, fontWeight: 600, letterSpacing: '0.04em' }}>RES</span>
-                  <span style={{ fontSize: 12, color: t.accent, fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
+                  <span style={{ fontSize: 9, color: t.text3, fontWeight: 600, letterSpacing: '0.04em' }}>RES</span>
+                  <span style={{ fontSize: 11, color: t.accent, fontWeight: 700, fontFamily: '"JetBrains Mono", monospace' }}>
                     {scale.is4K ? '4K' : scale.width >= 2560 ? 'QHD' : scale.width >= 1920 ? 'FHD' : 'HD'}
                   </span>
                 </div>
@@ -889,63 +889,63 @@ const COLS = '68px 160px 1fr 220px 200px 160px'
                 {/* Theme toggle */}
                 <button
                   onClick={toggle}
-                  style={{ background: 'rgba(255,255,255,0.04)', color: t.text, border: `1px solid ${t.border}`, width: 48, height: 66, borderRadius: 14, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
+                  style={{ background: 'rgba(255,255,255,0.04)', color: t.text, border: `1px solid ${t.border}`, width: 44, height: 56, borderRadius: 12, display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s' }}
                 >
                   {isDark ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                     </svg>
                   ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
                       <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
                     </svg>
                   )}
                 </button>
 
                 {/* Weather */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${t.border}`, borderRadius: 14, minWidth: 180 }}>
-                  <div style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', fontSize: 30, lineHeight: 1, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${t.border}`, borderRadius: 12, minWidth: 160 }}>
+                  <div style={{ width: 40, height: 40, display: 'grid', placeItems: 'center', fontSize: 26, lineHeight: 1, flexShrink: 0 }}>
                     {wInfo ? wInfo.icon : '🌡️'}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, minWidth: 0 }}>
-                    <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"JetBrains Mono", monospace', color: t.text }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"JetBrains Mono", monospace', color: t.text }}>
                       {weather ? weather.temp : '--'}<span style={{ color: t.accent }}>°</span>C
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: t.text2, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: t.text2, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 110 }}>
                       {wInfo ? wInfo.label : 'Memuat…'}
                     </div>
-                    <div style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text3, marginTop: 2 }}>Surabaya</div>
+                    <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text3, marginTop: 1 }}>Surabaya</div>
                   </div>
                 </div>
 
                 {/* Clock */}
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 48, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: t.text }}>
+                  <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 44, fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: t.text }}>
                     {hh}<span style={{ animation: 'blink 1s steps(1) infinite' }}>:</span>{mm}
                   </div>
-                  <div style={{ fontSize: 13, color: t.text2, marginTop: 5, letterSpacing: '0.04em' }}>{dateShort}</div>
+                  <div style={{ fontSize: 12, color: t.text2, marginTop: 4, letterSpacing: '0.04em' }}>{dateShort}</div>
                 </div>
               </div>
             </div>
 
             {/* Legend unit kerja — strip kompak baris kedua */}
-            <div style={{ marginTop: 8, paddingTop: 6, borderTop: `1px solid ${t.border}`, display: 'flex', gap: '0 12px', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
+            <div style={{ marginTop: 6, paddingTop: 5, borderTop: `1px solid ${t.border}`, display: 'flex', gap: '0 10px', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
               {Object.entries(UNIT_COLORS).map(([key, uc]) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-                  <span style={{ width: 7, height: 7, borderRadius: 2, background: uc.border, flexShrink: 0, display: 'block' }} />
-                  <span style={{ fontSize: 9, fontWeight: 600, color: t.text3, whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>{uc.name}</span>
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 2, background: uc.border, flexShrink: 0, display: 'block' }} />
+                  <span style={{ fontSize: 8, fontWeight: 600, color: t.text3, whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>{uc.name}</span>
                 </div>
               ))}
             </div>
           </header>
 
           {/* ── MAIN ── */}
-          <main style={{ display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 24, padding: '24px 48px', minHeight: 0, overflow: 'hidden' }}>
+          <main style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 20, padding: '20px 40px', minHeight: 0, overflow: 'hidden' }}>
 
             {/* LEFT: Table */}
-            <div ref={tableContainerRef} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 20, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div ref={tableContainerRef} style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
               {/* Table head */}
-              <div style={{ display: 'grid', gridTemplateColumns: getCols(scale.s), gap: Math.max(10, 16 * scale.s), padding: `${16 * scale.s}px ${24 * scale.s}px`, background: t.theadBg, borderBottom: `1px solid ${t.border}`, fontSize: Math.max(11, 13 * scale.s), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2, flexShrink: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: getCols(scale.s), gap: Math.max(8, 14 * scale.s), padding: `${14 * scale.s}px ${20 * scale.s}px`, background: t.theadBg, borderBottom: `1px solid ${t.border}`, fontSize: Math.max(10, 12 * scale.s), fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2, flexShrink: 0 }}>
                 {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'PIC / Disposisi', 'Status'].map(col => (
                   <div key={col}>{col}</div>
                 ))}
@@ -962,16 +962,16 @@ const COLS = '68px 160px 1fr 220px 200px 160px'
             </div>
 
             {/* RIGHT: Side panel */}
-            <aside style={{ display: 'flex', flexDirection: 'column', gap: 24, minHeight: 0 }}>
+            <aside style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
 
               {/* Featured card */}
               <FeaturedCard agenda={filtered} t={t} />
 
               {/* Media card */}
-              <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, overflow: 'hidden', flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '12px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2 }}>
-                    <svg viewBox="0 0 24 24" fill={t.accent} style={{ width: 16, height: 16 }}><path d="M21.582 7.176a2.506 2.506 0 0 0-1.768-1.768C18.254 5 12 5 12 5s-6.254 0-7.814.408a2.506 2.506 0 0 0-1.768 1.768C2 8.746 2 12 2 12s0 3.254.418 4.824c.23.864.908 1.538 1.768 1.768C5.746 19 12 19 12 19s6.254 0 7.814-.408a2.506 2.506 0 0 0 1.768-1.768C22 15.254 22 12 22 12s0-3.254-.418-4.824zM10 15V9l5.2 3-5.2 3z"/></svg>
+              <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, overflow: 'hidden', flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2 }}>
+                    <svg viewBox="0 0 24 24" fill={t.accent} style={{ width: 14, height: 14 }}><path d="M21.582 7.176a2.506 2.506 0 0 0-1.768-1.768C18.254 5 12 5 12 5s-6.254 0-7.814.408a2.506 2.506 0 0 0-1.768 1.768C2 8.746 2 12 2 12s0 3.254.418 4.824c.23.864.908 1.538 1.768 1.768C5.746 19 12 19 12 19s6.254 0 7.814-.408a2.506 2.506 0 0 0 1.768-1.768C22 15.254 22 12 22 12s0-3.254-.418-4.824zM10 15V9l5.2 3-5.2 3z"/></svg>
                     Video Profil USC
                   </div>
                 </div>
@@ -981,28 +981,28 @@ const COLS = '68px 160px 1fr 220px 200px 160px'
               </div>
 
               {/* Pager */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: t.card, border: `1px solid ${t.border}`, borderRadius: 16, padding: '18px 22px', flexShrink: 0 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.text3 }}>Halaman</span>
-                <div style={{ flex: 1, height: 4, background: t.border, borderRadius: 999, overflow: 'hidden', minWidth: 80 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: t.card, border: `1px solid ${t.border}`, borderRadius: 14, padding: '14px 18px', flexShrink: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.text3 }}>Halaman</span>
+                <div style={{ flex: 1, height: 4, background: t.border, borderRadius: 999, overflow: 'hidden', minWidth: 60 }}>
                   <div style={{ width: `${progress}%`, height: '100%', background: `linear-gradient(90deg, ${t.accent}, #ffd34d)`, transition: 'width 0.1s linear' }} />
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
                   {Array.from({ length: totalPages }, (_, i) => (
-                    <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{ width: i === currentPage ? 24 : 8, height: 8, borderRadius: 999, background: i === currentPage ? t.accent : t.border, border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
+                    <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{ width: i === currentPage ? 20 : 6, height: 6, borderRadius: 999, background: i === currentPage ? t.accent : t.border, border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
                   ))}
                 </div>
-                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 14, color: t.text2, fontWeight: 600 }}>
+                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 13, color: t.text2, fontWeight: 600 }}>
                   {currentPage + 1}/{totalPages}
                 </span>
               </div>
 
               {/* Info panel */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: `1px solid ${t.border}`, flexShrink: 0 }}>
-                <div style={{ fontSize: 11, color: t.text3 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: `1px solid ${t.border}`, flexShrink: 0 }}>
+                <div style={{ fontSize: 10, color: t.text3 }}>
                   <span style={{ color: t.text2, fontWeight: 600 }}>{filtered.length}</span> agenda • 
                   <span style={{ color: t.text2, fontWeight: 600 }}>{rowsPerPage}</span> baris/hal
                 </div>
-                <div style={{ fontSize: 10, color: t.text3, opacity: 0.7 }}>
+                <div style={{ fontSize: 9, color: t.text3, opacity: 0.7 }}>
                   F11: Fullscreen • ← →: Navigasi
                 </div>
               </div>
@@ -1010,17 +1010,17 @@ const COLS = '68px 160px 1fr 220px 200px 160px'
           </main>
 
           {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 24, alignItems: 'center', padding: '18px 48px', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '8px 16px', borderRadius: 999, flexShrink: 0 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 20, alignItems: 'center', padding: '14px 40px', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '6px 14px', borderRadius: 999, flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 12, height: 12 }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               PENGUMUMAN
             </div>
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: 17, fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
+              <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: 15, fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
                 {marqueeText}
               </span>
             </div>
-            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 12, color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
+            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 11, color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
               SIMDIR v2.0 · TV
             </div>
           </footer>
