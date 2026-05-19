@@ -25,39 +25,24 @@ const formatDate = (date) => {
 
 // ============ KOMPONEN STAT CARD ============
 function StatCard({ title, value, subtitle, variant, icon }) {
-  const variants = {
-    default: '',
-    success: 'success',
-    warning: 'warning',
-    danger: 'danger',
-    info: 'info'
-  }
-
+  const colorMap = {
+    default: { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    info:    { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    success: { bg: 'var(--success-50)', fg: 'var(--success)' },
+    warning: { bg: 'var(--warning-50)', fg: 'var(--warning)' },
+    danger:  { bg: 'var(--danger-50)',  fg: 'var(--danger)'  },
+  };
+  const c = colorMap[variant] || colorMap.default;
   return (
-    <div className={`stat-card ${variants[variant] || ''}`}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div className="stat-label">{title}</div>
-          <div className="stat-value" style={{ fontSize: '1.5rem' }}>{value}</div>
-          {subtitle && <div className="muted text-sm mt-1">{subtitle}</div>}
-        </div>
-        {icon && (
-          <div style={{ 
-            padding: '0.75rem', 
-            borderRadius: 'var(--radius)',
-            background: variant === 'success' ? 'var(--success-bg)' : 
-                       variant === 'warning' ? 'var(--warning-bg)' : 
-                       variant === 'danger' ? 'var(--danger-bg)' : 'var(--primary-bg)',
-            color: variant === 'success' ? 'var(--success)' : 
-                   variant === 'warning' ? 'var(--warning)' : 
-                   variant === 'danger' ? 'var(--danger)' : 'var(--primary)'
-          }}>
-            {icon}
-          </div>
-        )}
+    <div className="stat-card">
+      <div className="stat-card-top">
+        {icon && <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>{icon}</div>}
       </div>
+      <div className="stat-label">{title}</div>
+      <div className="stat-value">{value}</div>
+      {subtitle && <div className="stat-sub">{subtitle}</div>}
     </div>
-  )
+  );
 }
 
 // ============ KOMPONEN PROGRESS BAR ============
@@ -165,7 +150,7 @@ function SpjHeader({ pencairan, totalProgress }) {
               </span>
             </div>
           </div>
-          <div style={{ textAlign: 'right', minWidth: '200px' }}>
+          <div style={{ textAlign: 'right', minWidth: '120px', flexShrink: 1 }}>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.25rem' }}>Progress SPJ</p>
             <StatusBadge percentage={totalProgress} />
             <div style={{ marginTop: '0.5rem' }}>
@@ -242,7 +227,7 @@ function SpjItemCard({ header, index, canEdit, onUpdateHeader, onAddDetail, onUp
                 className="table-input" 
                 value={header.uraian} 
                 onChange={e => onUpdateHeader(header.id, 'uraian', e.target.value)}
-                style={{ fontWeight: 600, minWidth: '300px' }}
+                style={{ fontWeight: 600, width: '100%', maxWidth: '300px' }}
               />
             ) : (
               <strong>{header.uraian}</strong>
@@ -291,7 +276,7 @@ function SpjItemCard({ header, index, canEdit, onUpdateHeader, onAddDetail, onUp
 
         {/* Tabel Detail */}
         <div className="table-wrap" style={{ marginBottom: '1rem' }}>
-          <table style={{ minWidth: '1100px' }}>
+          <table style={{ minWidth: '900px' }}>
             <thead>
               <tr>
                 <th style={{ width: '40px' }}>No</th>

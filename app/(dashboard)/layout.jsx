@@ -39,18 +39,87 @@ const navItems = {
 }
 
 const icons = {
-  dashboard: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>,
-  calendar: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
-  tv: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-  mail: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg>,
-  briefcase: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>,
-  wallet: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>,
-  chart: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
-  logout: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
-  bell: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>,
-  menu: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
-  chevron: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>,
+  dashboard: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="9" rx="1"/>
+      <rect x="14" y="3" width="7" height="5" rx="1"/>
+      <rect x="14" y="12" width="7" height="9" rx="1"/>
+      <rect x="3" y="16" width="7" height="5" rx="1"/>
+    </svg>
+  ),
+  calendar: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  ),
+  tv: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <line x1="8" y1="21" x2="16" y2="21"/>
+      <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  ),
+  mail: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <polyline points="22,6 12,13 2,6"/>
+    </svg>
+  ),
+  briefcase: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="2" y="7" width="20" height="14" rx="2"/>
+      <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+    </svg>
+  ),
+  wallet: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+    </svg>
+  ),
+  chart: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="20" x2="18" y2="10"/>
+      <line x1="12" y1="20" x2="12" y2="4"/>
+      <line x1="6" y1="20" x2="6" y2="14"/>
+    </svg>
+  ),
+  settings: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  ),
+  logout: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+      <polyline points="16 17 21 12 16 7"/>
+      <line x1="21" y1="12" x2="9" y2="12"/>
+    </svg>
+  ),
+  bell: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+  ),
+  menu: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  ),
+  search: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="11" cy="11" r="8"/>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+  ),
 }
 
 export default function DashboardLayout({ children }) {
@@ -64,7 +133,7 @@ export default function DashboardLayout({ children }) {
 
   // Track mobile viewport
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
+    const mq = window.matchMedia('(max-width: 768px)')
     setIsMobile(mq.matches)
     const handler = (e) => setIsMobile(e.matches)
     mq.addEventListener('change', handler)
@@ -82,34 +151,6 @@ export default function DashboardLayout({ children }) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [sidebarOpen])
 
-  // Focus trap for sidebar
-  useEffect(() => {
-    if (sidebarOpen && sidebarRef.current) {
-      const focusableElements = sidebarRef.current.querySelectorAll(
-        'a[href], button, input, textarea, select, details, [tabindex]:not([tabindex="-1"])'
-      )
-      const firstElement = focusableElements[0]
-      const lastElement = focusableElements[focusableElements.length - 1]
-
-      const handleTabKey = (e) => {
-        if (e.key === 'Tab') {
-          if (e.shiftKey && document.activeElement === firstElement) {
-            e.preventDefault()
-            lastElement.focus()
-          } else if (!e.shiftKey && document.activeElement === lastElement) {
-            e.preventDefault()
-            firstElement.focus()
-          }
-        }
-      }
-
-      document.addEventListener('keydown', handleTabKey)
-      firstElement?.focus()
-
-      return () => document.removeEventListener('keydown', handleTabKey)
-    }
-  }, [sidebarOpen])
-
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -118,13 +159,11 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     const getUser = async () => {
       try {
-        // Coba ambil dari Supabase Auth dulu
         const { data: { user: authUser } } = await supabase.auth.getUser()
         
         if (authUser) {
           setUser(authUser)
           
-          // Get profile data
           const { data: profileData } = await supabase
             .from('profiles')
             .select('id, nama, role, is_active, unit_kerja_id, created_at')
@@ -139,7 +178,6 @@ export default function DashboardLayout({ children }) {
             })
           }
         } else {
-          // Fallback ke local session jika auth tidak ada
           const localSession = localStorage.getItem('simdir_session')
           if (localSession) {
             try {
@@ -194,16 +232,14 @@ export default function DashboardLayout({ children }) {
         height: '100vh',
         background: 'var(--bg)'
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="spinner" style={{ margin: '0 auto 1rem' }} />
-          <p style={{ color: 'var(--text-2)', fontSize: '0.875rem' }}>Memuat...</p>
-        </div>
+        <div className="spinner" />
       </div>
     )
   }
 
   const userRole = profile?.role || 'admin'
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
+  const userInitial = userName.charAt(0).toUpperCase()
   const items = navItems[userRole] || navItems.admin
 
   return (
@@ -213,49 +249,32 @@ export default function DashboardLayout({ children }) {
         Loncat ke konten utama
       </a>
 
-      {/* Mobile Header */}
-      <header className="mobile-header" role="navigation" aria-label="Header mobile">
-        <div className="mobile-header-brand">
-          <div className="brand-logo" style={{ width: '2rem', height: '2rem', fontSize: '1rem' }} aria-hidden="true">S</div>
-          <span style={{ fontWeight: 600, color: 'var(--navy)' }}>SIMDIR</span>
-        </div>
-        <button 
-          className="menu-toggle" 
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label={sidebarOpen ? 'Tutup menu navigasi' : 'Buka menu navigasi'}
-          aria-expanded={sidebarOpen}
-          aria-controls="sidebar-nav"
-        >
-          {sidebarOpen ? (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          ) : (
-            <span aria-hidden="true">{icons.menu}</span>
-          )}
-        </button>
-      </header>
-
+      {/* Sidebar */}
       <nav
         ref={sidebarRef}
         className={`sidebar ${sidebarOpen ? 'open' : ''}`}
         aria-label="Navigasi utama"
         aria-hidden={isMobile && !sidebarOpen ? true : undefined}
       >
+        {/* Brand */}
         <div className="sidebar-brand">
-          <div className="brand-logo" aria-hidden="true">S</div>
-          <div>
-            <strong>SIMDIR</strong>
-            <span>Unesa Science Center</span>
+          <div className="sidebar-brand-mark">
+            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="40" height="40" rx="10" fill="#1e3a8a"/>
+              <text x="20" y="28" textAnchor="middle" fill="#f5b915" fontSize="20" fontWeight="800">S</text>
+            </svg>
+          </div>
+          <div className="sidebar-brand-text">
+            <span className="sidebar-brand-name">SIMDIR</span>
+            <span className="sidebar-brand-sub">Unesa Science Center</span>
           </div>
         </div>
 
-        <div className="sidebar-section">
-          <div className="sidebar-section-label" id="nav-heading">Menu Utama</div>
-        </div>
+        {/* Section Label */}
+        <div className="sidebar-section-label">Menu Utama</div>
 
-        <div className="sidebar-nav" aria-labelledby="nav-heading">
+        {/* Navigation */}
+        <div className="sidebar-nav">
           {items.map((item) => (
             <Link
               key={item.href}
@@ -264,74 +283,87 @@ export default function DashboardLayout({ children }) {
               onClick={() => setSidebarOpen(false)}
               aria-current={pathname === item.href ? 'page' : undefined}
             >
-              <span className="nav-icon" aria-hidden="true">{icons[item.icon]}</span>
-              <span>{item.label}</span>
+              <span className="nav-icon">{icons[item.icon]}</span>
+              <span className="nav-label">{item.label}</span>
             </Link>
           ))}
         </div>
 
+        {/* Footer */}
         <div className="sidebar-footer">
-          <div className="user-info" role="region" aria-label="Informasi pengguna">
-            <div className="user-avatar" aria-hidden="true">{userName.charAt(0).toUpperCase()}</div>
-            <div style={{ minWidth: 0 }}>
-              <div className="user-name truncate">{userName}</div>
-              <div className="user-role">{userRole.replace('_', ' ')}</div>
-            </div>
+          <div className="user-avatar">{userInitial}</div>
+          <div className="user-meta">
+            <div className="user-name truncate">{userName}</div>
+            <div className="user-role">{userRole.replace('_', ' ')}</div>
           </div>
-          <button 
-            className="logout-btn" 
-            onClick={handleLogout}
-            aria-label="Keluar dari aplikasi"
-          >
-            <span aria-hidden="true">{icons.logout}</span>
-            Logout
-          </button>
         </div>
+        <button className="logout-btn" onClick={handleLogout}>
+          <span style={{ width: 16, height: 16 }}>{icons.logout}</span>
+          <span>Logout</span>
+        </button>
       </nav>
 
-      <div className="main-content">
+      {/* Main Area */}
+      <div className="main-area">
+        {/* Topbar (Desktop + Tablet) */}
         <header className="topbar" role="banner">
-          <div className="topbar-left">
-            <button 
-              className="menu-toggle desktop-hide" 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              aria-label="Buka menu navigasi"
-              aria-expanded={sidebarOpen}
-              aria-controls="sidebar-nav"
-            >
-              <span aria-hidden="true">{icons.menu}</span>
-            </button>
-            <div className="topbar-title-wrapper">
-              <h1 className="page-title" id="page-title">
-                {items.find(item => item.href === pathname)?.label || 'Dashboard'}
-              </h1>
-              <nav className="breadcrumb" aria-label="Breadcrumb">
-                <ol style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', listStyle: 'none', margin: 0, padding: 0 }}>
-                  <li><span>Home</span></li>
-                  <li aria-hidden="true"><span className="breadcrumb-sep">{icons.chevron}</span></li>
-                  <li aria-current="page">
-                    <span>{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
-                  </li>
-                </ol>
-              </nav>
-            </div>
+          <div className="topbar-title">
+            <span>Home</span>
+            <span className="crumb-sep">/</span>
+            <span className="crumb-current">{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
           </div>
-          <div className="topbar-right">
-            <button 
-              className="topbar-btn" 
-              aria-label="Notifikasi - 0 belum dibaca"
-              title="Notifikasi"
-            >
-              <span aria-hidden="true">{icons.bell}</span>
+
+          {/* Search */}
+          <div className="topbar-search">
+            <span className="topbar-search-icon">{icons.search}</span>
+            <input type="text" placeholder="Cari agenda, program, surat..." />
+          </div>
+
+          {/* Actions */}
+          <div className="topbar-actions">
+            <button className="icon-btn" aria-label="Notifikasi">
+              <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
+              <span className="dot" aria-hidden="true" />
             </button>
+            <div className="topbar-user">
+              <div className="topbar-user-avatar">{userInitial}</div>
+              <div className="topbar-user-meta">
+                <span className="topbar-user-name">{userName}</span>
+                <span className="topbar-user-role">{userRole.replace('_', ' ')}</span>
+              </div>
+            </div>
           </div>
         </header>
 
-        <main 
-          id="main-content" 
-          className="content-area"
+        {/* Mobile Header (shown on mobile, hidden on desktop/tablet) */}
+        <header className="mobile-header" role="banner" aria-label="Header mobile">
+          <button
+            className="icon-btn"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Buka menu"
+            style={{ width: 40, height: 40 }}
+          >
+            <span style={{ width: 20, height: 20 }}>{icons.menu}</span>
+          </button>
+          <div className="mobile-header-brand">
+            <div className="mobile-header-brand-mark">
+              <img src="/images/logo USC.png" alt="USC" />
+            </div>
+            <div>
+              <div className="mobile-header-title">SIMDIR</div>
+              <div className="mobile-header-sub">{items.find(item => item.href === pathname)?.label || 'USC'}</div>
+            </div>
+          </div>
+          <button className="icon-btn" aria-label="Notifikasi" style={{ width: 40, height: 40 }}>
+            <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
+          </button>
+        </header>
+
+        {/* Content */}
+        <main
+          id="main-content"
+          className="content"
           role="main"
-          aria-labelledby="page-title"
           tabIndex={-1}
         >
           <UsersProvider>
@@ -342,19 +374,20 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
 
-      {sidebarOpen && (
-        <button
-          className="sidebar-overlay"
-          onClick={() => setSidebarOpen(false)}
-          aria-label="Tutup menu navigasi"
-        />
-      )}
-
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav 
-        userRole={userRole} 
+      <MobileBottomNav
+        userRole={userRole}
         onMenuClick={() => setSidebarOpen(true)}
       />
+
+      {/* Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="drawer-overlay open"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Tutup menu"
+        />
+      )}
     </div>
   )
 }

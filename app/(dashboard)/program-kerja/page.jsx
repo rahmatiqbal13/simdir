@@ -350,22 +350,25 @@ function calculateTotal(items) {
 }
 
 // ============ KOMPONEN STAT CARD ============
-function StatCard({ title, value, subtitle, variant }) {
-  const variants = {
-    default: '',
-    success: 'success',
-    warning: 'warning',
-    danger: 'danger',
-    info: 'info'
-  }
-
+function StatCard({ title, value, subtitle, variant, icon }) {
+  const colorMap = {
+    default: { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    info:    { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    success: { bg: 'var(--success-50)', fg: 'var(--success)' },
+    warning: { bg: 'var(--warning-50)', fg: 'var(--warning)' },
+    danger:  { bg: 'var(--danger-50)',  fg: 'var(--danger)'  },
+  };
+  const c = colorMap[variant] || colorMap.default;
   return (
-    <div className={`stat-card ${variants[variant] || ''}`}>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        {icon && <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>{icon}</div>}
+      </div>
       <div className="stat-label">{title}</div>
       <div className="stat-value">{value}</div>
-      {subtitle && <div className="muted text-sm mt-1">{subtitle}</div>}
+      {subtitle && <div className="stat-sub">{subtitle}</div>}
     </div>
-  )
+  );
 }
 
 // ============ KOMPONEN FILTER BAR ============
@@ -1575,7 +1578,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 
       <div className="flex items-center gap-2">
         <button
-          className="btn ghost icon-only"
+          className="btn btn-ghost icon-only"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
@@ -1603,7 +1606,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
         </div>
 
         <button
-          className="btn ghost icon-only"
+          className="btn btn-ghost icon-only"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
@@ -1856,13 +1859,13 @@ function ImportModal({ onImport, onClose }) {
               1. Download template terlebih dahulu
             </p>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <button onClick={() => downloadTemplate('xlsx')} className="btn ghost" style={{ fontSize: '0.8125rem' }}>
+              <button onClick={() => downloadTemplate('xlsx')} className="btn btn-ghost" style={{ fontSize: '0.8125rem' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 Template Excel (.xlsx)
               </button>
-              <button onClick={() => downloadTemplate('csv')} className="btn ghost" style={{ fontSize: '0.8125rem' }}>
+              <button onClick={() => downloadTemplate('csv')} className="btn btn-ghost" style={{ fontSize: '0.8125rem' }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
@@ -2558,20 +2561,18 @@ export default function ProgramKerjaPage() {
   return (
     <div>
       {/* Header */}
-      <div className="toolbar" style={{ position: 'relative', zIndex: 1 }}>
-        <div>
-          <h2>Program Kerja & Anggaran</h2>
-          <p className="muted" style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Kelola program kerja dan anggaran unit-unit kerja
-          </p>
+      <div className="page-header" style={{ position: 'relative', zIndex: 1 }}>
+        <div className="page-title-wrap">
+          <h1 className="page-title">Program Kerja &amp; Anggaran</h1>
+          <p className="page-subtitle">Kelola program kerja dan anggaran unit-unit kerja.</p>
         </div>
         {canEdit && (
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div className="page-actions">
             {programs && programs.length > 0 && (
               <>
                 {/* Tombol dengan Modal */}
                 <button
-                  className="btn ghost"
+                  className="btn btn-ghost"
                   onClick={() => {
                     console.log('Tombol Hapus Semua diklik')
                     setShowDeleteAllModal(true)
@@ -2594,7 +2595,7 @@ export default function ProgramKerjaPage() {
                 
                 {/* Tombol Hapus Langsung (Tanpa Modal) - Alternatif */}
                 <button
-                  className="btn ghost"
+                  className="btn btn-ghost"
                   onClick={async () => {
                     if (confirm(`Yakin ingin menghapus ${programs.length} program kerja?\n\nSemua data akan dihapus permanen!`)) {
                       await handleDeleteAll()
@@ -2613,7 +2614,7 @@ export default function ProgramKerjaPage() {
               </>
             )}
             <button
-              className="btn ghost"
+              className="btn btn-ghost"
               onClick={() => setShowImportModal(true)}
               title="Import dari Excel/CSV"
             >
@@ -2643,24 +2644,28 @@ export default function ProgramKerjaPage() {
             value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0))}
             subtitle="Anggaran tersedia"
             variant="default"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
           />
           <StatCard
             title="Total Terpakai"
             value={formatRupiah(totals.terpakai)}
             subtitle="Dana SPJ"
             variant="info"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>}
           />
           <StatCard
             title="Sisa Pagu"
             value={formatRupiah(programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.terpakai)}
             subtitle={`${programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) > 0 ? Math.round((totals.terpakai / programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0)) * 100) : 0}% terpakai`}
             variant={programs.reduce((sum, p) => sum + (p?.pagu_anggaran || 0), 0) - totals.terpakai < 0 ? 'danger' : 'success'}
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>}
           />
           <StatCard
             title="Jumlah Program"
             value={`${programs.length}`}
             subtitle={`${filteredPrograms.length !== programs.length ? `Menampilkan ${filteredPrograms.length} dari ` : ''}${programs.length} total program`}
             variant="warning"
+            icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>}
           />
         </div>
       )}

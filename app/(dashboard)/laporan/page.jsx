@@ -38,49 +38,26 @@ const formatDate = (date) => {
 
 // ============ KOMPONEN STAT CARD ============
 function StatCard({ title, value, subtitle, variant, icon }) {
-  const variants = {
-    default: '',
-    success: 'success',
-    warning: 'warning',
-    danger: 'danger',
-    info: 'info'
+  const colorMap = {
+    default: { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    success: { bg: 'var(--success-50)', fg: 'var(--success)' },
+    warning: { bg: 'var(--warning-50)', fg: 'var(--warning)' },
+    danger:  { bg: 'var(--danger-50)',  fg: 'var(--danger)'  },
+    info:    { bg: 'var(--primary-50)', fg: 'var(--primary)' },
   };
-
-  const iconColors = {
-    default: 'var(--primary-bg)',
-    success: 'var(--success-bg)',
-    warning: 'var(--warning-bg)',
-    danger: 'var(--danger-bg)',
-    info: 'var(--primary-bg)'
-  };
-
-  const iconTextColors = {
-    default: 'var(--primary)',
-    success: 'var(--success)',
-    warning: 'var(--warning)',
-    danger: 'var(--danger)',
-    info: 'var(--primary)'
-  };
-
+  const c = colorMap[variant] || colorMap.default;
   return (
-    <div className={`stat-card ${variants[variant] || ''}`}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <div className="stat-label">{title}</div>
-          <div className="stat-value">{value}</div>
-          {subtitle && <div className="muted text-sm mt-1">{subtitle}</div>}
-        </div>
+    <div className="stat-card">
+      <div className="stat-card-top">
         {icon && (
-          <div style={{ 
-            padding: '0.75rem', 
-            borderRadius: 'var(--radius)',
-            background: iconColors[variant] || iconColors.default,
-            color: iconTextColors[variant] || iconTextColors.default
-          }}>
+          <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>
             {icon}
           </div>
         )}
       </div>
+      <div className="stat-label">{title}</div>
+      <div className="stat-value">{value}</div>
+      {subtitle && <div className="stat-sub">{subtitle}</div>}
     </div>
   );
 }
@@ -285,38 +262,37 @@ function FilterSection({
   );
 }
 
+const fmtShort = (n) => {
+  if (!n || isNaN(n)) return 'Rp 0';
+  if (n >= 1e9) return 'Rp ' + (n / 1e9).toFixed(1).replace('.', ',') + 'M';
+  if (n >= 1e6) return 'Rp ' + (n / 1e6).toFixed(1).replace('.', ',') + 'Jt';
+  return 'Rp ' + n.toLocaleString('id-ID');
+};
+
 // ============ KOMPONEN CHART BAR SEDERHANA ============
 function SimpleBarChart({ data }) {
-  if (!data || data.length === 0) return <div className="muted text-center py-4">Tidak ada data</div>;
-  
-  const maxValue = Math.max(...data.map(d => d.value));
-  
+  if (!data || data.length === 0) return <div className="muted" style={{ textAlign: 'center', padding: '1rem' }}>Tidak ada data</div>;
+
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+
   return (
-    <div style={{ marginTop: '1rem' }}>
+    <div style={{ marginTop: '0.5rem' }}>
       {data.map((item, idx) => (
-        <div key={idx} style={{ marginBottom: '0.75rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-            <span style={{ color: 'var(--text-2)' }}>{item.label}</span>
-            <span style={{ color: 'var(--text)', fontWeight: 500 }}>{item.value}%</span>
+        <div key={idx} style={{ marginBottom: '0.875rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '0.3rem' }}>
+            <span style={{ color: 'var(--text-2)', maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.label}</span>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{fmtShort(item.value)}</span>
           </div>
-          <div style={{ width: '100%', background: 'var(--surface-3)', borderRadius: 'var(--radius)', height: '1.5rem', overflow: 'hidden' }}>
-            <div 
-              style={{ 
-                height: '100%', 
-                borderRadius: 'var(--radius)',
+          <div style={{ width: '100%', background: 'var(--surface-3)', borderRadius: '999px', height: '10px', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                borderRadius: '999px',
                 transition: 'width 0.5s ease',
                 background: item.color || 'var(--primary)',
                 width: `${(item.value / maxValue) * 100}%`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingRight: '0.5rem'
               }}
-            >
-              <span style={{ color: 'white', fontSize: '0.6875rem', fontWeight: 600 }}>
-                {item.value > 15 ? `${item.value}%` : ''}
-              </span>
-            </div>
+            />
           </div>
         </div>
       ))}
@@ -710,20 +686,29 @@ export default function LaporanPage() {
   return (
     <div>
       {/* Header */}
-      <div className="toolbar">
-        <div>
-          <h2>Laporan Serapan Dana</h2>
-          <p className="muted" style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Pantau dan analisis penggunaan anggaran program kerja
-          </p>
+      <div className="page-header">
+        <div className="page-title-wrap">
+          <h1 className="page-title">Laporan &amp; Analitik</h1>
+          <p className="page-subtitle">Ringkasan kinerja Direktorat USC tahun anggaran {filterTahun}.</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowPreview(true)} disabled={filteredData.length === 0}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-            <polyline points="6 9 6 2 18 2 18 9" /><path d="M10 13a2 2 0 0 0 4 0v-2" />
-            <path d="M18 9H6a4 4 0 0 0-4 4v7a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-7a4 4 0 0 0-4-4z" />
-          </svg>
-          Cetak / Download
-        </button>
+        <div className="page-actions">
+          <select className="select" style={{ width: 'auto' }} value={filterTahun} onChange={e => setFilterTahun(e.target.value)}>
+            {TAHUN_LIST.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <button className="btn btn-secondary" onClick={fetchData} disabled={loading}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+            </svg>
+            Refresh
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowPreview(true)} disabled={filteredData.length === 0}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export PDF
+          </button>
+        </div>
       </div>
 
       {/* Filter Section */}
@@ -802,7 +787,7 @@ export default function LaporanPage() {
           </div>
 
           {/* Main Content Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+          <div className="dashboard-grid">
             {/* Tabel Program */}
             <div className="card">
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

@@ -122,10 +122,12 @@ export default function TVPamfletPage() {
   }
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>TV Pamflet</h1>
-        <p style={{ color: '#64748b' }}>Kelola gambar pamflet yang ditampilkan di TV Display</p>
+    <div>
+      <div className="page-header">
+        <div className="page-title-wrap">
+          <h1 className="page-title">TV Pamflet</h1>
+          <p className="page-subtitle">Kelola gambar pamflet yang ditampilkan di TV Display.</p>
+        </div>
       </div>
 
       {message.text && (

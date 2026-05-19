@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { usePencairan } from '@/context/PencairanContext';
 
 const ITEMS_PER_PAGE = 5;
@@ -30,12 +30,23 @@ const formatDateFull = (date) => {
 };
 
 // ============ KOMPONEN STAT CARD ============
-function StatCard({ title, value, subtitle, variant }) {
+function StatCard({ title, value, subtitle, variant, icon }) {
+  const colorMap = {
+    default: { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    info:    { bg: 'var(--primary-50)', fg: 'var(--primary)' },
+    success: { bg: 'var(--success-50)', fg: 'var(--success)' },
+    warning: { bg: 'var(--warning-50)', fg: 'var(--warning)' },
+    danger:  { bg: 'var(--danger-50)',  fg: 'var(--danger)'  },
+  };
+  const c = colorMap[variant] || colorMap.default;
   return (
-    <div className={`stat-card ${variant || ''}`}>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        {icon && <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>{icon}</div>}
+      </div>
       <div className="stat-label">{title}</div>
       <div className="stat-value">{value}</div>
-      {subtitle && <div className="muted text-sm mt-1">{subtitle}</div>}
+      {subtitle && <div className="stat-sub">{subtitle}</div>}
     </div>
   );
 }
@@ -232,12 +243,11 @@ function StatusBadge({ status }) {
 // ============ KOMPONEN PENCARIAN CARD ============
 function PencairanCard({ item, onEdit, onDelete, canEdit, expandedId, setExpandedId, programs = [] }) {
   const isExpanded = expandedId === item.id;
-  const program = programs.find(p => p.id === item.program_id) || { nama: item.program, unit_kerja: item.unit_kerja || '-' };
+  const program = { nama: item.program, unit_kerja: item.unit_kerja || '-' };
   
   const getStatus = () => {
-    // Simulasi status berdasarkan data
+    if (item.spj_partial)    return 'partial';
     if (!item.spj_submitted) return 'pending';
-    if (item.spj_partial) return 'partial';
     return 'completed';
   };
 
@@ -512,17 +522,16 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
             const totalNilai = item.kegiatan?.reduce((sum, k) => sum + (k.jumlah || 0), 0) || item.jumlah || 0;
             
             const getStatus = () => {
+              if (item.spj_partial)    return 'partial';
               if (!item.spj_submitted) return 'pending';
-              if (item.spj_partial) return 'partial';
               return 'completed';
             };
             
             const status = getStatus();
 
             return (
-              <>
-                <tr 
-                  key={item.id}
+              <Fragment key={item.id}>
+                <tr
                   className={isExpanded ? 'header-row' : ''}
                   style={{ cursor: 'pointer' }}
                   onClick={() => setExpandedId(isExpanded ? null : item.id)}
@@ -564,21 +573,23 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                   {canEdit && (
                     <td className="text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <a 
+                        <a
                           href={`/pencairan/${item.slug || item.id}/spj`}
                           className="btn icon-only"
                           style={{ color: 'var(--primary)' }}
                           onClick={(e) => e.stopPropagation()}
                           title="Kelola SPJ"
+                          aria-label="Kelola SPJ"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
                           </svg>
                         </a>
                         <button
-                          className="ghost icon-only"
+                          className="btn ghost icon-only"
                           onClick={(e) => { e.stopPropagation(); onEdit(item); }}
                           title="Edit"
+                          aria-label="Edit pencairan"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -586,10 +597,11 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                           </svg>
                         </button>
                         <button
-                          className="ghost icon-only"
+                          className="btn ghost icon-only"
                           style={{ color: 'var(--danger)' }}
                           onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
                           title="Hapus"
+                          aria-label="Hapus pencairan"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                             <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -648,7 +660,7 @@ function PencairanTable({ items, onEdit, onDelete, canEdit, expandedId, setExpan
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             );
           })}
         </tbody>
@@ -687,21 +699,37 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
         </button>
 
         <div className="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => onPageChange(page)}
-              className="btn icon-only"
-              style={{ 
-                minWidth: '2.25rem',
-                background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
-                color: currentPage === page ? 'white' : 'var(--text)',
-                border: currentPage === page ? 'none' : '1px solid var(--border)'
-              }}
-            >
-              {page}
-            </button>
-          ))}
+          {(() => {
+            const pages = [];
+            if (totalPages <= 7) {
+              for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+              pages.push(1);
+              if (currentPage > 3) pages.push('...');
+              for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+              if (currentPage < totalPages - 2) pages.push('...');
+              pages.push(totalPages);
+            }
+            return pages.map((page, idx) =>
+              page === '...' ? (
+                <span key={`ellipsis-${idx}`} style={{ padding: '0 0.25rem', color: 'var(--text-3)' }}>…</span>
+              ) : (
+                <button
+                  key={page}
+                  onClick={() => onPageChange(page)}
+                  className="btn icon-only"
+                  style={{
+                    minWidth: '2.25rem',
+                    background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
+                    color: currentPage === page ? 'white' : 'var(--text)',
+                    border: currentPage === page ? 'none' : '1px solid var(--border)'
+                  }}
+                >
+                  {page}
+                </button>
+              )
+            );
+          })()}
         </div>
 
         <button
@@ -827,7 +855,7 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
     jumlah: item?.jumlah || 0,
     keterangan: item?.keterangan || '',
   });
-  
+
   // Support multiple programs with allocation
   const [selectedPrograms, setSelectedPrograms] = useState(
     item?.programs?.map(p => ({
@@ -836,10 +864,11 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
       keterangan: p.keterangan || ''
     })) || []
   );
-  
-  const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!form.nama.trim()) {
@@ -862,20 +891,25 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
       return;
     }
     
-    onSave({
-      ...item,
-      ...form,
-      id: item?.id || Date.now().toString(),
-      programs: selectedPrograms.map(sp => {
-        const program = programs.find(p => p.id === sp.id);
-        return {
-          ...sp,
-          nama: program?.nama,
-          unit_kerja: program?.unit_kerja_id
-        };
-      }),
-      kegiatan: item?.kegiatan || [],
-    });
+    setIsSubmitting(true);
+    try {
+      await onSave({
+        ...item,
+        ...form,
+        id: item?.id || Date.now().toString(),
+        programs: selectedPrograms.map(sp => {
+          const program = programs.find(p => p.id === sp.id);
+          return {
+            ...sp,
+            nama: program?.nama,
+            unit_kerja: program?.unit_kerja_id
+          };
+        }),
+        kegiatan: item?.kegiatan || [],
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addProgram = (programId) => {
@@ -1046,8 +1080,10 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
           </div>
 
           <div className="card-form-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary">Simpan</button>
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={isSubmitting}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+              {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+            </button>
           </div>
         </form>
       </div>
@@ -1230,23 +1266,23 @@ export default function PencairanPage() {
   return (
     <div>
       {/* Header */}
-      <div className="toolbar">
-        <div>
-          <h2>Pencairan Dana</h2>
-          <p className="muted" style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Kelola pencairan dana dan SPJ program kerja
-          </p>
+      <div className="page-header">
+        <div className="page-title-wrap">
+          <h1 className="page-title">Pencairan Dana</h1>
+          <p className="page-subtitle">Kelola pencairan dana dan SPJ program kerja.</p>
         </div>
         {canEdit && (
-          <button
-            className="btn btn-primary"
-            onClick={() => { setEditingItem(null); setShowModal(true); }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Tambah Pencairan
-          </button>
+          <div className="page-actions">
+            <button
+              className="btn btn-primary"
+              onClick={() => { setEditingItem(null); setShowModal(true); }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Tambah Pencairan
+            </button>
+          </div>
         )}
       </div>
 
@@ -1257,24 +1293,28 @@ export default function PencairanPage() {
           value={formatRupiah(totals.total)}
           subtitle={`${totals.count} transaksi`}
           variant="default"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
         />
         <StatCard
           title="Menunggu SPJ"
           value={`${totals.pending}`}
           subtitle="Perlu ditindaklanjuti"
           variant="warning"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>}
         />
         <StatCard
           title="SPJ Lengkap"
           value={`${totals.completed}`}
           subtitle="Sudah diverifikasi"
           variant="success"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>}
         />
         <StatCard
           title="Rata-rata"
           value={formatRupiah(totals.count > 0 ? Math.round(totals.total / totals.count) : 0)}
           subtitle="Nilai per pencairan"
           variant="info"
+          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
         />
       </div>
 

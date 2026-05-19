@@ -58,8 +58,6 @@ export function ProgramKerjaProvider({ children }) {
         throw new Error('Supabase belum dikonfigurasi');
       }
 
-      console.log('Adding program:', program);
-
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -98,8 +96,6 @@ export function ProgramKerjaProvider({ children }) {
       if (isNaN(programData.tahun) || programData.tahun < 2000 || programData.tahun > 2100) {
         throw new Error('Tahun tidak valid')
       }
-
-      console.log('Program data to insert:', programData);
 
       const { data, error: supabaseError } = await supabase
         .from('program_kerja')

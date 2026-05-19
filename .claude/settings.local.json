@@ -26,7 +26,11 @@
       "Bash(xargs ls -la)",
       "Bash(dir \"c:\\\\Users\\\\HYPE FLEX\\\\Documents\\\\Codex\\\\simdir\\\\app\\\\components\")",
       "Skill(ui-ux-pro-max)",
-      "Skill(ui-ux-pro-max:*)"
+      "Skill(ui-ux-pro-max:*)",
+      "WebFetch(domain:api.anthropic.com)",
+      "Read(//c/Users/HYPE FLEX/AppData/Local/Temp/**)",
+      "Bash(tar xf *)",
+      "Bash(python -c ' *)"
     ]
   }
 }

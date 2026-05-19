@@ -127,36 +127,25 @@ const getAgendaStatus = (mulai, selesai) => {
 
 // ============ KOMPONEN STAT CARD ============
 function StatCard({ label, value, icon, color, trend }) {
+  const c = (() => {
+    if (!color) return { bg: 'var(--primary-50)', fg: 'var(--primary)' };
+    if (color.includes('--primary')) return { bg: 'var(--primary-50)', fg: 'var(--primary)' };
+    if (color.includes('--success')) return { bg: 'var(--success-50)', fg: 'var(--success)' };
+    if (color.includes('--warning')) return { bg: 'var(--warning-50)', fg: 'var(--warning)' };
+    if (color.includes('--danger'))  return { bg: 'var(--danger-50)',  fg: 'var(--danger)'  };
+    if (color.includes('--text-3'))  return { bg: 'var(--surface-3)',  fg: 'var(--text-3)'  };
+    return { bg: color + '18', fg: color };
+  })();
   return (
-    <div className="card" style={{ borderLeft: `4px solid ${color}` }}>
-      <div className="card-body">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-          <div style={{ 
-            width: '2.5rem', 
-            height: '2.5rem', 
-            borderRadius: 'var(--radius)',
-            background: `${color}15`,
-            color: color,
-            display: 'grid',
-            placeItems: 'center'
-          }}>
-            {icon}
-          </div>
-          {trend && (
-            <span style={{ 
-              fontSize: '0.6875rem', 
-              color: trend > 0 ? 'var(--success)' : 'var(--text-3)',
-              fontWeight: 500
-            }}>
-              {trend > 0 ? '+' : ''}{trend} hari ini
-            </span>
-          )}
-        </div>
-        <p className="muted" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>{label}</p>
-        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{value}</p>
+    <div className="stat-card">
+      <div className="stat-card-top">
+        <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>{icon}</div>
+        {trend && <span className="stat-trend up">+{trend} hari ini</span>}
       </div>
+      <div className="stat-label">{label}</div>
+      <div className="stat-value">{value}</div>
     </div>
-  )
+  );
 }
 
 // ============ KOMPONEN STATUS BADGE ============
@@ -1127,21 +1116,21 @@ export default function AgendaManagePage() {
         />
       </div>
 
-      {/* Toolbar */}
-      <div className="toolbar">
-        <div>
-          <h2>Daftar Agenda</h2>
-          <p className="muted" style={{ fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Kelola dan pantau jadwal kegiatan USC
-          </p>
+      {/* Header */}
+      <div className="page-header">
+        <div className="page-title-wrap">
+          <h1 className="page-title">Daftar Agenda</h1>
+          <p className="page-subtitle">Kelola dan pantau jadwal kegiatan USC.</p>
         </div>
         {canEdit && (
-          <button className="btn btn-primary" onClick={handleAddNew}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Tambah Agenda
-          </button>
+          <div className="page-actions">
+            <button className="btn btn-primary" onClick={handleAddNew}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Tambah Agenda
+            </button>
+          </div>
         )}
       </div>
 

@@ -89,101 +89,44 @@ export default function PWAInstallPrompt() {
     <div
       style={{
         position: 'fixed',
-        bottom: '20px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        bottom: '24px',
+        right: '24px',
         zIndex: 9999,
         background: '#1e293b',
-        borderRadius: '12px',
-        padding: '16px 20px',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+        borderRadius: '14px',
+        padding: '14px 16px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
         border: '1px solid #334155',
-        maxWidth: '400px',
-        width: '90%',
+        maxWidth: '320px',
+        width: 'calc(100vw - 48px)',
+        animation: 'pwaSlideIn 0.3s ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-        {/* Icon */}
-        <div
-          style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a' }}>S</span>
-        </div>
+      <style>{`@keyframes pwaSlideIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }`}</style>
 
-        {/* Content */}
-        <div style={{ flex: 1 }}>
-          <h3
-            style={{
-              fontSize: '16px',
-              fontWeight: 600,
-              color: '#fff',
-              marginBottom: '4px',
-            }}
-          >
-            Install SIMDIR
-          </h3>
-          <p
-            style={{
-              fontSize: '13px',
-              color: '#94a3b8',
-              lineHeight: 1.4,
-            }}
-          >
-            Install aplikasi untuk akses lebih cepat dan fitur offline
-          </p>
+      {/* Close button */}
+      <button
+        onClick={handleDismiss}
+        style={{ position: 'absolute', top: '10px', right: '10px', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+        aria-label="Tutup"
+      >✕</button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #f5b915, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>S</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>Install SIMDIR</p>
+          <p style={{ fontSize: '12px', color: '#94a3b8', margin: '2px 0 0', lineHeight: 1.3 }}>Akses lebih cepat &amp; fitur offline</p>
         </div>
       </div>
 
-      {/* Buttons */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          marginTop: '16px',
-        }}
+      <button
+        onClick={handleInstallClick}
+        style={{ display: 'block', width: '100%', marginTop: '12px', padding: '9px 16px', background: '#f5b915', border: 'none', borderRadius: '8px', color: '#0f172a', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
       >
-        <button
-          onClick={handleDismiss}
-          style={{
-            flex: 1,
-            padding: '10px 16px',
-            background: 'transparent',
-            border: '1px solid #475569',
-            borderRadius: '8px',
-            color: '#94a3b8',
-            fontSize: '14px',
-            fontWeight: 500,
-            cursor: 'pointer',
-          }}
-        >
-          Nanti
-        </button>
-        <button
-          onClick={handleInstallClick}
-          style={{
-            flex: 1,
-            padding: '10px 16px',
-            background: '#f59e0b',
-            border: 'none',
-            borderRadius: '8px',
-            color: '#0f172a',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Install
-        </button>
-      </div>
+        Install Sekarang
+      </button>
     </div>
   )
 }

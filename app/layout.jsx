@@ -56,6 +56,10 @@ export default function RootLayout({ children }) {
   return (
     <html lang="id" dir="ltr">
       <head>
+        {/* Font */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
         {/* PWA Meta Tags */}
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#f59e0b" />
@@ -67,6 +71,9 @@ export default function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#f59e0b" />
         <meta name="msapplication-tap-highlight" content="no" />
+        
+        {/* Favicon */}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         
         {/* Icons */}
         <link rel="icon" type="image/png" sizes="72x72" href="/icons/icon-72x72.png" />
