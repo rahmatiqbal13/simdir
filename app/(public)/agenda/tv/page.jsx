@@ -259,15 +259,42 @@ const MediaRotator = ({ t }) => {
   const plIdxRef    = useRef(0)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    
     const load = async () => {
       try {
-        const res = await fetch('/api/tv-pamflets')
-        if (res.ok) setDbPamflets(await res.json())
-      } catch {}
+        // Use absolute URL to avoid connection issues
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+        const res = await fetch(`${baseUrl}/api/tv-pamflets`, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          // Add cache control to prevent caching issues
+          cache: 'no-cache'
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setDbPamflets(data || [])
+        } else {
+          console.warn('TV Pamflets API returned:', res.status)
+          setDbPamflets([])
+        }
+      } catch (err) {
+        console.warn('Failed to load TV pamflets:', err)
+        setDbPamflets([])
+      }
     }
+    
     load()
-    const id = setInterval(load, 5 * 60 * 1000)
-    return () => clearInterval(id)
+    
+    // Only set interval if window is available
+    let id
+    if (typeof window !== 'undefined') {
+      id = setInterval(load, 5 * 60 * 1000)
+    }
+    
+    return () => {
+      if (id) clearInterval(id)
+    }
   }, [])
 
   const playlist = useMemo(() => {
