@@ -101,9 +101,11 @@ function useStageScale() {
   })
   
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    
     const update = () => {
-      const w = window.innerWidth
-      const h = window.innerHeight
+      const w = window.innerWidth || 1920
+      const h = window.innerHeight || 1080
       const isPortrait = h > w
       
       // Reference size 1920x1080 (Full HD)
@@ -148,7 +150,7 @@ function useDynamicRowsPerPage(containerRef, scale) {
   const [rowsPerPage, setRowsPerPage] = useState(6)
   
   useEffect(() => {
-    if (!containerRef.current) return
+    if (!containerRef.current || typeof window === 'undefined') return
     
     const calculateRows = () => {
       const container = containerRef.current
@@ -158,10 +160,10 @@ function useDynamicRowsPerPage(containerRef, scale) {
       const containerHeight = container.clientHeight
       
       // Header height (approx 60px at scale 1)
-      const headerHeight = 60 * scale.s
+      const headerHeight = 60 * (scale?.s || 1)
       
       // Row minimum height (approx 85px at scale 1)
-      const minRowHeight = Math.max(70, 85 * scale.s)
+      const minRowHeight = Math.max(70, 85 * (scale?.s || 1))
       
       // Available height for rows
       const availableHeight = containerHeight - headerHeight
@@ -174,12 +176,22 @@ function useDynamicRowsPerPage(containerRef, scale) {
     
     calculateRows()
     
-    // Use ResizeObserver for accurate container size changes
-    const observer = new ResizeObserver(calculateRows)
-    observer.observe(containerRef.current)
+    // Check if ResizeObserver is available (some older TV browsers don't support it)
+    if (typeof ResizeObserver !== 'undefined') {
+      try {
+        const observer = new ResizeObserver(calculateRows)
+        observer.observe(containerRef.current)
+        return () => observer.disconnect()
+      } catch (err) {
+        console.warn('ResizeObserver error:', err)
+      }
+    }
     
-    return () => observer.disconnect()
-  }, [containerRef, scale.s])
+    // Fallback: use window resize event
+    const handleResize = () => calculateRows()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [containerRef, scale?.s])
   
   return rowsPerPage
 }
@@ -187,23 +199,27 @@ function useDynamicRowsPerPage(containerRef, scale) {
 function useTheme() {
   const [isDark, setIsDark] = useState(true)
   useEffect(() => {
+    if (typeof window === 'undefined') return
     try {
       const s = localStorage.getItem('simdir-tv-theme')
       if (s === 'light') setIsDark(false)
       else if (s === 'dark') setIsDark(true)
     } catch {}
   }, [])
-  const toggle = () => setIsDark(p => {
+  const toggle = useCallback(() => setIsDark(p => {
     const next = !p
-    try { localStorage.setItem('simdir-tv-theme', next ? 'dark' : 'light') } catch {}
+    if (typeof window !== 'undefined') {
+      try { localStorage.setItem('simdir-tv-theme', next ? 'dark' : 'light') } catch {}
+    }
     return next
-  })
+  }), [])
   return { isDark, t: isDark ? DARK : LIGHT, toggle }
 }
 
 function useClock() {
   const [now, setNow] = useState(null)
   useEffect(() => {
+    if (typeof window === 'undefined') return
     setNow(new Date())
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
@@ -214,6 +230,7 @@ function useClock() {
 function useWeather() {
   const [weather, setWeather] = useState(null)
   const fetch_ = useCallback(async () => {
+    if (typeof window === 'undefined') return
     try {
       const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-7.3076&longitude=112.6748&current=temperature_2m,weather_code&timezone=Asia%2FJakarta')
       if (!r.ok) throw new Error()
@@ -222,6 +239,7 @@ function useWeather() {
     } catch { setWeather(null) }
   }, [])
   useEffect(() => {
+    if (typeof window === 'undefined') return
     fetch_()
     const id = setInterval(fetch_, 10 * 60 * 1000)
     return () => clearInterval(id)
@@ -290,6 +308,7 @@ const MediaRotator = ({ t }) => {
   // YouTube player — hanya dibuat ulang jika URL playlist berubah
   const ytUrlRef = useRef(null)
   useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
     if (cur?.type !== 'youtube') {
       // Keluar dari YouTube → bersihkan player
       if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null }
@@ -305,46 +324,89 @@ const MediaRotator = ({ t }) => {
       if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null }
       plLenRef.current = 0
       plIdxRef.current = 0
-      playerRef.current = new window.YT.Player('yt-tv-player', {
-        playerVars: { listType: 'playlist', list: listId, autoplay: 1, mute: 1, rel: 0, modestbranding: 1, controls: 0, iv_load_policy: 3 },
-        events: {
-          onReady: (e) => {
-            e.target.mute()
-            // getPlaylist() sering null di onReady — coba ulang sampai berhasil
-            const tryLen = () => {
-              const pl = e.target.getPlaylist?.()
-              if (pl?.length) { plLenRef.current = pl.length; return }
-              setTimeout(tryLen, 800)
-            }
-            tryLen()
+      
+      // Check if YT API is available
+      if (!window.YT?.Player) {
+        console.warn('YouTube API not available')
+        return
+      }
+      
+      try {
+        playerRef.current = new window.YT.Player('yt-tv-player', {
+          playerVars: { listType: 'playlist', list: listId, autoplay: 1, mute: 1, rel: 0, modestbranding: 1, controls: 0, iv_load_policy: 3 },
+          events: {
+            onReady: (e) => {
+              try {
+                e.target.mute()
+                // getPlaylist() sering null di onReady — coba ulang sampai berhasil
+                const tryLen = () => {
+                  const pl = e.target.getPlaylist?.()
+                  if (pl?.length) { plLenRef.current = pl.length; return }
+                  setTimeout(tryLen, 800)
+                }
+                tryLen()
+              } catch (err) {
+                console.warn('YouTube onReady error:', err)
+              }
+            },
+            onStateChange: (e) => {
+              try {
+                e.target.mute()
+                try { plIdxRef.current = e.target.getPlaylistIndex() } catch {}
+                // Tangkap panjang playlist jika belum diketahui
+                if (!plLenRef.current) {
+                  try { plLenRef.current = e.target.getPlaylist()?.length || 0 } catch {}
+                }
+                if (e.data === 0) {
+                  // Video berakhir — cek apakah ini video terakhir di playlist
+                  const isLast = plLenRef.current > 0
+                    ? plIdxRef.current >= plLenRef.current - 1
+                    : true
+                  if (isLast) setTimeout(() => nextRef.current(), 1000)
+                }
+              } catch (err) {
+                console.warn('YouTube onStateChange error:', err)
+              }
+            },
           },
-          onStateChange: (e) => {
-            e.target.mute()
-            try { plIdxRef.current = e.target.getPlaylistIndex() } catch {}
-            // Tangkap panjang playlist jika belum diketahui
-            if (!plLenRef.current) {
-              try { plLenRef.current = e.target.getPlaylist()?.length || 0 } catch {}
-            }
-            if (e.data === 0) {
-              // Video berakhir — cek apakah ini video terakhir di playlist
-              const isLast = plLenRef.current > 0
-                ? plIdxRef.current >= plLenRef.current - 1
-                : true
-              if (isLast) setTimeout(() => nextRef.current(), 1000)
-            }
-          },
-        },
-      })
-    }
-    if (window.YT?.Player) { init() }
-    else {
-      const prev = window.onYouTubeIframeAPIReady
-      window.onYouTubeIframeAPIReady = () => { prev?.(); init() }
-      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-        const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag)
+        })
+      } catch (err) {
+        console.warn('YouTube Player init error:', err)
       }
     }
-    return () => { if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null } }
+    
+    if (window.YT?.Player) { 
+      init() 
+    } else {
+      const prev = window.onYouTubeIframeAPIReady
+      window.onYouTubeIframeAPIReady = () => { 
+        try {
+          prev?.(); 
+          init() 
+        } catch (err) {
+          console.warn('YouTube API ready error:', err)
+        }
+      }
+      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+        try {
+          const tag = document.createElement('script'); 
+          tag.src = 'https://www.youtube.com/iframe_api'; 
+          document.head?.appendChild?.(tag)
+        } catch (err) {
+          console.warn('Failed to load YouTube API:', err)
+        }
+      }
+    }
+    return () => { 
+      if (playerRef.current?.destroy) { 
+        try {
+          playerRef.current.destroy(); 
+          playerRef.current = null 
+        } catch (err) {
+          console.warn('YouTube destroy error:', err)
+        }
+      } 
+    }
   }, [cur?.url, cur?.type])
 
   const total = playlist.length
@@ -587,11 +649,22 @@ export default function AgendaTVPage() {
 
   // Load fonts
   useEffect(() => {
-    const link = document.createElement('link')
-    link.rel  = 'stylesheet'
-    link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap'
-    document.head.appendChild(link)
-    return () => { try { document.head.removeChild(link) } catch {} }
+    if (typeof document === 'undefined') return
+    try {
+      const link = document.createElement('link')
+      link.rel  = 'stylesheet'
+      link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap'
+      document.head?.appendChild?.(link)
+      return () => { 
+        try { 
+          if (document.head?.contains?.(link)) {
+            document.head?.removeChild?.(link) 
+          }
+        } catch {} 
+      }
+    } catch (err) {
+      console.warn('Font loading error:', err)
+    }
   }, [])
 
   const [agenda,      setAgenda]      = useState([])
@@ -601,33 +674,33 @@ export default function AgendaTVPage() {
   const [progress,    setProgress]    = useState(0)
 
   const load = useCallback(async () => {
+    if (typeof window === 'undefined') return
     try {
-      if (!supabase) { setError('Supabase belum dikonfigurasi'); return }
+      if (!supabase) { setError('Supabase belum dikonfigurasi'); setLoading(false); return }
       const { data, error: err } = await supabase.from('agenda').select('*').order('tanggal_mulai', { ascending: true })
-      if (err) setError('Gagal memuat agenda')
+      if (err) {
+        console.error('Supabase error:', err)
+        setError('Gagal memuat agenda')
+      }
       else { setAgenda(data || []); setError(null) }
-    } catch { setError('Terjadi kesalahan') }
+    } catch (e) {
+      console.error('Load error:', e)
+      setError('Terjadi kesalahan')
+    }
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [load])
-  useEffect(() => { const id = setInterval(load, 300000); return () => clearInterval(id) }, [load])
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'ArrowLeft')  setCurrentPage(p => Math.max(0, p - 1))
-      if (e.key === 'ArrowRight') setCurrentPage(p => Math.min(totalPages - 1, p + 1))
-      if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
-        e.preventDefault()
-        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.()
-        else document.exitFullscreen?.()
-      }
-      if (e.key === 't' || e.key === 'T') toggle()
+  useEffect(() => { 
+    if (typeof window !== 'undefined') {
+      load() 
     }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [toggle, totalPages])
+  }, [load])
+  
+  useEffect(() => { 
+    if (typeof window === 'undefined') return
+    const id = setInterval(load, 300000); 
+    return () => clearInterval(id) 
+  }, [load])
 
   const filtered = useMemo(() =>
     agenda
@@ -636,6 +709,30 @@ export default function AgendaTVPage() {
   , [agenda])
 
   const totalPages  = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+    const handler = (e) => {
+      if (e.key === 'ArrowLeft')  setCurrentPage(p => Math.max(0, p - 1))
+      if (e.key === 'ArrowRight') setCurrentPage(p => Math.min(totalPages - 1, p + 1))
+      if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
+        e.preventDefault()
+        try {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => {})
+          } else {
+            document.exitFullscreen?.().catch(() => {})
+          }
+        } catch (err) {
+          console.warn('Fullscreen error:', err)
+        }
+      }
+      if (e.key === 't' || e.key === 'T') toggle()
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [toggle, totalPages])
   const currentRows = useMemo(() => filtered.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage), [filtered, currentPage, rowsPerPage])
   const emptyCount  = Math.max(0, rowsPerPage - currentRows.length)
 
@@ -643,6 +740,7 @@ export default function AgendaTVPage() {
   useEffect(() => { pageRef.current = currentPage }, [currentPage])
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
     if (totalPages <= 1) { setProgress(0); return }
     const id = setInterval(() => {
       setProgress(prev => {
