@@ -1132,10 +1132,19 @@ button.icon-only {
 }
 
 /* ===================== FORM LAYOUT ===================== */
+.modal-content > form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .card-form-body {
   padding: 22px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .card-form-footer {
