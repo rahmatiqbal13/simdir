@@ -225,6 +225,19 @@ export default function LoginPage() {
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 6 }}>Selamat datang kembali</h2>
           <p className="muted" style={{ fontSize: '0.9375rem', marginBottom: 28 }}>Masuk dengan akun direktorat Anda.</p>
 
+          {/* Credit */}
+          <div style={{ 
+            fontSize: '0.6875rem', 
+            color: 'var(--text-3)', 
+            marginBottom: 20,
+            padding: '8px 12px',
+            backgroundColor: 'var(--surface-2)',
+            borderRadius: '8px',
+            textAlign: 'center',
+          }}>
+            Made with ❤️ by <strong>Rahmat Iqbal</strong>
+          </div>
+
           {/* Error Message */}
           {error && (
             <div

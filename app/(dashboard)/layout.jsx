@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase/client'
 import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
 import MobileBottomNav from '@/app/components/MobileBottomNav'
@@ -16,6 +16,7 @@ const navItems = {
     { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
     { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
+    { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice' },
     { href: '/laporan', label: 'Laporan', icon: 'chart' },
     { href: '/pengaturan/users', label: 'Pengaturan', icon: 'settings' },
   ],
@@ -94,6 +95,15 @@ const icons = {
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V9a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
     </svg>
   ),
+  invoice: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  ),
   logout: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -130,6 +140,7 @@ const ALL_NAV = [
   { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail', roles: ['super_admin','pimpinan'] },
   { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase', roles: ['super_admin','admin_keuangan','pimpinan'] },
   { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet', roles: ['super_admin','admin_keuangan','pimpinan'] },
+  { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice', roles: ['super_admin'] },
   { href: '/laporan', label: 'Laporan', icon: 'chart', roles: ['super_admin'] },
   { href: '/pengaturan/users', label: 'Pengaturan Pengguna', icon: 'settings', roles: ['super_admin'] },
 ]
@@ -267,11 +278,6 @@ export default function DashboardLayout({ children }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  )
-
   useEffect(() => {
     const getUser = async () => {
       try {
@@ -377,7 +383,7 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar */}
       <nav
         ref={sidebarRef}
-        className={`sidebar ${sidebarOpen ? 'open' : ''}`}
+        className={`sidebar ${sidebarOpen ? 'open' : ''} no-print`}
         aria-label="Navigasi utama"
         aria-hidden={isMobile && !sidebarOpen ? true : undefined}
       >
@@ -432,7 +438,7 @@ export default function DashboardLayout({ children }) {
       {/* Main Area */}
       <div className="main-area">
         {/* Topbar (Desktop + Tablet) */}
-        <header className="topbar" role="banner">
+        <header className="topbar no-print" role="banner">
           <div className="topbar-title">
             <span>Home</span>
             <span className="crumb-sep">/</span>
@@ -514,7 +520,7 @@ export default function DashboardLayout({ children }) {
         </header>
 
         {/* Mobile Header (shown on mobile, hidden on desktop/tablet) */}
-        <header className="mobile-header" role="banner" aria-label="Header mobile">
+        <header className="mobile-header no-print" role="banner" aria-label="Header mobile">
           <button
             className="icon-btn"
             onClick={() => setSidebarOpen(true)}
@@ -550,6 +556,18 @@ export default function DashboardLayout({ children }) {
             </UnitKerjaProvider>
           </UsersProvider>
         </main>
+
+        {/* Footer Credit */}
+        <footer className="no-print" style={{ 
+          padding: '1rem 1.5rem', 
+          borderTop: '1px solid var(--border)',
+          textAlign: 'center',
+          fontSize: '0.75rem',
+          color: 'var(--text-3)',
+          backgroundColor: 'var(--surface)',
+        }}>
+          Made with ❤️ by <strong>Rahmat Iqbal</strong>
+        </footer>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -561,7 +579,7 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar Overlay */}
       {sidebarOpen && (
         <div
-          className="drawer-overlay open"
+          className="drawer-overlay open no-print"
           onClick={() => setSidebarOpen(false)}
           aria-label="Tutup menu"
         />

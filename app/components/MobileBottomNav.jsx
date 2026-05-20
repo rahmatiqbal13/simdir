@@ -103,7 +103,7 @@ export default function MobileBottomNav({ userRole = 'admin', onMenuClick }) {
 
   return (
     <nav 
-      className="mobile-bottom-nav"
+      className="mobile-bottom-nav no-print"
       role="navigation"
       aria-label="Navigasi mobile"
       style={{

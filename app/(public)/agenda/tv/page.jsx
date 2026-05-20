@@ -881,7 +881,7 @@ export default function AgendaTVPage() {
           </main>
 
           {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '1.5vw', alignItems: 'center', padding: '1.4vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
+          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '1.5vw', alignItems: 'center', padding: '1.4vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.7vh 1.2vw', borderRadius: 999, flexShrink: 0 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '1vw', height: '1vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               PENGUMUMAN
@@ -893,6 +893,9 @@ export default function AgendaTVPage() {
             </div>
             <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.9vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
               SIMDIR v2.0 · TV
+            </div>
+            <div style={{ fontSize: '0.8vw', color: t.text3, flexShrink: 0, padding: '0.5vh 1vw', background: t.card, borderRadius: '0.5vw' }}>
+              Made with ❤️ by <strong style={{ color: t.accent }}>Rahmat Iqbal</strong>
             </div>
           </footer>
         </div>
