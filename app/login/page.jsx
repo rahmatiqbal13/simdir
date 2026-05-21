@@ -235,7 +235,7 @@ export default function LoginPage() {
             borderRadius: '8px',
             textAlign: 'center',
           }}>
-            Made with ❤️ by <strong>Rahmat Iqbal</strong>
+            Made by <strong>Rahmat Iqbal</strong>
           </div>
 
           {/* Error Message */}

@@ -1001,6 +1001,9 @@ export default function AgendaPage() {
         <p style={{ fontSize: '0.8125rem', color: '#64748b' }}>
           &copy; 2025 Direktorat Unesa Science Center. All rights reserved.
         </p>
+        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+          Made by <strong>Rahmat Iqbal</strong>
+        </p>
       </footer>
 
       <style jsx global>{`

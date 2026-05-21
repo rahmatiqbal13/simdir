@@ -566,7 +566,7 @@ export default function DashboardLayout({ children }) {
           color: 'var(--text-3)',
           backgroundColor: 'var(--surface)',
         }}>
-          Made with ❤️ by <strong>Rahmat Iqbal</strong>
+          Made by <strong>Rahmat Iqbal</strong>
         </footer>
       </div>
 

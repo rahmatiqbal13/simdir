@@ -895,7 +895,7 @@ export default function AgendaTVPage() {
               SIMDIR v2.0 · TV
             </div>
             <div style={{ fontSize: '0.8vw', color: t.text3, flexShrink: 0, padding: '0.5vh 1vw', background: t.card, borderRadius: '0.5vw' }}>
-              Made with ❤️ by <strong style={{ color: t.accent }}>Rahmat Iqbal</strong>
+              Made by <strong style={{ color: t.accent }}>Rahmat Iqbal</strong>
             </div>
           </footer>
         </div>
