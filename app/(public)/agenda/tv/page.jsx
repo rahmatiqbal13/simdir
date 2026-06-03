@@ -615,7 +615,24 @@ export default function AgendaTVPage() {
       .sort((a, b) => new Date(a.tanggal_mulai + 'T' + (a.waktu_mulai || '00:00')) - new Date(b.tanggal_mulai + 'T' + (b.waktu_mulai || '00:00')))
   , [agenda])
 
-  const rowsPerPage = 6 // Fixed rows per page for consistent layout
+  const [rowsPerPage, setRowsPerPage] = useState(6)
+
+  // Dynamic rows per page via ResizeObserver
+  const tbodyRef = useRef(null)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !tbodyRef.current) return
+    const el = tbodyRef.current
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const h = entry.contentRect.height
+        const minRowH = Math.max(70, 85 * scale.s)
+        const rows = Math.max(4, Math.min(14, Math.floor(h / minRowH)))
+        setRowsPerPage(rows)
+      }
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [scale.s])
   const totalPages  = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
   const currentRows = useMemo(() => filtered.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage), [filtered, currentPage])
   const emptyCount  = Math.max(0, rowsPerPage - currentRows.length)
@@ -833,7 +850,7 @@ export default function AgendaTVPage() {
                 ))}
               </div>
               {/* Table body */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div ref={tbodyRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 {currentRows.map((item, i) => (
                   <AgendaTableRow key={item.id} item={item} num={currentPage * rowsPerPage + i + 1} t={t} />
                 ))}

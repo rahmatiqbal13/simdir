@@ -64,7 +64,7 @@ export async function middleware(request) {
           .eq('id', user.id)
           .single()
         
-        role = profile?.role || 'pimpinan'
+        role = profile?.role || 'staff'
       }
     } catch {
       // Supabase tidak tersedia, lanjut ke local session

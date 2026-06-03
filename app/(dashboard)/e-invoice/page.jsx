@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase/client';
 
 // ============ KONSTANTA ============
 const STATUS_CONFIG = {
@@ -209,11 +209,6 @@ export default function EInvoicePage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
   const [userRole, setUserRole] = useState('');
-  
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   // Fetch invoices
   const fetchInvoices = useCallback(async () => {

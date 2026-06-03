@@ -48,6 +48,7 @@ const withPWA = require('next-pwa')({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  outputFileTracingRoot: __dirname,
   
   // Konfigurasi images (jika pakai next/image)
   images: {

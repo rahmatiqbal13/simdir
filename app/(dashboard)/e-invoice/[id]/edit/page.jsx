@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase/client';
 
 // ============ HELPERS ============
 const formatRupiah = (num) => {
@@ -139,11 +139,6 @@ export default function EditInvoicePage() {
     ppn_nilai: 0,
     total: 0,
   });
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   // Fetch invoice data and customers
   useEffect(() => {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase/client';
 
 // ============ KONSTANTA ============
 const STATUS_CONFIG = {
@@ -126,11 +126,6 @@ export default function PrintInvoicePage() {
   const [invoice, setInvoice] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {

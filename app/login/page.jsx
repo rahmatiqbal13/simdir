@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase/client'
 
 // USC Logo Component - Using official logo file
@@ -61,9 +62,17 @@ export default function LoginPage() {
       }
 
       const inputPassword = formData.password.trim()
-      const dbPassword = userData.password.trim()
+      const dbPassword = userData.password?.trim() || ''
 
-      if (dbPassword !== inputPassword) {
+      // Support bcrypt hashes and plain text passwords (legacy fallback / mock)
+      let passwordValid = false
+      if (dbPassword.startsWith('$2')) {
+        passwordValid = await bcrypt.compare(inputPassword, dbPassword)
+      } else {
+        passwordValid = dbPassword === inputPassword
+      }
+
+      if (!passwordValid) {
         throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
       }
 
@@ -71,41 +80,20 @@ export default function LoginPage() {
         throw new Error('Akun Anda telah dinonaktifkan')
       }
 
+      // Attempt Supabase Auth login (best effort — local session is the fallback)
       let authSuccess = false
       try {
         const { error: authError } = await supabase.auth.signInWithPassword({
           email: userData.email,
           password: formData.password
         })
-        
-        if (!authError) {
-          authSuccess = true
-        }
+        if (!authError) authSuccess = true
       } catch (authErr) {
         console.log('Auth login failed (non-critical):', authErr.message)
       }
-      
-      if (!authSuccess) {
-        try {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: userData.email,
-            password: formData.password,
-            options: {
-              data: {
-                username: userData.username,
-                nama: userData.full_name || userData.nama,
-                role: userData.role
-              }
-            }
-          })
-          
-          if (!signUpError) {
-            authSuccess = true
-          }
-        } catch (signUpErr) {
-          console.log('Auth signup failed (non-critical):', signUpErr.message)
-        }
-      }
+
+      // Removed dangerous auto-signUp loop that could create ghost accounts with wrong passwords.
+      // If Supabase Auth user doesn't exist yet, the app falls back to local session cookie.
 
       try {
         await supabase

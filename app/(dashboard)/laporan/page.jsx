@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { supabase } from '@/lib/supabase/client';
 
 // ============ KONSTANTA ============
 const BULAN_LIST = [
@@ -702,11 +702,6 @@ export default function LaporanPage() {
   const [unitKerjaList, setUnitKerjaList] = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState(null);
-
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
 
   const dateRange = useMemo(() =>
     getDateRange(filterPeriode, filterBulan, filterTahun, filterTW, filterDateFrom, filterDateTo)
