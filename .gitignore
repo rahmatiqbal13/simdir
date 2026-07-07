@@ -62,3 +62,6 @@ logs
 *.pem
 *.cert
 *.key
+
+# Git worktrees (local-only isolated workspaces)
+.worktrees
