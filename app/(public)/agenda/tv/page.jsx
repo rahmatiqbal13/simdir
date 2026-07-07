@@ -967,7 +967,7 @@ export default function AgendaTVPage() {
             {/* QR Code Kritik & Saran */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', flexShrink: 0, background: t.card, padding: '0.6vh 1vw', borderRadius: '0.5vw', border: `1px solid ${t.border}` }}>
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://simdir.usc.ac.id/kritik-saran')}`}
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://managementusc.vercel.app/kritik-saran')}`}
                 alt="QR Kritik Saran"
                 style={{ width: '2.2vw', height: '2.2vw', borderRadius: '0.2vw', display: 'block' }}
               />
