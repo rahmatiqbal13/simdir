@@ -110,7 +110,7 @@ export default function EditInvoicePage() {
   
   // Items
   const [items, setItems] = useState([
-    { deskripsi: '', quantity: 1, harga_satuan: 0 }
+    { deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }
   ]);
   
   // Additional charges dengan checkbox
@@ -137,6 +137,8 @@ export default function EditInvoicePage() {
   const [dbTotals, setDbTotals] = useState({
     subtotal: 0,
     ppn_nilai: 0,
+    diskon_nilai: 0,
+    biaya_pengiriman: 0,
     total: 0,
   });
 
@@ -168,16 +170,16 @@ export default function EditInvoicePage() {
         }
         setCustomers(customersData || []);
         
-        // Fetch invoice using invoice_summary view
+        // Fetch invoice directly from invoices table (not view) to ensure all columns are available
         const { data: invoiceData, error: invoiceError } = await supabase
-          .from('invoice_summary')
+          .from('invoices')
           .select('*')
           .eq('id', invoiceId)
           .single();
         
         if (invoiceError) {
           console.error('Error fetching invoice:', invoiceError);
-          // Fallback to invoices table
+          // Fallback to invoice_summary view
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('invoices')
             .select('*')
@@ -225,16 +227,30 @@ export default function EditInvoicePage() {
             disetujui: status === 'disetujui',
           });
           
+          // Set diskon & pengiriman from invoice data
+          setDiskon({
+            aktif: (fallbackData.diskon_nilai || 0) > 0,
+            nominal: fallbackData.diskon_nilai || 0,
+          });
+          setBiayaPengiriman({
+            aktif: (fallbackData.biaya_pengiriman || 0) > 0,
+            nominal: fallbackData.biaya_pengiriman || 0,
+          });
+          
           // Set database totals as fallback
           setDbTotals({
             subtotal: fallbackData.subtotal || 0,
             ppn_nilai: fallbackData.ppn_nilai || 0,
+            diskon_nilai: fallbackData.diskon_nilai || 0,
+            biaya_pengiriman: fallbackData.biaya_pengiriman || 0,
             total: fallbackData.total || 0,
           });
         } else {
           console.log('Invoice data:', invoiceData);
           console.log('Subtotal:', invoiceData.subtotal);
           console.log('PPN:', invoiceData.ppn_nilai, 'Persen:', invoiceData.ppn_persen);
+          console.log('Diskon:', invoiceData.diskon_nilai);
+          console.log('Biaya Pengiriman:', invoiceData.biaya_pengiriman);
           console.log('Total:', invoiceData.total);
           
           setFormData({
@@ -282,10 +298,22 @@ export default function EditInvoicePage() {
             disetujui: status === 'disetujui',
           });
           
+          // Set diskon & pengiriman from invoice data
+          setDiskon({
+            aktif: (invoiceData.diskon_nilai || 0) > 0,
+            nominal: invoiceData.diskon_nilai || 0,
+          });
+          setBiayaPengiriman({
+            aktif: (invoiceData.biaya_pengiriman || 0) > 0,
+            nominal: invoiceData.biaya_pengiriman || 0,
+          });
+          
           // Set database totals as fallback
           setDbTotals({
             subtotal: invoiceData.subtotal || 0,
             ppn_nilai: invoiceData.ppn_nilai || 0,
+            diskon_nilai: invoiceData.diskon_nilai || 0,
+            biaya_pengiriman: invoiceData.biaya_pengiriman || 0,
             total: invoiceData.total || 0,
           });
         }
@@ -305,7 +333,7 @@ export default function EditInvoicePage() {
           console.error('Items error code:', itemsError.code);
           // Don't throw, just log and continue with empty items
           console.log('Continuing with empty items...');
-          setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0 }]);
+            setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
         } else {
           console.log('Items data:', itemsData);
           
@@ -315,10 +343,11 @@ export default function EditInvoicePage() {
               deskripsi: item.deskripsi,
               quantity: item.quantity,
               harga_satuan: item.harga_satuan,
+              satuan: item.satuan || '',
             })));
           } else {
             console.log('No items found, using default');
-            setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0 }]);
+          setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
           }
         }
       } catch (err) {
@@ -360,8 +389,9 @@ export default function EditInvoicePage() {
     }
     
     // If calculated ppn is 0 but db has ppn value, use db value
-    if (ppnNilai === 0 && dbTotals.ppn_nilai > 0 && !pajak.aktif) {
-      ppnNilai = dbTotals.ppn_nilai;
+    // Jika pajak tidak aktif, PPN harus 0 (override nilai dari database)
+    if (!pajak.aktif) {
+      ppnNilai = 0;
     }
     
     // Diskon
@@ -400,7 +430,7 @@ export default function EditInvoicePage() {
 
   // Handle add item
   const addItem = () => {
-    setItems(prev => [...prev, { deskripsi: '', quantity: 1, harga_satuan: 0 }]);
+    setItems(prev => [...prev, { deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
   };
 
   // Handle remove item
@@ -411,11 +441,11 @@ export default function EditInvoicePage() {
   };
 
   // Get status from stempel
+  // Catatan: 'final' adalah stempel cetak saja, bukan status database
   const getStatusFromStempel = () => {
     if (stempel.lunas) return 'lunas';
     if (stempel.segera) return 'segera';
     if (stempel.jatuh_tempo) return 'jatuh_tempo';
-    if (stempel.final) return 'final';
     if (stempel.dikirim) return 'dikirim';
     if (stempel.disetujui) return 'disetujui';
     return 'dibuat';
@@ -457,15 +487,23 @@ export default function EditInvoicePage() {
           tanggal_jatuh_tempo: formData.tanggal_jatuh_tempo,
           status: status,
           subtotal: subtotal,
-          ppn_persen: pajak.mode === 'persen' ? (parseFloat(pajak.persen) || 0) : 0,
-          ppn_nilai: ppnNilai,
+          ppn_persen: pajak.aktif && pajak.mode === 'persen' ? (parseFloat(pajak.persen) || 0) : 0,
+          ppn_nilai: pajak.aktif ? ppnNilai : 0,
+          diskon_nilai: diskon.aktif ? diskonNilai : 0,
+          biaya_pengiriman: biayaPengiriman.aktif ? pengirimanNilai : 0,
           total: total,
           catatan: formData.catatan || null,
           terms_conditions: '',
         })
         .eq('id', invoiceId);
       
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        // Cek apakah error karena kolom belum ada di database
+        if (invoiceError.message && invoiceError.message.includes('Could not find')) {
+          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL di Supabase Dashboard → SQL Editor. Lihat file: supabase/migrations/20260707000000_add_diskon_pengiriman_columns.sql');
+        }
+        throw invoiceError;
+      }
       
       // Delete old items
       const { error: deleteError } = await supabase
@@ -480,7 +518,7 @@ export default function EditInvoicePage() {
         invoice_id: invoiceId,
         deskripsi: item.deskripsi,
         quantity: parseFloat(item.quantity) || 0,
-        satuan: 'pcs',
+        satuan: item.satuan || null,
         harga_satuan: parseFloat(item.harga_satuan) || 0,
         diskon_persen: 0,
         total: (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0),

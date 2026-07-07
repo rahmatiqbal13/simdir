@@ -11,6 +11,16 @@ export function SuratProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Normalisasi error Supabase agar selalu punya pesan yang readable
+  const normalizeError = (err) => {
+    if (!err) return new Error('Unknown database error');
+    if (err.message) return err;
+    if (err.code || err.details || err.hint) {
+      return new Error(`${err.code || 'DB_ERROR'}: ${err.details || err.hint || JSON.stringify(err)}`);
+    }
+    return new Error(JSON.stringify(err));
+  };
+
   // Load surat masuk
   const loadSuratMasuk = useCallback(async () => {
     try {
@@ -21,11 +31,11 @@ export function SuratProvider({ children }) {
         .eq('tipe', 'masuk')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) throw normalizeError(error);
       setSuratMasuk(data || []);
     } catch (err) {
       console.error('Error loading surat masuk:', err);
-      setError(err.message);
+      setError(err.message || 'Gagal memuat surat masuk');
     } finally {
       setLoading(false);
     }
@@ -41,11 +51,11 @@ export function SuratProvider({ children }) {
         .eq('tipe', 'keluar')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) throw normalizeError(error);
       setSuratKeluar(data || []);
     } catch (err) {
       console.error('Error loading surat keluar:', err);
-      setError(err.message);
+      setError(err.message || 'Gagal memuat surat keluar');
     } finally {
       setLoading(false);
     }

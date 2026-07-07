@@ -13,12 +13,14 @@ const navItems = {
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv' },
+    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
     { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
     { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
     { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice' },
     { href: '/laporan', label: 'Laporan', icon: 'chart' },
     { href: '/pengaturan/users', label: 'Pengaturan', icon: 'settings' },
+    { href: '/pengaturan/unit-kerja', label: 'Unit Kerja', icon: 'building' },
   ],
   admin_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -29,10 +31,12 @@ const navItems = {
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv' },
+    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
   ],
   pimpinan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
+    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
     { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
     { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
     { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
@@ -89,6 +93,19 @@ const icons = {
       <line x1="6" y1="20" x2="6" y2="14"/>
     </svg>
   ),
+  building: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="9" width="7" height="13" rx="1"/>
+      <rect x="14" y="5" width="7" height="17" rx="1"/>
+      <line x1="6" y1="12" x2="6" y2="12.01"/>
+      <line x1="6" y1="16" x2="6" y2="16.01"/>
+      <line x1="6" y1="20" x2="6" y2="20.01"/>
+      <line x1="17" y1="8" x2="17" y2="8.01"/>
+      <line x1="17" y1="12" x2="17" y2="12.01"/>
+      <line x1="17" y1="16" x2="17" y2="16.01"/>
+      <line x1="17" y1="20" x2="17" y2="20.01"/>
+    </svg>
+  ),
   settings: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <circle cx="12" cy="12" r="3"/>
@@ -130,6 +147,11 @@ const icons = {
       <line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
   ),
+  message: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  ),
 }
 
 // ===================== COMMAND PALETTE =====================
@@ -137,12 +159,14 @@ const ALL_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['super_admin','admin_keuangan','admin','pimpinan'] },
   { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar', roles: ['super_admin','admin','pimpinan'] },
   { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv', roles: ['super_admin','admin'] },
+  { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message', roles: ['super_admin','admin','pimpinan'] },
   { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail', roles: ['super_admin','pimpinan'] },
   { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase', roles: ['super_admin','admin_keuangan','pimpinan'] },
   { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet', roles: ['super_admin','admin_keuangan','pimpinan'] },
   { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice', roles: ['super_admin'] },
   { href: '/laporan', label: 'Laporan', icon: 'chart', roles: ['super_admin'] },
   { href: '/pengaturan/users', label: 'Pengaturan Pengguna', icon: 'settings', roles: ['super_admin'] },
+  { href: '/pengaturan/unit-kerja', label: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
 ]
 
 function CommandPalette({ open, onClose, items, icons }) {

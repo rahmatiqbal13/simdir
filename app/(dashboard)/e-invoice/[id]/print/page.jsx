@@ -92,26 +92,27 @@ function InvoiceStamp({ status }) {
   
   return (
     <div style={{
-      width: 140,
-      height: 140,
+      position: 'absolute',
+      bottom: '22mm',
+      right: '18mm',
+      width: 80,
+      height: 80,
       borderRadius: '50%',
-      border: `4px double ${config.color}`,
+      border: `1.5px solid ${config.color}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       color: config.color,
-      fontWeight: 900,
-      fontSize: 18,
+      fontWeight: 800,
+      fontSize: 12,
       textAlign: 'center',
-      lineHeight: 1.2,
-      transform: 'rotate(-20deg)',
-      position: 'absolute',
-      right: 60,
-      top: 200,
+      lineHeight: 1.3,
+      transform: 'rotate(-12deg)',
       whiteSpace: 'pre-line',
-      boxShadow: `0 0 0 4px white, 0 0 0 6px ${config.color}`,
-      backgroundColor: 'rgba(255,255,255,0.9)',
-      zIndex: 10,
+      opacity: 0.30,
+      pointerEvents: 'none',
+      userSelect: 'none',
+      zIndex: 0,
     }}>
       {label}
     </div>
@@ -126,6 +127,21 @@ export default function PrintInvoicePage() {
   const [invoice, setInvoice] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [logo, setLogo] = useState(null);
+  const [showSignatures, setShowSignatures] = useState(true);
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('simdir_invoice_logo');
+    if (savedLogo) setLogo(savedLogo);
+    const savedSig = localStorage.getItem('simdir_invoice_show_signatures');
+    if (savedSig !== null) setShowSignatures(savedSig === 'true');
+  }, []);
+
+  // Save signature preference
+  useEffect(() => {
+    localStorage.setItem('simdir_invoice_show_signatures', showSignatures);
+  }, [showSignatures]);
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {
@@ -171,6 +187,9 @@ export default function PrintInvoicePage() {
     );
   }
 
+  // Cek apakah ada item dengan diskon
+  const hasDiskon = items.some(item => (item.diskon_persen || 0) > 0);
+
   if (!invoice) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>
@@ -208,7 +227,17 @@ export default function PrintInvoicePage() {
           </Link>
           <h1 style={{ margin: 0, fontSize: '1.125rem' }}>Preview Invoice</h1>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Toggle Tanda Tangan */}
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--text-2)' }}>
+            <input
+              type="checkbox"
+              checked={showSignatures}
+              onChange={(e) => setShowSignatures(e.target.checked)}
+              style={{ width: 16, height: 16, cursor: 'pointer' }}
+            />
+            Tampilkan Tanda Tangan
+          </label>
           <button className="btn btn-primary" onClick={() => window.print()}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -226,11 +255,13 @@ export default function PrintInvoicePage() {
         margin: '0 auto',
         padding: '20mm',
         paddingTop: '100px',
+        paddingBottom: '25mm',
         background: 'white',
         boxSizing: 'border-box',
         position: 'relative',
+        zIndex: 1,
       }}>
-        {/* Stamp */}
+        {/* Watermark Stamp */}
         <InvoiceStamp status={invoice.status} />
 
         {/* Header */}
@@ -242,12 +273,25 @@ export default function PrintInvoicePage() {
           borderBottom: '3px solid #1e3a8a',
           paddingBottom: '1.5rem',
         }}>
-          <div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e3a8a' }}>
-              INVOICE
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
-              Unesa Science Center (USC)
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {logo && (
+              <img 
+                src={logo} 
+                alt="Logo Lembaga" 
+                style={{ 
+                  maxHeight: '60px', 
+                  maxWidth: '120px', 
+                  objectFit: 'contain',
+                }} 
+              />
+            )}
+            <div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e3a8a' }}>
+                INVOICE
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
+                Unesa Science Center (USC)
+              </div>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -287,9 +331,6 @@ export default function PrintInvoicePage() {
               Kepada:
             </div>
             <div style={{ fontWeight: 600 }}>{invoice.nama_pelanggan}</div>
-            <div style={{ fontSize: '0.875rem', color: '#475569', marginTop: '0.25rem' }}>
-              {invoice.kode_pelanggan}
-            </div>
             {invoice.customer_alamat && (
               <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
                 {invoice.customer_alamat}
@@ -319,9 +360,11 @@ export default function PrintInvoicePage() {
             <tr style={{ backgroundColor: '#f1f5f9' }}>
               <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #cbd5e1', width: '50px' }}>No</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #cbd5e1' }}>Deskripsi</th>
-              <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #cbd5e1', width: '80px' }}>Qty</th>
+              <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #cbd5e1', width: '100px' }}>Qty</th>
               <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '2px solid #cbd5e1', width: '120px' }}>Harga</th>
-              <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #cbd5e1', width: '80px' }}>Disc</th>
+              {hasDiskon && (
+                <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '2px solid #cbd5e1', width: '70px' }}>Disc</th>
+              )}
               <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '2px solid #cbd5e1', width: '140px' }}>Total</th>
             </tr>
           </thead>
@@ -335,14 +378,16 @@ export default function PrintInvoicePage() {
                   {item.deskripsi}
                 </td>
                 <td style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
-                  {item.quantity} {item.satuan}
+                  {item.quantity}{item.satuan ? ` ${item.satuan}` : ''}
                 </td>
                 <td style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                   {formatRupiah(item.harga_satuan)}
                 </td>
-                <td style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
-                  {item.diskon_persen > 0 ? `${item.diskon_persen}%` : '-'}
-                </td>
+                {hasDiskon && (
+                  <td style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>
+                    {(item.diskon_persen || 0) > 0 ? `${item.diskon_persen}%` : '-'}
+                  </td>
+                )}
                 <td style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 500 }}>
                   {formatRupiah(item.total)}
                 </td>
@@ -367,15 +412,39 @@ export default function PrintInvoicePage() {
               <span style={{ color: '#64748b' }}>Subtotal</span>
               <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.subtotal)}</span>
             </div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              padding: '0.5rem 0',
-              borderBottom: '1px solid #e2e8f0',
-            }}>
-              <span style={{ color: '#64748b' }}>PPN ({invoice.ppn_persen}%)</span>
-              <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.ppn_nilai)}</span>
-            </div>
+            {invoice.ppn_nilai > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                padding: '0.5rem 0',
+                borderBottom: '1px solid #e2e8f0',
+              }}>
+                <span style={{ color: '#64748b' }}>PPN ({invoice.ppn_persen}%)</span>
+                <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.ppn_nilai)}</span>
+              </div>
+            )}
+            {invoice.diskon_nilai > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                padding: '0.5rem 0',
+                borderBottom: '1px solid #e2e8f0',
+              }}>
+                <span style={{ color: '#64748b' }}>Diskon</span>
+                <span style={{ fontFamily: 'monospace', color: '#dc2626' }}>-{formatRupiah(invoice.diskon_nilai)}</span>
+              </div>
+            )}
+            {invoice.biaya_pengiriman > 0 && (
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                padding: '0.5rem 0',
+                borderBottom: '1px solid #e2e8f0',
+              }}>
+                <span style={{ color: '#64748b' }}>Biaya Pengiriman</span>
+                <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.biaya_pengiriman)}</span>
+              </div>
+            )}
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -433,25 +502,27 @@ export default function PrintInvoicePage() {
         </div>
 
         {/* Signatures */}
-        <div style={{ 
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: '3rem',
-          paddingTop: '2rem',
-        }}>
-          <div style={{ textAlign: 'center', width: '200px' }}>
-            <div style={{ height: '80px' }}></div>
-            <div style={{ borderTop: '1px solid #334155', paddingTop: '0.5rem' }}>
-              <div style={{ fontWeight: 600 }}>Dibuat Oleh</div>
+        {showSignatures && (
+          <div style={{ 
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: '3rem',
+            paddingTop: '2rem',
+          }}>
+            <div style={{ textAlign: 'center', width: '200px' }}>
+              <div style={{ height: '80px' }}></div>
+              <div style={{ borderTop: '1px solid #334155', paddingTop: '0.5rem' }}>
+                <div style={{ fontWeight: 600 }}>Dibuat Oleh</div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'center', width: '200px' }}>
+              <div style={{ height: '80px' }}></div>
+              <div style={{ borderTop: '1px solid #334155', paddingTop: '0.5rem' }}>
+                <div style={{ fontWeight: 600 }}>Mengetahui</div>
+              </div>
             </div>
           </div>
-          <div style={{ textAlign: 'center', width: '200px' }}>
-            <div style={{ height: '80px' }}></div>
-            <div style={{ borderTop: '1px solid #334155', paddingTop: '0.5rem' }}>
-              <div style={{ fontWeight: 600 }}>Mengetahui</div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Footer */}
         <div style={{ 
@@ -471,7 +542,7 @@ export default function PrintInvoicePage() {
         @media print {
           @page {
             size: A4 portrait;
-            margin: 10mm 15mm;
+            margin: 10mm 15mm 0mm 15mm;
           }
           
           * {
@@ -526,12 +597,12 @@ export default function PrintInvoicePage() {
           
           /* Main content adjustments */
           .invoice-print-container {
-            padding: 0 !important;
+            padding: 10mm 15mm 15mm 15mm !important;
             margin: 0 !important;
             max-width: 100% !important;
             width: 100% !important;
             box-shadow: none !important;
-            position: static !important;
+            position: relative !important;
           }
           
           /* Ensure content flows properly */

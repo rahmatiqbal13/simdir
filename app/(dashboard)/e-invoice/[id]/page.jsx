@@ -145,6 +145,9 @@ export default function InvoiceDetailPage() {
 
   const isSuperAdmin = userRole === 'super_admin';
 
+  // Cek apakah ada item dengan diskon
+  const hasDiskon = items.some(item => (item.diskon_persen || 0) > 0);
+
   const statusColors = {
     dibuat: '#64748b',
     dikirim: '#3b82f6',
@@ -300,7 +303,9 @@ export default function InvoiceDetailPage() {
                     <th>Deskripsi</th>
                     <th style={{ textAlign: 'center' }}>Qty</th>
                     <th style={{ textAlign: 'right' }}>Harga</th>
-                    <th style={{ textAlign: 'center' }}>Disc</th>
+                    {hasDiskon && (
+                      <th style={{ textAlign: 'center' }}>Disc</th>
+                    )}
                     <th style={{ textAlign: 'right' }}>Total</th>
                   </tr>
                 </thead>
@@ -309,9 +314,11 @@ export default function InvoiceDetailPage() {
                     <tr key={item.id}>
                       <td>{index + 1}</td>
                       <td>{item.deskripsi}</td>
-                      <td style={{ textAlign: 'center' }}>{item.quantity} {item.satuan}</td>
+                      <td style={{ textAlign: 'center' }}>{item.quantity}{item.satuan ? ` ${item.satuan}` : ''}</td>
                       <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.harga_satuan)}</td>
-                      <td style={{ textAlign: 'center' }}>{item.diskon_persen > 0 ? `${item.diskon_persen}%` : '-'}</td>
+                      {hasDiskon && (
+                        <td style={{ textAlign: 'center' }}>{(item.diskon_persen || 0) > 0 ? `${item.diskon_persen}%` : '-'}</td>
+                      )}
                       <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 500 }}>{formatRupiah(item.total)}</td>
                     </tr>
                   ))}
@@ -332,10 +339,24 @@ export default function InvoiceDetailPage() {
                 <span style={{ color: 'var(--text-2)' }}>Subtotal</span>
                 <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.subtotal)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
-                <span style={{ color: 'var(--text-2)' }}>PPN ({invoice.ppn_persen}%)</span>
-                <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.ppn_nilai)}</span>
-              </div>
+              {invoice.ppn_nilai > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                  <span style={{ color: 'var(--text-2)' }}>PPN ({invoice.ppn_persen}%)</span>
+                  <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.ppn_nilai)}</span>
+                </div>
+              )}
+              {invoice.diskon_nilai > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                  <span style={{ color: 'var(--text-2)' }}>Diskon</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--danger)' }}>-{formatRupiah(invoice.diskon_nilai)}</span>
+                </div>
+              )}
+              {invoice.biaya_pengiriman > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                  <span style={{ color: 'var(--text-2)' }}>Biaya Pengiriman</span>
+                  <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.biaya_pengiriman)}</span>
+                </div>
+              )}
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 

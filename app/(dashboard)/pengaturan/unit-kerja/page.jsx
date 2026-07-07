@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { useUnitKerja } from '@/context/UnitKerjaContext';
 
 const ITEMS_PER_PAGE = 8;
@@ -831,6 +831,16 @@ export default function UnitKerjaPage() {
         </>
       )}
 
+      {/* Logo Invoice Upload */}
+      <div className="card mb-4">
+        <div className="card-header">
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>Logo Invoice</h3>
+        </div>
+        <div className="card-body">
+          <LogoUploadSection />
+        </div>
+      </div>
+
       {/* Modal */}
       {showModal && (
         <UnitModal
@@ -839,6 +849,106 @@ export default function UnitKerjaPage() {
           onClose={() => { setShowModal(false); setEditingItem(null); }}
         />
       )}
+    </div>
+  );
+}
+
+// ============ KOMPONEN LOGO UPLOAD ============
+function LogoUploadSection() {
+  const [logo, setLogo] = useState(null);
+  const [preview, setPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('simdir_invoice_logo');
+    if (saved) setLogo(saved);
+  }, []);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Hanya file gambar yang diizinkan (PNG, JPG, SVG)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file maksimal 2MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target.result;
+      localStorage.setItem('simdir_invoice_logo', base64);
+      setLogo(base64);
+      setPreview(base64);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemove = () => {
+    localStorage.removeItem('simdir_invoice_logo');
+    setLogo(null);
+    setPreview(null);
+  };
+
+  return (
+    <div>
+      <p style={{ fontSize: '0.875rem', color: 'var(--text-2)', marginBottom: '1rem' }}>
+        Upload logo lembaga Anda untuk ditampilkan di header invoice saat dicetak. 
+        Format yang didukung: PNG, JPG, SVG. Maksimal 2MB.
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+        {(preview || logo) && (
+          <div style={{ 
+            width: '120px', 
+            height: '120px', 
+            borderRadius: 'var(--radius)', 
+            border: '2px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+            background: 'white'
+          }}>
+            <img 
+              src={preview || logo} 
+              alt="Logo Preview" 
+              style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+            />
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button 
+            className="btn btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, marginRight: '0.5rem' }}>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {logo ? 'Ganti Logo' : 'Upload Logo'}
+          </button>
+          {logo && (
+            <button 
+              className="btn btn-danger"
+              onClick={handleRemove}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, marginRight: '0.5rem' }}>
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+              Hapus
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+      </div>
     </div>
   );
 }

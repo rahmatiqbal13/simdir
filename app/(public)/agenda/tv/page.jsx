@@ -233,6 +233,53 @@ const MediaRotator = ({ t }) => {
     return () => clearInterval(timerRef.current)
   }, [idx, cur])
 
+  // Auto-reload halaman setiap 60 menit untuk mencegah stuck di Android TV
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const id = setTimeout(() => {
+      console.log('[TV] Auto-reload after 60 minutes')
+      window.location.reload()
+    }, 60 * 60 * 1000)
+    return () => clearTimeout(id)
+  }, [])
+
+  // Watchdog: cek player masih hidup setiap 2 menit, jika tidak reload halaman
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (cur?.type !== 'youtube') return
+    const id = setInterval(() => {
+      try {
+        const player = playerRef.current
+        const state = player?.getPlayerState?.()
+        // -1 = unstarted, 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
+        // Jika null/undefined atau error, anggap player mati
+        if (state === undefined || state === null) {
+          console.warn('[TV Watchdog] Player state invalid, reloading...')
+          window.location.reload()
+        }
+      } catch {
+        console.warn('[TV Watchdog] Player check failed, reloading...')
+        window.location.reload()
+      }
+    }, 2 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [cur?.type])
+
+  // Network recovery: re-init player saat koneksi kembali
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const handleOnline = () => {
+      console.log('[TV] Network online, re-init player...')
+      if (playerRef.current?.destroy) {
+        try { playerRef.current.destroy() } catch {}
+        playerRef.current = null
+      }
+      ytUrlRef.current = null
+    }
+    window.addEventListener('online', handleOnline)
+    return () => window.removeEventListener('online', handleOnline)
+  }, [])
+
   const ytUrlRef = useRef(null)
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
@@ -289,6 +336,15 @@ const MediaRotator = ({ t }) => {
               } catch (err) {
                 console.warn('YouTube onStateChange error:', err)
               }
+            },
+            onError: (e) => {
+              console.warn('YouTube player error:', e.data)
+              // Error codes: 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embed not allowed
+              // Jika error, reload halaman setelah 5 detik
+              setTimeout(() => {
+                console.warn('[TV] Reloading due to YouTube error')
+                window.location.reload()
+              }, 5000)
             },
           },
         })
@@ -898,7 +954,7 @@ export default function AgendaTVPage() {
           </main>
 
           {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '1.5vw', alignItems: 'center', padding: '1.4vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
+          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto', gap: '1.2vw', alignItems: 'center', padding: '1.2vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.7vh 1.2vw', borderRadius: 999, flexShrink: 0 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '1vw', height: '1vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               PENGUMUMAN
@@ -907,6 +963,18 @@ export default function AgendaTVPage() {
               <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: '1.15vw', fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
                 {marqueeText}
               </span>
+            </div>
+            {/* QR Code Kritik & Saran */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', flexShrink: 0, background: t.card, padding: '0.6vh 1vw', borderRadius: '0.5vw', border: `1px solid ${t.border}` }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://simdir.usc.ac.id/kritik-saran')}`}
+                alt="QR Kritik Saran"
+                style={{ width: '2.2vw', height: '2.2vw', borderRadius: '0.2vw', display: 'block' }}
+              />
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.75vw', fontWeight: 700, color: t.text, letterSpacing: '0.04em', lineHeight: 1.2 }}>Kritik & Saran</span>
+                <span style={{ fontSize: '0.65vw', color: t.text3, lineHeight: 1.2 }}>Scan dengan HP</span>
+              </div>
             </div>
             <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.9vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
               SIMDIR v2.0 · TV

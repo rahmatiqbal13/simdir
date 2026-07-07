@@ -20,9 +20,10 @@ const formatDate = (date) => {
 
 const generateCustomerCode = () => {
   const prefix = 'CUST';
-  const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `${prefix}${timestamp}${random}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const random2 = Math.random().toString(36).substring(2, 4).toUpperCase();
+  return `${prefix}${timestamp.slice(-6)}${random}${random2}`;
 };
 
 // ============ KOMPONEN ITEM ROW ============
@@ -43,18 +44,27 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
         />
       </td>
-      <td style={{ padding: '0.75rem', width: '100px' }}>
-        <input
-          type="number"
-          placeholder="Qty"
-          value={item.quantity}
-          onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
-          style={{ width: '100%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
-          min="0"
-          step="0.01"
-        />
+      <td style={{ padding: '0.75rem', width: '140px' }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <input
+            type="number"
+            placeholder="Qty"
+            value={item.quantity}
+            onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
+            style={{ width: '55%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+            min="0"
+            step="0.01"
+          />
+          <input
+            type="text"
+            placeholder="Satuan"
+            value={item.satuan || ''}
+            onChange={(e) => onUpdate(index, 'satuan', e.target.value)}
+            style={{ width: '45%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', fontSize: '0.8125rem' }}
+          />
+        </div>
       </td>
-      <td style={{ padding: '0.75rem', width: '150px' }}>
+      <td style={{ padding: '0.75rem', width: '130px' }}>
         <input
           type="number"
           placeholder="Harga"
@@ -137,7 +147,7 @@ export default function CreateInvoicePage() {
   
   // Items
   const [items, setItems] = useState([
-    { deskripsi: '', quantity: 1, harga_satuan: 0 }
+    { deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }
   ]);
   
   // Additional charges dengan checkbox
@@ -235,7 +245,7 @@ export default function CreateInvoicePage() {
 
   // Handle add item
   const addItem = () => {
-    setItems(prev => [...prev, { deskripsi: '', quantity: 1, harga_satuan: 0 }]);
+    setItems(prev => [...prev, { deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
   };
 
   // Handle remove item
@@ -246,11 +256,11 @@ export default function CreateInvoicePage() {
   };
 
   // Get status from stempel
+  // Catatan: 'final' adalah stempel cetak saja, bukan status database
   const getStatusFromStempel = () => {
     if (stempel.lunas) return 'lunas';
     if (stempel.segera) return 'segera';
     if (stempel.jatuh_tempo) return 'jatuh_tempo';
-    if (stempel.final) return 'final';
     if (stempel.dikirim) return 'dikirim';
     if (stempel.disetujui) return 'disetujui';
     return 'dibuat';
@@ -300,27 +310,53 @@ export default function CreateInvoicePage() {
         itemCount: items.length
       });
       
-      // Jika mode new customer, buat customer dulu
+      // Jika mode new customer, buat customer dulu (dengan retry jika kode duplikat)
       if (customerMode === 'new') {
-        console.log('Creating new customer:', newCustomer);
-        const { data: createdCustomer, error: customerError } = await supabase
-          .from('customers')
-          .insert({
-            kode_pelanggan: newCustomer.kode_pelanggan,
-            nama_pelanggan: newCustomer.nama_pelanggan,
-            email: newCustomer.email || null,
-            telepon: newCustomer.telepon || null,
-            alamat: newCustomer.alamat || null,
-            npwp: newCustomer.npwp || null,
-            jenis_pelanggan: newCustomer.jenis_pelanggan,
-          })
-          .select()
-          .single();
+        let createdCustomer = null;
+        let customerError = null;
+        let attempts = 0;
+        const maxAttempts = 3;
         
-        if (customerError) {
-          console.error('Customer creation error:', customerError);
-          throw new Error('Gagal membuat pelanggan: ' + customerError.message);
+        while (attempts < maxAttempts && !createdCustomer) {
+          attempts++;
+          // Generate kode baru jika retry
+          const kodePelanggan = attempts === 1 
+            ? newCustomer.kode_pelanggan 
+            : generateCustomerCode();
+          
+          console.log(`Creating new customer (attempt ${attempts}):`, { ...newCustomer, kode_pelanggan: kodePelanggan });
+          
+          const result = await supabase
+            .from('customers')
+            .insert({
+              kode_pelanggan: kodePelanggan,
+              nama_pelanggan: newCustomer.nama_pelanggan,
+              email: newCustomer.email || null,
+              telepon: newCustomer.telepon || null,
+              alamat: newCustomer.alamat || null,
+              npwp: newCustomer.npwp || null,
+              jenis_pelanggan: newCustomer.jenis_pelanggan,
+            })
+            .select()
+            .single();
+          
+          createdCustomer = result.data;
+          customerError = result.error;
+          
+          if (customerError && customerError.message && customerError.message.includes('duplicate key')) {
+            console.warn(`Duplicate kode pelanggan pada attempt ${attempts}, retrying...`);
+            createdCustomer = null;
+            continue;
+          }
+          
+          if (customerError) break;
         }
+        
+        if (customerError || !createdCustomer) {
+          console.error('Customer creation error:', customerError);
+          throw new Error('Gagal membuat pelanggan: ' + (customerError?.message || 'Unknown error'));
+        }
+        
         customerId = createdCustomer.id;
         customerData = createdCustomer;
         console.log('Customer created:', customerId);
@@ -334,8 +370,10 @@ export default function CreateInvoicePage() {
         tanggal_jatuh_tempo: formData.tanggal_jatuh_tempo,
         status: status,
         subtotal: subtotal,
-        ppn_persen: pajak.mode === 'persen' ? (parseFloat(pajak.persen) || 0) : 0,
-        ppn_nilai: ppnNilai,
+        ppn_persen: pajak.aktif && pajak.mode === 'persen' ? (parseFloat(pajak.persen) || 0) : 0,
+        ppn_nilai: pajak.aktif ? ppnNilai : 0,
+        diskon_nilai: diskon.aktif ? diskonNilai : 0,
+        biaya_pengiriman: biayaPengiriman.aktif ? pengirimanNilai : 0,
         total: total,
         catatan: formData.catatan || null,
         terms_conditions: '',
@@ -351,6 +389,10 @@ export default function CreateInvoicePage() {
       
       if (invoiceError) {
         console.error('Invoice creation error:', invoiceError);
+        // Cek apakah error karena kolom belum ada di database
+        if (invoiceError.message && invoiceError.message.includes('Could not find')) {
+          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL di Supabase Dashboard → SQL Editor. Lihat file: supabase/migrations/20260707000000_add_diskon_pengiriman_columns.sql');
+        }
         throw new Error('Gagal membuat invoice: ' + invoiceError.message);
       }
       
@@ -361,7 +403,7 @@ export default function CreateInvoicePage() {
         invoice_id: invoiceData.id,
         deskripsi: item.deskripsi,
         quantity: parseFloat(item.quantity) || 0,
-        satuan: 'pcs',
+        satuan: item.satuan || null,
         harga_satuan: parseFloat(item.harga_satuan) || 0,
         diskon_persen: 0,
         total: (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0),
@@ -431,7 +473,7 @@ export default function CreateInvoicePage() {
         tanggal_jatuh_tempo: '',
         catatan: '',
       });
-      setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0 }]);
+      setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
       setPajak({ aktif: true, mode: 'persen', persen: 11, nominal: 0 });
       setDiskon({ aktif: false, nominal: 0 });
       setBiayaPengiriman({ aktif: false, nominal: 0 });
@@ -504,6 +546,7 @@ export default function CreateInvoicePage() {
                     <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Tanggal Invoice*</span>
                     <input
                       type="date"
+                      autoComplete="off"
                       value={formData.tanggal_invoice}
                       onChange={(e) => setFormData({ ...formData, tanggal_invoice: e.target.value })}
                       style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
@@ -514,6 +557,7 @@ export default function CreateInvoicePage() {
                     <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Jatuh Tempo*</span>
                     <input
                       type="date"
+                      autoComplete="off"
                       value={formData.tanggal_jatuh_tempo}
                       onChange={(e) => setFormData({ ...formData, tanggal_jatuh_tempo: e.target.value })}
                       style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
@@ -618,6 +662,8 @@ export default function CreateInvoicePage() {
                     <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Nama Pelanggan *</label>
                     <input
                       type="text"
+                      autoComplete="name"
+                      spellCheck={false}
                       value={newCustomer.nama_pelanggan}
                       onChange={(e) => setNewCustomer({ ...newCustomer, nama_pelanggan: e.target.value })}
                       placeholder="Nama lengkap pelanggan"
@@ -640,6 +686,9 @@ export default function CreateInvoicePage() {
                       <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Telepon</label>
                       <input
                         type="tel"
+                        autoComplete="tel"
+                        spellCheck={false}
+                        inputMode="tel"
                         value={newCustomer.telepon}
                         onChange={(e) => setNewCustomer({ ...newCustomer, telepon: e.target.value })}
                         placeholder="0812-3456-7890"
@@ -650,6 +699,9 @@ export default function CreateInvoicePage() {
                       <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Email</label>
                       <input
                         type="email"
+                        autoComplete="email"
+                        spellCheck={false}
+                        inputMode="email"
                         value={newCustomer.email}
                         onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
                         placeholder="email@example.com"

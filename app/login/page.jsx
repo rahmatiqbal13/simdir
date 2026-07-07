@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import bcrypt from 'bcryptjs'
 import { supabase } from '@/lib/supabase/client'
 
 // USC Logo Component - Using official logo file
@@ -34,95 +33,41 @@ export default function LoginPage() {
 
     try {
       const identifier = formData.identifier.trim()
-      
+
       if (!identifier || !formData.password) {
         throw new Error('Username/email dan password harus diisi')
       }
 
-      const isEmail = identifier.includes('@')
+      // Verifikasi kredensial dilakukan sepenuhnya di server (rate-limited,
+      // bcrypt, pesan error generik) — client tidak pernah melihat password hash.
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password: formData.password })
+      })
+      const data = await res.json()
 
-      let userData = null
-
-      if (isEmail) {
-        const { data, error: rpcError } = await supabase.rpc('get_user_by_email', { 
-          p_email: identifier 
-        })
-        if (rpcError) throw rpcError
-        if (data && data.length > 0) userData = data[0]
-      } else {
-        const { data, error: rpcError } = await supabase.rpc('get_user_by_username', { 
-          p_username: identifier 
-        })
-        if (rpcError) throw rpcError
-        if (data && data.length > 0) userData = data[0]
+      if (!res.ok) {
+        throw new Error(data.error || 'Username/email atau password salah')
       }
 
-      if (!userData) {
-        throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
-      }
-
-      const inputPassword = formData.password.trim()
-      const dbPassword = userData.password?.trim() || ''
-
-      // Support bcrypt hashes and plain text passwords (legacy fallback / mock)
-      let passwordValid = false
-      if (dbPassword.startsWith('$2')) {
-        passwordValid = await bcrypt.compare(inputPassword, dbPassword)
-      } else {
-        passwordValid = dbPassword === inputPassword
-      }
-
-      if (!passwordValid) {
-        throw new Error(isEmail ? 'Email atau password salah' : 'Username atau password salah')
-      }
-
-      if (!userData.is_active) {
-        throw new Error('Akun Anda telah dinonaktifkan')
-      }
-
-      // Attempt Supabase Auth login (best effort — local session is the fallback)
-      let authSuccess = false
+      // Best-effort: kalau user ini juga terdaftar di Supabase Auth, buat
+      // session Supabase asli juga (dipakai sebagai METODE 1 di middleware).
+      // Kegagalan di sini tidak masalah — cookie session lokal di atas
+      // sudah cukup untuk mengotorisasi user.
       try {
-        const { error: authError } = await supabase.auth.signInWithPassword({
-          email: userData.email,
+        await supabase.auth.signInWithPassword({
+          email: data.user.email,
           password: formData.password
         })
-        if (!authError) authSuccess = true
       } catch (authErr) {
         console.log('Auth login failed (non-critical):', authErr.message)
       }
 
-      // Removed dangerous auto-signUp loop that could create ghost accounts with wrong passwords.
-      // If Supabase Auth user doesn't exist yet, the app falls back to local session cookie.
-
-      try {
-        await supabase
-          .from('users')
-          .update({ last_login: new Date().toISOString() })
-          .eq('id', userData.id)
-      } catch (e) {
-        console.log('Update last_login failed (non-critical):', e)
-      }
-
-      const sessionPayload = {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email,
-        role: userData.role
-      }
-      
-      await fetch('/api/auth/local-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          sessionData: btoa(JSON.stringify(sessionPayload))
-        })
-      })
-      
-      localStorage.setItem('simdir_session', btoa(JSON.stringify(sessionPayload)))
+      localStorage.setItem('simdir_session', data.session)
 
       window.location.href = '/dashboard'
-      
+
     } catch (err) {
       console.error('Login error:', err)
       setError(err.message)
@@ -262,6 +207,8 @@ export default function LoginPage() {
                   onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                   required
                   autoComplete="username"
+                  spellCheck={false}
+                  inputMode="email"
                   disabled={loading}
                 />
               </div>
@@ -286,6 +233,7 @@ export default function LoginPage() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   autoComplete="current-password"
+                  spellCheck={false}
                   disabled={loading}
                   style={{ paddingRight: 44 }}
                 />

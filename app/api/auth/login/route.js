@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import bcrypt from 'bcryptjs'
 import { getLocalUserByUsername, getLocalUserByEmail } from '@/lib/local-users'
+import { signSession } from '@/lib/session'
 
 // ============================================
 // Simple in-memory rate limiter
@@ -111,16 +112,23 @@ export async function POST(request) {
       email: userData.email,
       role: userData.role,
     }
-    const sessionEncoded = Buffer.from(JSON.stringify(sessionPayload)).toString('base64')
+
+    // Cookie yang dipakai server (middleware) untuk otorisasi HARUS ditandatangani
+    // agar tidak bisa dipalsukan begitu saja dari client (lihat lib/session.js).
+    const signedSession = await signSession(sessionPayload)
+
+    // Payload ringan untuk localStorage (hanya dipakai untuk tampilan nama/role
+    // di UI, bukan sebagai sumber otorisasi — jadi tidak perlu ditandatangani).
+    const displayPayload = Buffer.from(JSON.stringify(sessionPayload)).toString('base64')
 
     const response = NextResponse.json({
       success: true,
-      session: sessionEncoded,
-      user: { role: userData.role, username: userData.username },
+      session: displayPayload,
+      user: { role: userData.role, username: userData.username, email: userData.email },
     })
 
     // Set httpOnly cookie (tidak bisa dibaca JavaScript)
-    response.cookies.set('simdir_session_local', sessionEncoded, {
+    response.cookies.set('simdir_session_local', signedSession, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
