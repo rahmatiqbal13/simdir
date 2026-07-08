@@ -74,10 +74,10 @@ export default function PertanyaanKritikSaranPage() {
         urutan: facilityQuestions.length,
         is_active: isActive,
       }
-      if (newTipe === 'pilihan_ganda') {
+      if (newTipe === 'pilihan_ganda' || newTipe === 'checkbox') {
         const opsi = newOpsi.filter(o => o.trim()).map(o => o.trim())
         if (opsi.length < 2) {
-          setError('Pilihan ganda memerlukan minimal 2 opsi')
+          setError('Pilihan ganda/checkbox memerlukan minimal 2 opsi')
           setSaving(false)
           return
         }
@@ -298,6 +298,7 @@ export default function PertanyaanKritikSaranPage() {
               { value: 'rating', label: '⭐ Rating 1-5' },
               { value: 'teks', label: '📝 Teks' },
               { value: 'pilihan_ganda', label: '🔘 Pilihan Ganda' },
+              { value: 'checkbox', label: '☑️ Checkbox (Pilihan Multiple)' },
             ].map(opt => (
               <button
                 key={opt.value}
@@ -316,8 +317,8 @@ export default function PertanyaanKritikSaranPage() {
               </button>
             ))}
           </div>
-          {/* Opsi pilihan ganda */}
-          {newTipe === 'pilihan_ganda' && (
+          {/* Opsi pilihan ganda / checkbox */}
+          {(newTipe === 'pilihan_ganda' || newTipe === 'checkbox') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <span style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>Opsi Pilihan:</span>
               {newOpsi.map((opsi, idx) => (
@@ -421,7 +422,7 @@ export default function PertanyaanKritikSaranPage() {
               Belum ada pertanyaan
             </div>
             <div style={{ color: '#94a3b8', fontSize: '13px' }}>
-              Tambah pertanyaan di atas atau gunakan aspek default (Sarana, Prasarana, dll) di form publik
+              Tambah pertanyaan di atas agar muncul di form publik
             </div>
           </div>
         ) : (
@@ -500,7 +501,7 @@ export default function PertanyaanKritikSaranPage() {
                       {q.is_active ? 'Aktif' : 'Nonaktif'}
                     </span>
                     <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                      {q.tipe === 'rating' ? '⭐ Rating 1-5' : q.tipe === 'pilihan_ganda' ? '🔘 Pilihan Ganda' : '📝 Teks'}
+                      {q.tipe === 'rating' ? '⭐ Rating 1-5' : q.tipe === 'pilihan_ganda' ? '🔘 Pilihan Ganda' : q.tipe === 'checkbox' ? '☑️ Checkbox' : '📝 Teks'}
                     </span>
                   </div>
                 </div>
@@ -595,9 +596,8 @@ export default function PertanyaanKritikSaranPage() {
         </h4>
         <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '13px', color: '#374151', lineHeight: '1.6' }}>
           <li>Pertanyaan <strong>aktif</strong> akan muncul di form publik saat pengguna memilih fasilitas.</li>
-          <li>Jika fasilitas tidak memiliki pertanyaan aktif, form publik akan menampilkan aspek default (Sarana, Prasarana, dll).</li>
           <li>Urutan menentukan posisi pertanyaan di form publik.</li>
-          <li>Tipe pertanyaan: Rating ⭐1-5, Teks 📝, atau Pilihan Ganda 🔘.</li>
+          <li>Tipe pertanyaan: Rating ⭐1-5, Teks 📝, Pilihan Ganda 🔘, atau Checkbox ☑️ (pilihan multiple).</li>
         </ul>
       </div>
     </div>

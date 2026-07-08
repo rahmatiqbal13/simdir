@@ -86,6 +86,17 @@ export async function POST(request) {
             { status: 400 }
           )
         }
+      } else if (tipe === 'checkbox') {
+        let jawabanArr = []
+        if (item.jawaban_pilihan) {
+          try { jawabanArr = JSON.parse(item.jawaban_pilihan) } catch {}
+        }
+        if (!Array.isArray(jawabanArr) || jawabanArr.length === 0) {
+          return NextResponse.json(
+            { error: `Pilihan untuk "${item.aspek || item.fasilitas}" wajib dipilih minimal 1` },
+            { status: 400 }
+          )
+        }
       } else if (tipe === 'teks') {
         if (!item.penjelasan || !item.penjelasan.trim()) {
           return NextResponse.json(
@@ -128,7 +139,19 @@ export async function POST(request) {
         unit_kerja: body.unit_kerja || null,
         jenis_kelamin: body.jenis_kelamin,
         kategori: body.items.map(i => i.fasilitas).join(', '),
-        isi: body.items.map(i => `[${i.fasilitas}] ${i.penjelasan || i.jawaban_pilihan || ''}`).join('\n\n'),
+        isi: body.items.map(i => {
+          let jawaban = i.penjelasan || ''
+          if (i.jawaban_pilihan) {
+            try {
+              const arr = JSON.parse(i.jawaban_pilihan)
+              if (Array.isArray(arr)) jawaban = arr.join(', ')
+              else jawaban = i.jawaban_pilihan
+            } catch {
+              jawaban = i.jawaban_pilihan
+            }
+          }
+          return `[${i.fasilitas}] ${jawaban}`
+        }).join('\n\n'),
         is_anonim: body.is_anonim || false,
         status: 'baru',
         total_items: body.items.length,

@@ -68,11 +68,11 @@ export async function POST(request) {
     }
 
     const tipe = body.tipe || 'rating'
-    if (tipe === 'pilihan_ganda') {
+    if (tipe === 'pilihan_ganda' || tipe === 'checkbox') {
       const opsi = body.opsi_pilihan
       if (!Array.isArray(opsi) || opsi.length < 2) {
         return NextResponse.json(
-          { error: 'Pilihan ganda memerlukan minimal 2 opsi' },
+          { error: 'Pilihan ganda/checkbox memerlukan minimal 2 opsi' },
           { status: 400 }
         )
       }
@@ -88,7 +88,7 @@ export async function POST(request) {
       is_active: body.is_active !== false,
     }
 
-    if (tipe === 'pilihan_ganda' && body.opsi_pilihan) {
+    if ((tipe === 'pilihan_ganda' || tipe === 'checkbox') && body.opsi_pilihan) {
       insertData.opsi_pilihan = body.opsi_pilihan
     }
 

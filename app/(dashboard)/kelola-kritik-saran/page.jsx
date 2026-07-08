@@ -271,7 +271,7 @@ export default function KritikSaranAdminPage() {
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                       <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>
-                        ⭐ {item.overall_rating || '-'}
+                        {item.overall_rating ? `⭐ ${item.overall_rating}` : '—'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
                         {item.total_items || 0} penilaian
@@ -387,12 +387,23 @@ export default function KritikSaranAdminPage() {
                         }}>
                           {sub.aspek || 'Lainnya'}
                         </span>
-                        <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem', marginLeft: 'auto' }}>
-                          ⭐ {sub.rating}/5
-                        </span>
+                        {sub.rating > 0 && (
+                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem', marginLeft: 'auto' }}>
+                            ⭐ {sub.rating}/5
+                          </span>
+                        )}
                       </div>
                       <p style={{ margin: 0, fontSize: '0.875rem', color: '#0f172a', lineHeight: '1.5' }}>
-                        {sub.penjelasan}
+                        {(() => {
+                          if (sub.jawaban_pilihan) {
+                            try {
+                              const arr = JSON.parse(sub.jawaban_pilihan)
+                              if (Array.isArray(arr)) return `☑️ ${arr.join(', ')}`
+                            } catch {}
+                            return sub.jawaban_pilihan
+                          }
+                          return sub.penjelasan || '-'
+                        })()}
                       </p>
                     </div>
                   ))}
