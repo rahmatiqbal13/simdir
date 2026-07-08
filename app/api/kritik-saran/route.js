@@ -54,6 +54,13 @@ export async function POST(request) {
     const body = await request.json()
 
     // Validation
+    if (!body.jenis_kelamin || !['Laki-laki', 'Perempuan'].includes(body.jenis_kelamin)) {
+      return NextResponse.json(
+        { error: 'Jenis kelamin wajib dipilih (Laki-laki atau Perempuan)' },
+        { status: 400 }
+      )
+    }
+
     if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
       return NextResponse.json(
         { error: 'Minimal pilih 1 fasilitas dan berikan rating & penjelasan' },
@@ -119,6 +126,7 @@ export async function POST(request) {
         email: body.is_anonim ? null : (body.email || null),
         telepon: body.is_anonim ? null : (body.telepon || null),
         unit_kerja: body.unit_kerja || null,
+        jenis_kelamin: body.jenis_kelamin,
         kategori: body.items.map(i => i.fasilitas).join(', '),
         isi: body.items.map(i => `[${i.fasilitas}] ${i.penjelasan || i.jawaban_pilihan || ''}`).join('\n\n'),
         is_anonim: body.is_anonim || false,

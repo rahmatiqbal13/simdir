@@ -28,7 +28,7 @@ export default function KritikSaranPage() {
   const [customQuestions, setCustomQuestions] = useState({})
   const [questionsLoading, setQuestionsLoading] = useState(true)
   const [profile, setProfile] = useState({
-    nama: '', email: '', telepon: '', unit_kerja: '', is_anonim: false,
+    nama: '', email: '', telepon: '', unit_kerja: '', jenis_kelamin: '', is_anonim: false,
   })
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -119,6 +119,7 @@ export default function KritikSaranPage() {
   }
 
   const validate = () => {
+    if (!profile.jenis_kelamin) return 'Jenis kelamin wajib dipilih'
     if (items.length === 0) return 'Pilih minimal 1 fasilitas untuk dinilai'
     for (const item of items) {
       const tipe = item.tipe || 'rating'
@@ -203,7 +204,7 @@ export default function KritikSaranPage() {
             onClick={() => {
               setSubmitted(false)
               setItems([])
-              setProfile({ nama:'', email:'', telepon:'', unit_kerja:'', is_anonim:false })
+              setProfile({ nama:'', email:'', telepon:'', unit_kerja:'', jenis_kelamin:'', is_anonim:false })
             }}
             style={{
               padding: '12px 24px', background: '#1e3a8a', color: 'white', border: 'none',
@@ -303,6 +304,32 @@ export default function KritikSaranPage() {
             <input type="text" placeholder="Unit Kerja / Instansi (opsional)" value={profile.unit_kerja}
               onChange={(e) => setProfile(p => ({ ...p, unit_kerja: e.target.value }))}
               style={{ ...inputStyle, marginTop: '8px' }} />
+
+            {/* Jenis Kelamin — wajib */}
+            <div style={{ marginTop: '12px' }}>
+              <label style={{ ...labelStyle, marginBottom: '6px' }}>
+                Jenis Kelamin <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {['Laki-laki', 'Perempuan'].map(jk => (
+                  <button
+                    key={jk}
+                    type="button"
+                    onClick={() => setProfile(p => ({ ...p, jenis_kelamin: jk }))}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1.5px solid',
+                      borderColor: profile.jenis_kelamin === jk ? '#3b82f6' : '#e2e8f0',
+                      background: profile.jenis_kelamin === jk ? '#eff6ff' : 'white',
+                      color: profile.jenis_kelamin === jk ? '#1e3a8a' : '#64748b',
+                      fontSize: '14px', fontWeight: profile.jenis_kelamin === jk ? '600' : '400',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {jk === 'Laki-laki' ? '👨' : '👩'} {jk}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Add Facility Buttons */}
