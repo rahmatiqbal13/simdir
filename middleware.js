@@ -158,6 +158,11 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // PWA static assets (sw.js, manifest.json, workbox-*.js, offline.html,
+    // browserconfig.xml) must be excluded here, not just from isPublicPath —
+    // the browser fetches them directly and will not follow a redirect to
+    // /login, so letting middleware touch them at all breaks SW
+    // registration and manifest parsing for every visitor, logged in or not.
+    '/((?!_next/static|_next/image|favicon.ico|sw.js|manifest.json|workbox-.*.js|offline.html|browserconfig.xml|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

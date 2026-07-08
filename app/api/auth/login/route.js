@@ -147,7 +147,8 @@ export async function POST(request) {
     }
 
     return response
-  } catch {
+  } catch (err) {
+    console.error('Login route error:', err)
     return NextResponse.json({ error: 'Terjadi kesalahan server' }, { status: 500 })
   }
 }
