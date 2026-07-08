@@ -61,42 +61,55 @@ export async function POST(request) {
       )
     }
 
-    const ALLOWED_ASPEK = ['Sarana', 'Prasarana', 'Pelayanan', 'Kebersihan', 'Keamanan', 'Lainnya']
-
     // Validate each item
     for (const item of body.items) {
-      if (!ALLOWED_FACILITIES.includes(item.fasilitas)) {
+      if (!item.fasilitas || !item.fasilitas.trim()) {
         return NextResponse.json(
-          { error: `Fasilitas "${item.fasilitas}" tidak valid` },
+          { error: `Fasilitas wajib diisi untuk setiap item` },
           { status: 400 }
         )
       }
-      if (!item.rating || item.rating < 1 || item.rating > 5) {
-        return NextResponse.json(
-          { error: `Rating untuk ${item.fasilitas} wajib diisi (1-5)` },
-          { status: 400 }
-        )
-      }
-      if (!item.penjelasan || !item.penjelasan.trim()) {
-        return NextResponse.json(
-          { error: `Penjelasan untuk ${item.fasilitas} wajib diisi` },
-          { status: 400 }
-        )
-      }
-      if (item.aspek && !ALLOWED_ASPEK.includes(item.aspek)) {
-        return NextResponse.json(
-          { error: `Aspek "${item.aspek}" tidak valid` },
-          { status: 400 }
-        )
+
+      const tipe = item.tipe || 'rating'
+
+      if (tipe === 'pilihan_ganda') {
+        if (!item.jawaban_pilihan || !item.jawaban_pilihan.trim()) {
+          return NextResponse.json(
+            { error: `Pilihan untuk "${item.aspek || item.fasilitas}" wajib diisi` },
+            { status: 400 }
+          )
+        }
+      } else if (tipe === 'teks') {
+        if (!item.penjelasan || !item.penjelasan.trim()) {
+          return NextResponse.json(
+            { error: `Penjelasan untuk "${item.aspek || item.fasilitas}" wajib diisi` },
+            { status: 400 }
+          )
+        }
+      } else {
+        // Default: rating
+        if (!item.rating || item.rating < 1 || item.rating > 5) {
+          return NextResponse.json(
+            { error: `Rating untuk "${item.aspek || item.fasilitas}" wajib diisi (1-5)` },
+            { status: 400 }
+          )
+        }
+        if (!item.penjelasan || !item.penjelasan.trim()) {
+          return NextResponse.json(
+            { error: `Penjelasan untuk "${item.aspek || item.fasilitas}" wajib diisi` },
+            { status: 400 }
+          )
+        }
       }
     }
 
     const supabase = getServiceClient()
 
-    // Calculate overall rating (average)
-    const avgRating = Math.round(
-      body.items.reduce((sum, item) => sum + item.rating, 0) / body.items.length
-    )
+    // Calculate overall rating (average of rating items only)
+    const ratingItems = body.items.filter(i => i.rating && i.rating >= 1 && i.rating <= 5)
+    const avgRating = ratingItems.length > 0
+      ? Math.round(ratingItems.reduce((sum, item) => sum + item.rating, 0) / ratingItems.length)
+      : null
 
     // Insert parent record
     const { data: parent, error: parentError } = await supabase
@@ -107,7 +120,7 @@ export async function POST(request) {
         telepon: body.is_anonim ? null : (body.telepon || null),
         unit_kerja: body.unit_kerja || null,
         kategori: body.items.map(i => i.fasilitas).join(', '),
-        isi: body.items.map(i => `[${i.fasilitas}] ${i.penjelasan}`).join('\n\n'),
+        isi: body.items.map(i => `[${i.fasilitas}] ${i.penjelasan || i.jawaban_pilihan || ''}`).join('\n\n'),
         is_anonim: body.is_anonim || false,
         status: 'baru',
         total_items: body.items.length,
@@ -123,8 +136,10 @@ export async function POST(request) {
       kritik_saran_id: parent.id,
       fasilitas: item.fasilitas,
       aspek: item.aspek || 'Lainnya',
-      rating: item.rating,
-      penjelasan: item.penjelasan.trim(),
+      rating: item.rating || null,
+      penjelasan: item.penjelasan ? item.penjelasan.trim() : null,
+      jawaban_pilihan: item.jawaban_pilihan ? item.jawaban_pilihan.trim() : null,
+      pertanyaan_id: item.pertanyaan_id || null,
     }))
 
     const { error: itemsError } = await supabase

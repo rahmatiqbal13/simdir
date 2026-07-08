@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // 🎯 Daftar fasilitas — tambah/edit di sini untuk fasilitas baru
 const FACILITIES = [
@@ -11,12 +11,22 @@ const FACILITIES = [
 
 const ASPEK_LIST = ['Sarana', 'Prasarana', 'Pelayanan', 'Kebersihan', 'Keamanan', 'Lainnya']
 
+const RATING_LABELS = {
+  1: 'Buruk',
+  2: 'Kurang Baik',
+  3: 'Cukup',
+  4: 'Baik',
+  5: 'Sangat Baik',
+}
+
 // Helper: generate unique ID for each rating item
 let nextId = 1
 const genId = () => nextId++
 
 export default function KritikSaranPage() {
   const [items, setItems] = useState([])
+  const [customQuestions, setCustomQuestions] = useState({})
+  const [questionsLoading, setQuestionsLoading] = useState(true)
   const [profile, setProfile] = useState({
     nama: '', email: '', telepon: '', unit_kerja: '', is_anonim: false,
   })
@@ -24,12 +34,69 @@ export default function KritikSaranPage() {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState('')
 
-  // items = [{ id, fasilitas, aspek, rating, penjelasan }]
+  // Fetch custom questions on mount
+  useEffect(() => {
+    async function loadQuestions() {
+      try {
+        const res = await fetch('/api/pertanyaan-kritik-saran?active=true')
+        const data = await res.json()
+        if (res.ok && data.grouped) {
+          setCustomQuestions(data.grouped)
+        }
+      } catch (err) {
+        console.error('Failed to load custom questions:', err)
+      } finally {
+        setQuestionsLoading(false)
+      }
+    }
+    loadQuestions()
+  }, [])
 
-  const addItem = (fasilitasName, aspek) => {
+  const hasCustomQuestions = (facilityName) => {
+    const qs = customQuestions[facilityName]
+    return qs && qs.length > 0
+  }
+
+  const addItem = (fasilitasName, aspek, pertanyaanId = null, tipe = 'rating', opsiPilihan = null) => {
     // Check if this exact fasilitas+aspek combo already exists
     if (items.some(i => i.fasilitas === fasilitasName && i.aspek === aspek)) return
-    setItems(prev => [...prev, { id: genId(), fasilitas: fasilitasName, aspek, rating: 0, penjelasan: '' }])
+    setItems(prev => [...prev, {
+      id: genId(),
+      fasilitas: fasilitasName,
+      aspek,
+      rating: 0,
+      penjelasan: '',
+      jawaban_pilihan: '',
+      pertanyaan_id: pertanyaanId,
+      tipe,
+      opsi_pilihan: opsiPilihan,
+    }])
+    setError('')
+  }
+
+  const addFacilityWithQuestions = (facilityName) => {
+    const qs = customQuestions[facilityName]
+    if (qs && qs.length > 0) {
+      // Add all active custom questions for this facility
+      qs.filter(q => q.is_active).forEach(q => {
+        if (!items.some(i => i.fasilitas === facilityName && i.pertanyaan_id === q.id)) {
+          setItems(prev => [...prev, {
+            id: genId(),
+            fasilitas: facilityName,
+            aspek: q.pertanyaan,
+            rating: 0,
+            penjelasan: '',
+            jawaban_pilihan: '',
+            pertanyaan_id: q.id,
+            tipe: q.tipe || 'rating',
+            opsi_pilihan: q.opsi_pilihan || null,
+          }])
+        }
+      })
+    } else {
+      // Fallback: add default first aspect
+      addItem(facilityName, 'Sarana')
+    }
     setError('')
   }
 
@@ -52,10 +119,21 @@ export default function KritikSaranPage() {
   }
 
   const validate = () => {
-    if (items.length === 0) return 'Pilih minimal 1 fasilitas dan aspek'
+    if (items.length === 0) return 'Pilih minimal 1 fasilitas untuk dinilai'
     for (const item of items) {
-      if (!item.rating || item.rating < 1) return `Rating untuk ${item.fasilitas} - ${item.aspek} wajib diisi`
-      if (!item.penjelasan.trim()) return `Penjelasan untuk ${item.fasilitas} - ${item.aspek} wajib diisi`
+      const tipe = item.tipe || 'rating'
+      if (tipe === 'pilihan_ganda') {
+        if (!item.jawaban_pilihan || !item.jawaban_pilihan.trim()) {
+          return `Pilihan untuk "${item.aspek}" wajib diisi`
+        }
+      } else if (tipe === 'teks') {
+        if (!item.penjelasan.trim()) {
+          return `Penjelasan untuk "${item.aspek}" wajib diisi`
+        }
+      } else {
+        if (!item.rating || item.rating < 1) return `Rating untuk "${item.aspek}" wajib diisi`
+        if (!item.penjelasan.trim()) return `Penjelasan untuk "${item.aspek}" wajib diisi`
+      }
     }
     return null
   }
@@ -73,7 +151,9 @@ export default function KritikSaranPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...profile,
-          items: items.map(({ fasilitas, aspek, rating, penjelasan }) => ({ fasilitas, aspek, rating, penjelasan })),
+          items: items.map(({ fasilitas, aspek, rating, penjelasan, jawaban_pilihan, pertanyaan_id, tipe }) => ({
+            fasilitas, aspek, rating, penjelasan, jawaban_pilihan, pertanyaan_id, tipe,
+          })),
         }),
       })
       const data = await res.json()
@@ -90,6 +170,19 @@ export default function KritikSaranPage() {
   const selectedFasilitas = Object.keys(grouped)
   const availableFacilities = FACILITIES.filter(f => !selectedFasilitas.includes(f.name))
 
+  // Progress stats
+  const totalFacilities = selectedFasilitas.length
+  const totalItems = items.length
+  const ratedItems = items.filter(i => i.rating > 0).length
+  const explainedItems = items.filter(i => i.penjelasan.trim().length > 0).length
+  const answeredItems = items.filter(i => {
+    const tipe = i.tipe || 'rating'
+    if (tipe === 'pilihan_ganda') return i.jawaban_pilihan && i.jawaban_pilihan.trim().length > 0
+    if (tipe === 'teks') return i.penjelasan.trim().length > 0
+    return i.rating > 0 && i.penjelasan.trim().length > 0
+  }).length
+  const isComplete = totalItems > 0 && answeredItems === totalItems
+
   if (submitted) {
     return (
       <div style={pageStyle}>
@@ -104,10 +197,14 @@ export default function KritikSaranPage() {
           }}>✓</div>
           <h2 style={{ margin: '0 0 12px', color: '#0f172a', fontSize: '22px' }}>Terima Kasih!</h2>
           <p style={{ margin: '0 0 24px', color: '#64748b', fontSize: '15px', lineHeight: '1.6' }}>
-            Kritik dan saran Anda untuk {Object.keys(grouped).length} fasilitas ({items.length} penilaian) telah berhasil dikirim.
+            Kritik dan saran Anda untuk {totalFacilities} fasilitas ({totalItems} penilaian) telah berhasil dikirim.
           </p>
           <button
-            onClick={() => { setSubmitted(false); setItems([]); setProfile({ nama:'', email:'', telepon:'', unit_kerja:'', is_anonim:false }) }}
+            onClick={() => {
+              setSubmitted(false)
+              setItems([])
+              setProfile({ nama:'', email:'', telepon:'', unit_kerja:'', is_anonim:false })
+            }}
             style={{
               padding: '12px 24px', background: '#1e3a8a', color: 'white', border: 'none',
               borderRadius: '8px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', width: '100%',
@@ -121,7 +218,7 @@ export default function KritikSaranPage() {
   return (
     <div style={pageStyle}>
       <div style={{
-        maxWidth: '560px', width: '100%', background: 'white', borderRadius: '16px',
+        maxWidth: '580px', width: '100%', background: 'white', borderRadius: '16px',
         padding: '28px 22px', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }}>
         {/* Header */}
@@ -136,9 +233,38 @@ export default function KritikSaranPage() {
           </h1>
           <p style={{ margin: 0, color: '#64748b', fontSize: '13px' }}>Unesa Science Center (USC)</p>
           <p style={{ margin: '6px 0 0', color: '#94a3b8', fontSize: '12px' }}>
-            Nilai setiap aspek: Sarana, Prasarana, Pelayanan, Kebersihan, Keamanan
+            Berikan penilaian untuk fasilitas USC
           </p>
         </div>
+
+        {/* Progress Bar */}
+        {totalItems > 0 && (
+          <div style={{
+            marginBottom: '16px', padding: '10px 12px', background: '#f8fafc',
+            borderRadius: '10px', border: '1px solid #e2e8f0',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                Progress: {answeredItems}/{totalItems} dijawab
+              </span>
+              <span style={{
+                fontSize: '11px', fontWeight: 700,
+                color: isComplete ? '#047857' : '#b45309',
+                background: isComplete ? '#dcfce7' : '#fef3c7',
+                padding: '2px 8px', borderRadius: '4px',
+              }}>
+                {isComplete ? 'Siap Kirim ✓' : 'Belum Lengkap'}
+              </span>
+            </div>
+            <div style={{ height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{
+                height: '100%', width: `${totalItems > 0 ? (answeredItems / totalItems) * 100 : 0}%`,
+                background: isComplete ? '#10b981' : '#3b82f6', borderRadius: '3px',
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+        )}
 
         {error && (
           <div style={{
@@ -187,30 +313,39 @@ export default function KritikSaranPage() {
                 <span style={{ color: '#9ca3af', fontWeight: 400, fontSize: '12px' }}> (minimal 1)</span>
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {availableFacilities.map(facility => (
-                  <button key={facility.id} type="button" onClick={() => addItem(facility.name, 'Sarana')}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
-                      borderRadius: '12px', border: '2px solid #e2e8f0', background: 'white',
-                      cursor: 'pointer', transition: 'all 0.15s', width: '100%', textAlign: 'left',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff' }}
-                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = 'white' }}>
-                    <div style={{
-                      width: '44px', height: '44px', borderRadius: '10px', background: facility.color,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0,
-                    }}>{facility.icon}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{facility.name}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>Tap untuk mulai menilai</div>
-                    </div>
-                    <div style={{
-                      width: '28px', height: '28px', borderRadius: '50%', border: '2px solid #cbd5e1',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '16px', color: '#94a3b8', fontWeight: 700,
-                    }}>+</div>
-                  </button>
-                ))}
+                {availableFacilities.map(facility => {
+                  const hasCQ = hasCustomQuestions(facility.name)
+                  const cqCount = customQuestions[facility.name]?.filter(q => q.is_active).length || 0
+                  return (
+                    <button key={facility.id} type="button" onClick={() => addFacilityWithQuestions(facility.name)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
+                        borderRadius: '12px', border: '2px solid #e2e8f0', background: 'white',
+                        cursor: 'pointer', transition: 'all 0.15s', width: '100%', textAlign: 'left',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff' }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = 'white' }}>
+                      <div style={{
+                        width: '44px', height: '44px', borderRadius: '10px', background: facility.color,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0,
+                      }}>{facility.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 600, color: '#0f172a' }}>{facility.name}</div>
+                        <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                          {hasCQ
+                            ? `${cqCount} pertanyaan siap dinilai`
+                            : 'Tap untuk mulai menilai (aspek default)'
+                          }
+                        </div>
+                      </div>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%', border: '2px solid #cbd5e1',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '16px', color: '#94a3b8', fontWeight: 700,
+                      }}>+</div>
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -221,6 +356,7 @@ export default function KritikSaranPage() {
               const facility = FACILITIES.find(f => f.name === fasilitasName)
               const usedAspek = new Set(fasilitasItems.map(i => i.aspek))
               const availableAspek = ASPEK_LIST.filter(a => !usedAspek.has(a))
+              const hasCQ = hasCustomQuestions(fasilitasName)
 
               return (
                 <div key={fasilitasName} style={{
@@ -238,11 +374,10 @@ export default function KritikSaranPage() {
                         {fasilitasName}
                       </div>
                       <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        {fasilitasItems.length} aspek dinilai
+                        {fasilitasItems.length} {hasCQ ? 'pertanyaan' : 'aspek'} dinilai
                       </div>
                     </div>
                     <button type="button" onClick={() => {
-                      // Remove all items for this fasilitas
                       setItems(prev => prev.filter(i => i.fasilitas !== fasilitasName))
                     }} style={{
                       padding: '4px 10px', borderRadius: '6px', border: 'none', background: '#fee2e2',
@@ -250,14 +385,14 @@ export default function KritikSaranPage() {
                     }}>Hapus Semua</button>
                   </div>
 
-                  {/* Aspek Cards */}
+                  {/* Question/Aspek Cards */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
                     {fasilitasItems.map(item => (
                       <div key={item.id} style={{
                         background: 'white', borderRadius: '10px', padding: '12px',
                         border: '1.5px solid #e2e8f0', position: 'relative',
                       }}>
-                        {/* Remove single aspek */}
+                        {/* Remove single item */}
                         <button type="button" onClick={() => removeItem(item.id)}
                           style={{
                             position: 'absolute', top: '8px', right: '8px', width: '22px', height: '22px',
@@ -266,68 +401,119 @@ export default function KritikSaranPage() {
                             alignItems: 'center', justifyContent: 'center', fontWeight: 700,
                           }}>×</button>
 
-                        {/* Aspek Selector */}
+                        {/* Aspek / Question Label */}
                         <div style={{ marginBottom: '8px', paddingRight: '28px' }}>
-                          <label style={{ fontSize: '11px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
-                            Aspek <span style={{ color: '#dc2626' }}>*</span>
+                          <label style={{ fontSize: '12px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: '4px' }}>
+                            {item.pertanyaan_id ? 'Pertanyaan' : 'Aspek'} <span style={{ color: '#dc2626' }}>*</span>
                           </label>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                            {ASPEK_LIST.map(aspek => (
-                              <button key={aspek} type="button"
-                                onClick={() => {
-                                  // Only allow change if new aspek not already used
-                                  if (aspek !== item.aspek && usedAspek.has(aspek)) return
-                                  updateItem(item.id, 'aspek', aspek)
-                                }}
-                                style={{
-                                  padding: '5px 10px', borderRadius: '6px', border: '1.5px solid',
-                                  borderColor: item.aspek === aspek ? '#3b82f6' : '#e2e8f0',
-                                  background: item.aspek === aspek ? '#eff6ff' : 'white',
-                                  color: item.aspek === aspek ? '#1e3a8a' : usedAspek.has(aspek) ? '#cbd5e1' : '#64748b',
-                                  fontSize: '11px', fontWeight: item.aspek === aspek ? '600' : '400',
-                                  cursor: usedAspek.has(aspek) && item.aspek !== aspek ? 'not-allowed' : 'pointer',
-                                  transition: 'all 0.15s',
-                                }}>{aspek}</button>
-                            ))}
-                          </div>
+                          {!hasCQ ? (
+                            /* Aspect selector for non-custom-question facilities */
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {ASPEK_LIST.map(aspek => (
+                                <button key={aspek} type="button"
+                                  onClick={() => {
+                                    if (aspek !== item.aspek && usedAspek.has(aspek)) return
+                                    updateItem(item.id, 'aspek', aspek)
+                                  }}
+                                  style={{
+                                    padding: '5px 10px', borderRadius: '6px', border: '1.5px solid',
+                                    borderColor: item.aspek === aspek ? '#3b82f6' : '#e2e8f0',
+                                    background: item.aspek === aspek ? '#eff6ff' : 'white',
+                                    color: item.aspek === aspek ? '#1e3a8a' : usedAspek.has(aspek) ? '#cbd5e1' : '#64748b',
+                                    fontSize: '11px', fontWeight: item.aspek === aspek ? '600' : '400',
+                                    cursor: usedAspek.has(aspek) && item.aspek !== aspek ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.15s',
+                                  }}>{aspek}</button>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{
+                              padding: '8px 10px', background: '#eff6ff', borderRadius: '6px',
+                              border: '1px solid #dbeafe', fontSize: '13px', color: '#1e3a8a', fontWeight: 500,
+                            }}>
+                              {item.aspek}
+                            </div>
+                          )}
                         </div>
 
-                        {/* Rating */}
-                        <div style={{ marginBottom: '8px' }}>
-                          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                            {[1, 2, 3, 4, 5].map(star => (
-                              <button key={star} type="button"
-                                onClick={() => updateItem(item.id, 'rating', star)}
-                                style={{
-                                  background: 'transparent', border: 'none', fontSize: '22px',
-                                  cursor: 'pointer', padding: 0, lineHeight: 1,
-                                  filter: star <= item.rating ? 'none' : 'grayscale(1)',
-                                  opacity: star <= item.rating ? 1 : 0.3, transition: 'all 0.15s',
-                                }}>⭐</button>
-                            ))}
-                            <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '4px' }}>
-                              {item.rating > 0 ? `${item.rating}/5` : 'Rating wajib'}
-                            </span>
+                        {/* Answer input based on tipe */}
+                        {(item.tipe || 'rating') === 'pilihan_ganda' && item.opsi_pilihan ? (
+                          <div style={{ marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {item.opsi_pilihan.map((opsi, idx) => (
+                                <label key={idx} style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px',
+                                  padding: '8px 10px', borderRadius: '6px', cursor: 'pointer',
+                                  background: item.jawaban_pilihan === opsi ? '#eff6ff' : 'white',
+                                  border: '1.5px solid',
+                                  borderColor: item.jawaban_pilihan === opsi ? '#3b82f6' : '#e2e8f0',
+                                  fontSize: '13px', color: '#0f172a', transition: 'all 0.15s',
+                                }}>
+                                  <input
+                                    type="radio"
+                                    name={`pg-${item.id}`}
+                                    checked={item.jawaban_pilihan === opsi}
+                                    onChange={() => updateItem(item.id, 'jawaban_pilihan', opsi)}
+                                    style={{ width: '16px', height: '16px', accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }}
+                                  />
+                                  <span style={{ fontWeight: item.jawaban_pilihan === opsi ? 600 : 400 }}>
+                                    {String.fromCharCode(65 + idx)}. {opsi}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <>
+                            {/* Rating with labels */}
+                            <div style={{ marginBottom: '8px' }}>
+                              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                {[1, 2, 3, 4, 5].map(star => (
+                                  <button key={star} type="button"
+                                    onClick={() => updateItem(item.id, 'rating', star)}
+                                    style={{
+                                      background: 'transparent', border: 'none', fontSize: '22px',
+                                      cursor: 'pointer', padding: 0, lineHeight: 1,
+                                      filter: star <= item.rating ? 'none' : 'grayscale(1)',
+                                      opacity: star <= item.rating ? 1 : 0.3, transition: 'all 0.15s',
+                                    }}>⭐</button>
+                                ))}
+                                <span style={{
+                                  fontSize: '12px', fontWeight: 600, marginLeft: '4px',
+                                  color: item.rating > 0 ? '#047857' : '#94a3b8',
+                                  background: item.rating > 0 ? '#dcfce7' : 'transparent',
+                                  padding: item.rating > 0 ? '2px 8px' : '0',
+                                  borderRadius: '4px',
+                                }}>
+                                  {item.rating > 0 ? `${item.rating}/5 — ${RATING_LABELS[item.rating]}` : 'Pilih rating 1-5'}
+                                </span>
+                              </div>
+                              {/* Rating scale hint */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', padding: '0 2px' }}>
+                                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 500 }}>Buruk</span>
+                                <span style={{ fontSize: '10px', color: '#10b981', fontWeight: 500 }}>Sangat Baik</span>
+                              </div>
+                            </div>
 
-                        {/* Penjelasan */}
-                        <textarea value={item.penjelasan}
-                          onChange={(e) => updateItem(item.id, 'penjelasan', e.target.value)}
-                          placeholder={`Jelaskan pengalaman Anda terkait ${item.aspek.toLowerCase()} di ${fasilitasName}...`}
-                          rows={2}
-                          style={{
-                            width: '100%', padding: '8px 10px', border: '1.5px solid #e2e8f0',
-                            borderRadius: '8px', fontSize: '13px', color: '#0f172a', resize: 'vertical',
-                            minHeight: '56px', fontFamily: "'Segoe UI', system-ui, sans-serif", outline: 'none',
-                            boxSizing: 'border-box',
-                          }} />
+                            {/* Penjelasan */}
+                            <textarea value={item.penjelasan}
+                              onChange={(e) => updateItem(item.id, 'penjelasan', e.target.value)}
+                              placeholder={`Jelaskan penilaian Anda untuk "${item.aspek}"...`}
+                              rows={2}
+                              style={{
+                                width: '100%', padding: '8px 10px', border: '1.5px solid #e2e8f0',
+                                borderRadius: '8px', fontSize: '13px', color: '#0f172a', resize: 'vertical',
+                                minHeight: '56px', fontFamily: "'Segoe UI', system-ui, sans-serif", outline: 'none',
+                                boxSizing: 'border-box',
+                              }} />
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
 
-                  {/* Add More Aspek */}
-                  {availableAspek.length > 0 && (
+                  {/* Add More Aspek (only for facilities without custom questions) */}
+                  {!hasCQ && availableAspek.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       <span style={{ fontSize: '12px', color: '#64748b', alignSelf: 'center' }}>+ Tambah aspek:</span>
                       {availableAspek.map(aspek => (
@@ -365,7 +551,11 @@ export default function KritikSaranPage() {
                   animation: 'spin 0.7s linear infinite',
                 }} /> Mengirim...
               </span>
-            ) : `Kirim Kritik & Saran (${Object.keys(grouped).length} fasilitas, ${items.length} penilaian)`}
+            ) : (
+              isComplete
+                ? `✓ Kirim Kritik & Saran (${totalFacilities} fasilitas, ${totalItems} penilaian)`
+                : `Lengkapi dulu (${answeredItems}/${totalItems} dijawab)`
+            )}
           </button>
         </form>
 

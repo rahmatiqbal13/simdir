@@ -21,7 +21,11 @@ const ROLE_RULES = [
 const TV_PAMFLET_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/tv-pamflet').roles
 
 function isPublicPath(pathname, method) {
-  if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda') || pathname.startsWith('/kritik-saran')) {
+  if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
+    return true
+  }
+  // Public feedback form page only (exact path)
+  if (pathname === '/kritik-saran' || pathname.startsWith('/kritik-saran?')) {
     return true
   }
   if (pathname.startsWith('/api/auth/')) return true
@@ -29,6 +33,8 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
   // Public feedback submission endpoint
   if (pathname === '/api/kritik-saran' && method === 'POST') return true
+  // Public questions endpoint (for feedback form)
+  if (pathname === '/api/pertanyaan-kritik-saran' && method === 'GET') return true
   return false
 }
 

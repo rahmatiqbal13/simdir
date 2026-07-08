@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 
 const FACILITY_COLORS = {
@@ -127,13 +128,26 @@ export default function KritikSaranAdminPage() {
   return (
     <div style={{ padding: '1.5rem', maxWidth: '1200px', margin: '0 auto' }}>
       {/* Page Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
-          Kelola Kritik & Saran
-        </h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-          Review dan tanggapi masukan dari pengguna untuk fasilitas USC
-        </p>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
+            Kelola Kritik & Saran
+          </h1>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+            Review dan tanggapi masukan dari pengguna untuk fasilitas USC
+          </p>
+        </div>
+        <Link
+          href="/kelola-kritik-saran/pertanyaan"
+          style={{
+            padding: '8px 16px', background: '#eff6ff', color: '#1e3a8a',
+            borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+            textDecoration: 'none', border: '1px solid #dbeafe',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          ⚙️ Kelola Pertanyaan
+        </Link>
       </div>
 
       {/* Stats Cards */}
