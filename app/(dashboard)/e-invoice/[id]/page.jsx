@@ -88,7 +88,7 @@ export default function InvoiceDetailPage() {
       if (itemsError) throw itemsError;
       setItems(itemsData || []);
       
-      // Get user role
+      // Get user role (Supabase auth atau localStorage fallback)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
@@ -97,6 +97,17 @@ export default function InvoiceDetailPage() {
           .eq('id', user.id)
           .single();
         setUserRole(profile?.role || '');
+      } else {
+        // Fallback: local session (METODE 2 login)
+        try {
+          const localSession = localStorage.getItem('simdir_session');
+          if (localSession) {
+            const sessionData = JSON.parse(atob(localSession));
+            setUserRole(sessionData.role || '');
+          }
+        } catch (e) {
+          console.error('Invalid local session:', e);
+        }
       }
     } catch (err) {
       console.error('Error fetching invoice:', err);

@@ -228,7 +228,7 @@ export default function EInvoicePage() {
     }
   }, [supabase]);
 
-  // Get user role
+  // Get user role (Supabase auth atau localStorage fallback)
   useEffect(() => {
     const getUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -239,6 +239,17 @@ export default function EInvoicePage() {
           .eq('id', user.id)
           .single();
         setUserRole(profile?.role || '');
+        return;
+      }
+      // Fallback: local session (METODE 2 login)
+      try {
+        const localSession = localStorage.getItem('simdir_session');
+        if (localSession) {
+          const sessionData = JSON.parse(atob(localSession));
+          setUserRole(sessionData.role || '');
+        }
+      } catch (e) {
+        console.error('Invalid local session:', e);
       }
     };
     getUserRole();

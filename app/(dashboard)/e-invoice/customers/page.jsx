@@ -206,208 +206,54 @@ export default function CustomersPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [userRole, setUserRole] = useState('');
 
-  // Fetch customers
+  // Fetch customers + invoice count (manual count agar reliable)
   const fetchCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('Fetching customers...');
-      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-      console.log('Key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-      console.log('Is local/mock:', !process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('your-project'));
-      
-      // Cek apakah mock client aktif
-      if (typeof window !== 'undefined' && window.__MOCK_SUPABASE__) {
-        console.log('⚠️ WARNING: Using MOCK Supabase client - data is local only!');
-      }
-      
-      // Check supabase client type
-      console.log('Supabase client type:', typeof supabase);
-      console.log('Supabase from method exists:', typeof supabase.from);
-      
-      // Check auth status first
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('Current user:', user?.id || 'No user');
-      
-      // Try raw SQL query via RPC if available
-      const { data: countData, error: countError } = await supabase
-        .from('customers')
-        .select('*', { count: 'exact', head: true });
-      
-      if (countError) {
-        console.error('Count check error:', countError);
-      } else {
-        console.log('Total customers in table:', countData);
-      }
-      
-      // Try simple query first (without count)
-      const simpleResult = await supabase
+      // 1. Fetch customers
+      const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select('*')
         .order('nama_pelanggan', { ascending: true });
-      
-      console.log('Simple query result:', simpleResult);
-      console.log('Simple query data length:', simpleResult.data?.length || 0);
-      console.log('Simple query error:', simpleResult.error);
-      
-      // Try with shared client
-      const sharedResult = await supabase
-        .from('customers')
-        .select('*');
-      console.log('Shared client result:', sharedResult);
-      console.log('Shared client data length:', sharedResult.data?.length || 0);
-      
-      // Try without ordering
-      const rawResult = await supabase
-        .from('customers')
-        .select('*');
-      console.log('Raw query result:', rawResult);
-      console.log('Raw query data length:', rawResult.data?.length || 0);
-      
-      // Try with limit
-      const limitResult = await supabase
-        .from('customers')
-        .select('*')
-        .limit(10);
-      console.log('Limit query result:', limitResult);
-      console.log('Limit query data length:', limitResult.data?.length || 0);
-      
-      // Try direct fetch
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers?select=*`,
-          {
-            headers: {
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            }
-          }
-        );
-        console.log('Direct fetch status:', response.status);
-        console.log('Direct fetch statusText:', response.statusText);
-        const directData = await response.json();
-        console.log('Direct fetch result:', directData);
-        console.log('Direct fetch length:', directData?.length || 0);
-        
-        // Try with specific ID
-        const idResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/customers?id=eq.3ccc2235-99b8-493b-a444-549bf9d086ad`,
-          {
-            headers: {
-              'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
-            }
-          }
-        );
-        const idData = await idResponse.json();
-        console.log('Direct fetch by ID result:', idData);
-        
-        // Check response headers
-        console.log('Response headers:', [...response.headers.entries()]);
-      } catch (fetchErr) {
-        console.error('Direct fetch error:', fetchErr);
-      }
-      
-      // Try query invoices table to compare
-      const invoicesResult = await supabase
+
+      if (customersError) throw customersError;
+
+      // 2. Fetch all invoices (hanya customer_id untuk hitung)
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
-        .select('*')
-        .limit(5);
-      console.log('Invoices query result:', invoicesResult);
-      console.log('Invoices query data length:', invoicesResult.data?.length || 0);
-      
-      // Try query with specific ID
-      const specificCustomer = await supabase
-        .from('customers')
-        .select('*')
-        .eq('id', '3ccc2235-99b8-493b-a444-549bf9d086ad')
-        .single();
-      console.log('Specific customer by ID:', specificCustomer);
-      
-      // Try with explicit schema
-      const schemaResult = await supabase
-        .schema('public')
-        .from('customers')
-        .select('*');
-      console.log('Schema query result:', schemaResult);
-      console.log('Schema query data length:', schemaResult.data?.length || 0);
-      
-      // Try a direct table info query
-      const { data: tableInfo, error: tableError, status, statusText } = await supabase
-        .from('customers')
-        .select('count');
-      console.log('Table info:', tableInfo, 'error:', tableError, 'status:', status, 'statusText:', statusText);
-      
-      // Check what's in tableInfo
-      if (tableInfo && tableInfo.length > 0) {
-        console.log('Table info first item:', tableInfo[0]);
-        console.log('Table info keys:', Object.keys(tableInfo[0]));
+        .select('customer_id');
+
+      if (invoicesError) {
+        console.error('Error fetching invoices for count:', invoicesError);
       }
-      
-      // Try to list all tables
-      const { data: tablesData, error: tablesError } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public');
-      console.log('All tables:', tablesData);
-      console.log('Tables error:', tablesError);
-      
-      // Check if maybe data is in a different schema
-      const { data: allSchemas } = await supabase
-        .from('information_schema.schemata')
-        .select('schema_name');
-      console.log('All schemas:', allSchemas);
-      
-      // Try with count
-      let { data, error } = await supabase
-        .from('customers')
-        .select('*, invoices(count)')
-        .order('nama_pelanggan', { ascending: true });
-      
-      if (error) {
-        console.error('Error with count query:', error);
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        
-        // Fallback to simple query without count
-        const simpleResult = await supabase
-          .from('customers')
-          .select('*')
-          .order('nama_pelanggan', { ascending: true });
-        
-        if (simpleResult.error) {
-          console.error('Error with simple query:', simpleResult.error);
-          console.error('Simple error code:', simpleResult.error.code);
-          console.error('Simple error message:', simpleResult.error.message);
-          throw simpleResult.error;
+
+      // 3. Hitung invoice per customer
+      const invoiceCounts = {};
+      (invoicesData || []).forEach((inv) => {
+        const cid = inv.customer_id;
+        if (cid) {
+          invoiceCounts[cid] = (invoiceCounts[cid] || 0) + 1;
         }
-        
-        data = simpleResult.data;
-        console.log('Customers loaded (simple query):', data?.length || 0);
-      } else {
-        console.log('Customers loaded (with count):', data?.length || 0);
-        console.log('Full response:', data);
-      }
-      
-      console.log('First customer:', data?.[0]);
-      console.log('Data type:', typeof data);
-      console.log('Is Array:', Array.isArray(data));
-      setCustomers(data || []);
-      console.log('Customers state set to:', data?.length || 0, 'items');
+      });
+
+      // 4. Merge count ke customer data
+      const merged = (customersData || []).map((c) => ({
+        ...c,
+        invoices: { count: invoiceCounts[c.id] || 0 },
+      }));
+
+      setCustomers(merged);
     } catch (err) {
       console.error('Error fetching customers:', err);
-      console.error('Error details:', JSON.stringify(err));
     } finally {
       setLoading(false);
     }
   }, [supabase]);
 
-  // Get user role and wait for auth
+  // Get user role (Supabase auth atau localStorage fallback)
   useEffect(() => {
     const getUserRole = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      console.log('getUserRole - User:', user?.id || 'No user');
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
@@ -415,32 +261,26 @@ export default function CustomersPage() {
           .eq('id', user.id)
           .single();
         setUserRole(profile?.role || '');
+        return;
+      }
+      // Fallback: local session (METODE 2 login)
+      try {
+        const localSession = localStorage.getItem('simdir_session');
+        if (localSession) {
+          const sessionData = JSON.parse(atob(localSession));
+          setUserRole(sessionData.role || '');
+        }
+      } catch (e) {
+        console.error('Invalid local session:', e);
       }
     };
     getUserRole();
   }, [supabase]);
   
-  // Fetch customers after auth state is ready
+  // Fetch customers
   useEffect(() => {
-    const init = async () => {
-      // Wait a bit for auth to initialize
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('Init - Session exists:', !!session);
-      console.log('Init - Session user:', session?.user?.id);
-      
-      if (session) {
-        fetchCustomers();
-      } else {
-        // Try anyway - might be using RLS disabled
-        console.log('No session, fetching anyway...');
-        fetchCustomers();
-      }
-    };
-    
-    init();
-  }, [supabase, fetchCustomers]);
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   // Filter customers
   const filteredCustomers = useMemo(() => {
