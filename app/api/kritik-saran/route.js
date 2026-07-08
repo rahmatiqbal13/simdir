@@ -233,3 +233,36 @@ export async function PATCH(request) {
     )
   }
 }
+
+// DELETE /api/kritik-saran?id=xxx — delete feedback (auth required, super_admin only)
+export async function DELETE(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID wajib diisi' }, { status: 400 })
+    }
+
+    const supabase = getServiceClient()
+
+    const { error } = await supabase
+      .from('kritik_saran')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true, message: 'Kritik & saran berhasil dihapus' })
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message || 'Gagal menghapus' },
+      { status: 500 }
+    )
+  }
+}

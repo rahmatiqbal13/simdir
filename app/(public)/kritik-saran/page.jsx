@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 // 🎯 Daftar fasilitas — tambah/edit di sini untuk fasilitas baru
 const FACILITIES = [
@@ -33,6 +33,11 @@ export default function KritikSaranPage() {
   const [error, setError] = useState('')
   const [currentStep, setCurrentStep] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
+  const wizardRef = useRef(null)
+
+  const scrollToWizard = () => {
+    wizardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   // Detect mobile viewport
   useEffect(() => {
@@ -93,6 +98,7 @@ export default function KritikSaranPage() {
       return
     }
     setError('')
+    scrollToWizard()
   }
 
   const removeItem = (id) => {
@@ -174,11 +180,13 @@ export default function KritikSaranPage() {
     if (err) return setError(err)
     setError('')
     setCurrentStep(prev => Math.min(prev + 1, items.length - 1))
+    scrollToWizard()
   }
 
   const goPrev = () => {
     setError('')
     setCurrentStep(prev => Math.max(prev - 1, 0))
+    scrollToWizard()
   }
 
   useEffect(() => {
@@ -440,7 +448,7 @@ export default function KritikSaranPage() {
 
           {/* Wizard Questions */}
           {items.length > 0 && (
-            <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
+            <div ref={wizardRef} style={{ marginBottom: isMobile ? '16px' : '24px' }}>
               {/* Step indicator */}
               <div style={{ marginBottom: isMobile ? '14px' : '20px', textAlign: 'center' }}>
                 <div style={{ fontSize: isMobile ? '16px' : '20px', color: '#64748b', marginBottom: isMobile ? '6px' : '10px', fontWeight: 500 }}>

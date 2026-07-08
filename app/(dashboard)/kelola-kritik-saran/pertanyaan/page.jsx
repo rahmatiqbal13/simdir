@@ -17,6 +17,8 @@ export default function PertanyaanKritikSaranPage() {
   const [selectedFacility, setSelectedFacility] = useState(FACILITIES[0].name)
   const [editingId, setEditingId] = useState(null)
   const [editText, setEditText] = useState('')
+  const [editTipe, setEditTipe] = useState('rating')
+  const [editOpsi, setEditOpsi] = useState(['', ''])
   const [newQuestion, setNewQuestion] = useState('')
   const [newTipe, setNewTipe] = useState('rating')
   const [newOpsi, setNewOpsi] = useState(['', ''])
@@ -110,15 +112,21 @@ export default function PertanyaanKritikSaranPage() {
     setSaving(true)
     setError('')
     try {
+      const payload = { id, pertanyaan: editText.trim(), tipe: editTipe }
+      if (editTipe === 'pilihan_ganda' || editTipe === 'checkbox') {
+        payload.opsi_pilihan = editOpsi.filter(o => o.trim())
+      }
       const res = await fetch('/api/pertanyaan-kritik-saran', {
         method: 'PUT',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ id, pertanyaan: editText.trim() }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengupdate')
       setEditingId(null)
       setEditText('')
+      setEditTipe('rating')
+      setEditOpsi(['', ''])
       setSuccess('Pertanyaan berhasil diupdate')
       await fetchQuestions()
       setTimeout(() => setSuccess(''), 3000)
@@ -141,6 +149,34 @@ export default function PertanyaanKritikSaranPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengupdate')
       await fetchQuestions()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDuplicate = async (q) => {
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/pertanyaan-kritik-saran', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          fasilitas_name: q.fasilitas_name,
+          pertanyaan: `${q.pertanyaan} (salinan)`,
+          tipe: q.tipe || 'rating',
+          opsi_pilihan: q.opsi_pilihan ? q.opsi_pilihan.split('|').map(o => o.trim()).filter(Boolean) : undefined,
+          urutan: (q.urutan || 0) + 1,
+          is_active: q.is_active,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal menduplikat')
+      setSuccess('Pertanyaan berhasil diduplikat')
+      await fetchQuestions()
+      setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -449,31 +485,45 @@ export default function PertanyaanKritikSaranPage() {
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   {editingId === q.id ? (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <input
-                        type="text"
-                        value={editText}
-                        onChange={(e) => setEditText(e.target.value)}
-                        style={{
-                          flex: 1, padding: '8px 10px', border: '1.5px solid #3b82f6',
-                          borderRadius: '6px', fontSize: '14px', color: '#0f172a', outline: 'none',
-                          fontFamily: "'Segoe UI', system-ui, sans-serif",
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleUpdate(q.id)
-                          if (e.key === 'Escape') { setEditingId(null); setEditText('') }
-                        }}
-                        autoFocus
-                      />
-                      <button
-                        onClick={() => handleUpdate(q.id)}
-                        disabled={saving}
-                        style={{
-                          padding: '6px 12px', background: '#1e3a8a', color: 'white',
-                          border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
-                          cursor: 'pointer',
-                        }}
-                      >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          style={{
+                            flex: 1, padding: '8px 10px', border: '1.5px solid #3b82f6',
+                            borderRadius: '6px', fontSize: '14px', color: '#0f172a', outline: 'none',
+                            fontFamily: "'Segoe UI', system-ui, sans-serif",
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleUpdate(q.id)
+                            if (e.key === 'Escape') { setEditingId(null); setEditText(''); setEditTipe('rating'); setEditOpsi(['', '']) }
+                          }}
+                          autoFocus
+                        />
+                        <select
+                          value={editTipe}
+                          onChange={(e) => setEditTipe(e.target.value)}
+                          style={{
+                            padding: '8px 10px', border: '1.5px solid #3b82f6',
+                            borderRadius: '6px', fontSize: '14px', color: '#0f172a', outline: 'none',
+                          }}
+                        >
+                          <option value="rating">Rating</option>
+                          <option value="teks">Teks</option>
+                          <option value="pilihan_ganda">Pilihan Ganda</option>
+                          <option value="checkbox">Checkbox</option>
+                        </select>
+                        <button
+                          onClick={() => handleUpdate(q.id)}
+                          disabled={saving}
+                          style={{
+                            padding: '6px 12px', background: '#1e3a8a', color: 'white',
+                            border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                            cursor: 'pointer',
+                          }}
+                        >
                         Simpan
                       </button>
                       <button
@@ -486,6 +536,51 @@ export default function PertanyaanKritikSaranPage() {
                       >
                         Batal
                       </button>
+                      </div>
+                      {(editTipe === 'pilihan_ganda' || editTipe === 'checkbox') && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Opsi Pilihan:</div>
+                          {editOpsi.map((op, idx) => (
+                            <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                value={op}
+                                placeholder={`Opsi ${idx + 1}`}
+                                onChange={(e) => {
+                                  const next = [...editOpsi]
+                                  next[idx] = e.target.value
+                                  setEditOpsi(next)
+                                }}
+                                style={{
+                                  flex: 1, padding: '6px 8px', border: '1px solid #cbd5e1',
+                                  borderRadius: '4px', fontSize: '13px', color: '#0f172a', outline: 'none',
+                                }}
+                              />
+                              {editOpsi.length > 2 && (
+                                <button
+                                  onClick={() => setEditOpsi(prev => prev.filter((_, i) => i !== idx))}
+                                  style={{
+                                    padding: '4px 8px', background: '#fee2e2', color: '#dc2626',
+                                    border: 'none', borderRadius: '4px', fontSize: '12px', cursor: 'pointer',
+                                  }}
+                                >
+                                  Hapus
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => setEditOpsi(prev => [...prev, ''])}
+                            style={{
+                              padding: '6px 10px', background: '#f1f5f9', color: '#3b82f6',
+                              border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
+                              cursor: 'pointer', alignSelf: 'flex-start',
+                            }}
+                          >
+                            + Tambah Opsi
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>
@@ -553,7 +648,16 @@ export default function PertanyaanKritikSaranPage() {
                   </button>
                   {/* Edit */}
                   <button
-                    onClick={() => { setEditingId(q.id); setEditText(q.pertanyaan) }}
+                    onClick={() => {
+                      setEditingId(q.id)
+                      setEditText(q.pertanyaan)
+                      setEditTipe(q.tipe || 'rating')
+                      if (q.opsi_pilihan) {
+                        setEditOpsi(q.opsi_pilihan.split('|').map(o => o.trim()).filter(Boolean))
+                      } else {
+                        setEditOpsi(['', ''])
+                      }
+                    }}
                     disabled={saving || editingId === q.id}
                     title="Edit"
                     style={{
@@ -564,6 +668,20 @@ export default function PertanyaanKritikSaranPage() {
                     }}
                   >
                     ✏️
+                  </button>
+                  {/* Duplicate */}
+                  <button
+                    onClick={() => handleDuplicate(q)}
+                    disabled={saving}
+                    title="Duplikat"
+                    style={{
+                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      background: '#fef3c7', color: '#b45309',
+                      fontSize: '14px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >
+                    📋
                   </button>
                   {/* Delete */}
                   <button

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase/client'
 
 const FACILITY_COLORS = {
   'Achilles Gym Hub': { bg: '#dbeafe', text: '#1e3a8a' },
@@ -30,34 +29,66 @@ export default function KritikSaranAdminPage() {
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('')
   const [filterFasilitas, setFilterFasilitas] = useState('')
+  const [filterJenisKelamin, setFilterJenisKelamin] = useState('')
   const [selectedItem, setSelectedItem] = useState(null)
   const [tanggapan, setTanggapan] = useState('')
   const [updateLoading, setUpdateLoading] = useState(false)
+  const [userRole, setUserRole] = useState('')
+  const [deleteItem, setDeleteItem] = useState(null)
+  const [deleteStep, setDeleteStep] = useState(0)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+
+  useEffect(() => {
+    try {
+      const session = localStorage.getItem('simdir_session')
+      if (session) {
+        const decoded = JSON.parse(atob(session))
+        setUserRole(decoded.role || '')
+      }
+    } catch {}
+  }, [])
+
+  const isSuperAdmin = userRole === 'super_admin'
+
+  const getAuthHeaders = useCallback(() => {
+    const session = typeof window !== 'undefined' && localStorage.getItem('simdir_session')
+    if (!session) return { 'Content-Type': 'application/json' }
+    try {
+      const decoded = JSON.parse(atob(session))
+      return { 'Content-Type': 'application/json', authorization: `Bearer ${decoded.token || decoded.role || 'session'}` }
+    } catch {
+      return { 'Content-Type': 'application/json' }
+    }
+  }, [])
 
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('kritik_saran')
-        .select('*, items:kritik_saran_items(*)')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const res = await fetch('/api/kritik-saran', {
+        headers: getAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal memuat')
       setItems(data || [])
     } catch (err) {
       console.error('Error fetching kritik saran:', err)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [getAuthHeaders])
 
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+    const interval = setInterval(() => {
+      if (!selectedItem) fetchData()
+    }, 300000)
+    return () => clearInterval(interval)
+  }, [fetchData, selectedItem])
 
   const filteredItems = items.filter(item => {
     if (filterStatus && item.status !== filterStatus) return false
     if (filterFasilitas && !item.items?.some(i => i.fasilitas === filterFasilitas)) return false
+    if (filterJenisKelamin && item.jenis_kelamin !== filterJenisKelamin) return false
     return true
   })
 
@@ -82,12 +113,13 @@ export default function KritikSaranAdminPage() {
   const handleUpdateStatus = async (id, status) => {
     setUpdateLoading(true)
     try {
-      const { error } = await supabase
-        .from('kritik_saran')
-        .update({ status })
-        .eq('id', id)
-
-      if (error) throw error
+      const res = await fetch('/api/kritik-saran', {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id, status }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal')
       await fetchData()
       if (selectedItem?.id === id) {
         setSelectedItem(prev => ({ ...prev, status }))
@@ -103,12 +135,13 @@ export default function KritikSaranAdminPage() {
     if (!selectedItem) return
     setUpdateLoading(true)
     try {
-      const { error } = await supabase
-        .from('kritik_saran')
-        .update({ tanggapan, status: 'ditanggapi' })
-        .eq('id', selectedItem.id)
-
-      if (error) throw error
+      const res = await fetch('/api/kritik-saran', {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ id: selectedItem.id, tanggapan, status: 'ditanggapi' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal')
       await fetchData()
       setSelectedItem(prev => ({ ...prev, tanggapan, status: 'ditanggapi' }))
       alert('Tanggapan berhasil disimpan')
@@ -116,6 +149,28 @@ export default function KritikSaranAdminPage() {
       alert('Gagal menyimpan tanggapan: ' + err.message)
     } finally {
       setUpdateLoading(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!deleteItem) return
+    setDeleteLoading(true)
+    try {
+      const res = await fetch(`/api/kritik-saran?id=${deleteItem.id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal menghapus')
+      await fetchData()
+      if (selectedItem?.id === deleteItem.id) setSelectedItem(null)
+      setDeleteItem(null)
+      setDeleteStep(0)
+      alert('Kritik & saran berhasil dihapus')
+    } catch (err) {
+      alert('Gagal menghapus: ' + err.message)
+    } finally {
+      setDeleteLoading(false)
     }
   }
 
@@ -206,8 +261,17 @@ export default function KritikSaranAdminPage() {
           <option value="Kolam Renang Unesa">Kolam Renang Unesa</option>
           <option value="Driving Golf Unesa">Driving Golf Unesa</option>
         </select>
+        <select
+          value={filterJenisKelamin}
+          onChange={(e) => setFilterJenisKelamin(e.target.value)}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
+        >
+          <option value="">Semua Jenis Kelamin</option>
+          <option value="laki-laki">Laki-laki</option>
+          <option value="perempuan">Perempuan</option>
+        </select>
         <button
-          onClick={() => { setFilterStatus(''); setFilterFasilitas('') }}
+          onClick={() => { setFilterStatus(''); setFilterFasilitas(''); setFilterJenisKelamin('') }}
           style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.875rem', cursor: 'pointer' }}
         >
           Reset Filter
@@ -222,6 +286,7 @@ export default function KritikSaranAdminPage() {
               <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Tanggal</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Pengirim</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Jenis Kelamin</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Fasilitas</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Rating</th>
                 <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Status</th>
@@ -230,9 +295,9 @@ export default function KritikSaranAdminPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Memuat...</td></tr>
               ) : filteredItems.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</td></tr>
               ) : (
                 filteredItems.map(item => (
                   <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -244,6 +309,9 @@ export default function KritikSaranAdminPage() {
                       {item.unit_kerja && (
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.unit_kerja}</div>
                       )}
+                    </td>
+                    <td style={{ padding: '0.75rem 1rem', color: '#0f172a' }}>
+                      {item.jenis_kelamin === 'laki-laki' ? 'Laki-laki' : item.jenis_kelamin === 'perempuan' ? 'Perempuan' : '-'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -287,19 +355,43 @@ export default function KritikSaranAdminPage() {
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                      <button
-                        onClick={() => {
-                          setSelectedItem(item)
-                          setTanggapan(item.tanggapan || '')
-                        }}
-                        style={{
-                          padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #3b82f6',
-                          background: 'white', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        Detail
-                      </button>
+                      <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                        <button
+                          onClick={async () => {
+                            setSelectedItem(item)
+                            setTanggapan(item.tanggapan || '')
+                            if (item.status === 'baru') {
+                              try {
+                                await fetch('/api/kritik-saran', {
+                                  method: 'PATCH',
+                                  headers: getAuthHeaders(),
+                                  body: JSON.stringify({ id: item.id, status: 'dibaca' }),
+                                })
+                                setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: 'dibaca' } : i))
+                              } catch (e) { /* ignore */ }
+                            }
+                          }}
+                          style={{
+                            padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #3b82f6',
+                            background: 'white', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Detail
+                        </button>
+                        {isSuperAdmin && (
+                          <button
+                            onClick={() => { setDeleteItem(item); setDeleteStep(1) }}
+                            style={{
+                              padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #dc2626',
+                              background: 'white', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -468,7 +560,109 @@ export default function KritikSaranAdminPage() {
                   {updateLoading ? 'Menyimpan...' : 'Simpan Tanggapan'}
                 </button>
               </div>
+
+              {isSuperAdmin && (
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                  <button
+                    onClick={() => { setDeleteItem(selectedItem); setDeleteStep(1) }}
+                    style={{
+                      width: '100%', padding: '0.625rem 1.25rem', background: '#fee2e2',
+                      color: '#dc2626', border: '1px solid #fecaca', borderRadius: '8px',
+                      fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    🗑️ Hapus Kritik & Saran Ini
+                  </button>
+                </div>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteStep > 0 && deleteItem && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 60, padding: '1rem',
+        }} onClick={() => { setDeleteItem(null); setDeleteStep(0) }}>
+          <div
+            style={{
+              background: 'white', borderRadius: '16px', maxWidth: '480px', width: '100%',
+              padding: '1.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {deleteStep === 1 && (
+              <>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 0.75rem' }}>
+                  ⚠️ Konfirmasi Hapus (1/2)
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+                  Anda akan menghapus kritik & saran dari <strong>{deleteItem.is_anonim ? 'Anonim' : (deleteItem.nama || 'Tidak diketahui')}</strong> untuk fasilitas <strong>{deleteItem.kategori || '-'}</strong> yang dikirim pada {formatDate(deleteItem.created_at)}.
+                  <br /><br />
+                  <span style={{ color: '#dc2626', fontWeight: 600 }}>Data yang dihapus tidak dapat dikembalikan.</span>
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => { setDeleteItem(null); setDeleteStep(0) }}
+                    style={{
+                      flex: 1, padding: '0.625rem 1rem', background: '#f1f5f9',
+                      color: '#475569', border: 'none', borderRadius: '8px',
+                      fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={() => setDeleteStep(2)}
+                    style={{
+                      flex: 1, padding: '0.625rem 1rem', background: '#dc2626',
+                      color: 'white', border: 'none', borderRadius: '8px',
+                      fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    Lanjutkan →
+                  </button>
+                </div>
+              </>
+            )}
+            {deleteStep === 2 && (
+              <>
+                <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 0.75rem' }}>
+                  ⚠️ Konfirmasi Final (2/2)
+                </h2>
+                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+                  Apakah Anda <strong>benar-benar yakin</strong> ingin menghapus data ini secara permanen?
+                  <br /><br />
+                  <span style={{ color: '#dc2626', fontWeight: 600 }}>Tindakan ini tidak dapat dibatalkan.</span>
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => setDeleteStep(1)}
+                    style={{
+                      flex: 1, padding: '0.625rem 1rem', background: '#f1f5f9',
+                      color: '#475569', border: 'none', borderRadius: '8px',
+                      fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    ← Kembali
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleteLoading}
+                    style={{
+                      flex: 1, padding: '0.625rem 1rem', background: '#dc2626',
+                      color: 'white', border: 'none', borderRadius: '8px',
+                      fontSize: '0.875rem', fontWeight: 600, cursor: deleteLoading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {deleteLoading ? 'Menghapus...' : '🗑️ Ya, Hapus Permanen'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

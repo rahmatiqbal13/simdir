@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useUsers } from '@/context/UsersContext';
 
 // Role configurations
@@ -115,35 +115,40 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
   return (
     <div className="card" style={{ marginBottom: '0.75rem' }}>
       <div className="card-body">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.875rem' }}>
           {/* Avatar */}
           <div style={{ 
-            width: '3rem', 
-            height: '3rem', 
+            width: '2.5rem', 
+            height: '2.5rem', 
             borderRadius: '50%',
             background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%)`,
             color: 'white',
             display: 'grid',
             placeItems: 'center',
-            fontSize: '0.875rem',
+            fontSize: '0.8125rem',
             fontWeight: 700,
-            flexShrink: 0
+            flexShrink: 0,
+            marginTop: '2px'
           }}>
             {initials}
           </div>
 
           {/* User Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <strong style={{ fontSize: '0.9375rem' }}>{user.full_name || user.nama}</strong>
-              <RoleBadge role={user.role} />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.25rem' }}>
+              <strong style={{ fontSize: '0.9375rem', lineHeight: 1.3, wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>
+                {user.full_name || user.nama}
+              </strong>
+              <div style={{ flexShrink: 0, marginTop: '1px' }}>
+                <RoleBadge role={user.role} />
+              </div>
             </div>
-            <p className="muted" style={{ fontSize: '0.8125rem', marginBottom: '0.25rem' }}>
+            <p className="muted" style={{ fontSize: '0.8125rem', marginBottom: '0.375rem', marginTop: 0, lineHeight: 1.4 }}>
               {user.email}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
               <StatusBadge isActive={user.is_active} />
-              <span className="muted" style={{ fontSize: '0.6875rem' }}>
+              <span className="muted" style={{ fontSize: '0.6875rem', lineHeight: 1.4 }}>
                 {config.description}
               </span>
             </div>
@@ -151,13 +156,15 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
 
           {/* Actions */}
           {canEdit && (
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0, marginTop: '2px' }}>
               <button 
                 className="ghost icon-only" 
                 onClick={() => onEdit(user)}
                 title="Edit User"
+                aria-label="Edit User"
+                style={{ minWidth: '36px', height: '36px' }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                 </svg>
@@ -166,14 +173,15 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 className="ghost icon-only" 
                 onClick={() => onToggleStatus(user.id)}
                 title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)' }}
+                aria-label={user.is_active ? 'Nonaktifkan user' : 'Aktifkan user'}
+                style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)', minWidth: '36px', height: '36px' }}
               >
                 {user.is_active ? (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                     <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
                   </svg>
                 ) : (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                     <path d="M5 12h14" /><path d="M12 5v14" />
                   </svg>
                 )}
@@ -182,9 +190,10 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 className="ghost icon-only" 
                 onClick={() => onDelete(user.id)}
                 title="Hapus User"
-                style={{ color: 'var(--danger)' }}
+                aria-label="Hapus User"
+                style={{ color: 'var(--danger)', minWidth: '36px', height: '36px' }}
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                   <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                 </svg>
               </button>
@@ -200,103 +209,116 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
 function UserTable({ users, canEdit, onEdit, onToggleStatus, onDelete }) {
   return (
     <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style={{ width: '50px' }}>No</th>
-            <th>User</th>
-            <th style={{ width: '150px' }}>Role</th>
-            <th style={{ width: '100px' }}>Status</th>
-            {canEdit && <th style={{ width: '120px' }} className="text-center">Aksi</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user, index) => (
-            <tr key={user.id}>
-              <td className="text-center">{index + 1}</td>
-              <td>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ 
-                    width: '2rem', 
-                    height: '2rem', 
-                    borderRadius: '50%',
-                    background: `linear-gradient(135deg, ${ROLE_CONFIGS[user.role]?.color || '#666'} 0%, ${ROLE_CONFIGS[user.role]?.color || '#666'}dd 100%)`,
-                    color: 'white',
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    flexShrink: 0
-                  }}>
-                    {(user.full_name || user.nama || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <strong style={{ fontSize: '0.875rem' }}>{user.full_name || user.nama}</strong>
-                    <p className="muted" style={{ fontSize: '0.75rem', margin: 0 }}>{user.email}</p>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <RoleBadge role={user.role} />
-                <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
-                  {ROLE_CONFIGS[user.role]?.description}
-                </p>
-              </td>
-              <td>
-                <StatusBadge isActive={user.is_active} />
-              </td>
-              {canEdit && (
-                <td className="text-center">
-                  <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                    <button 
-                      className="ghost icon-only" 
-                      onClick={() => onEdit(user)}
-                      title="Edit"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button 
-                      className="ghost icon-only" 
-                      onClick={() => onToggleStatus(user.id)}
-                      title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                      style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)' }}
-                    >
-                      {user.is_active ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                          <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
-                        </svg>
-                      ) : (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                          <path d="M5 12h14" /><path d="M12 5v14" />
-                        </svg>
-                      )}
-                    </button>
-                    <button 
-                      className="ghost icon-only" 
-                      onClick={() => onDelete(user.id)}
-                      title="Hapus"
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: '50px' }}>No</th>
+              <th>User</th>
+              <th style={{ width: '150px' }}>Role</th>
+              <th style={{ width: '100px' }}>Status</th>
+              {canEdit && <th style={{ width: '120px' }} className="text-center">Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user, index) => (
+              <tr key={user.id}>
+                <td className="text-center">{index + 1}</td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ 
+                      width: '2rem', 
+                      height: '2rem', 
+                      borderRadius: '50%',
+                      background: `linear-gradient(135deg, ${ROLE_CONFIGS[user.role]?.color || '#666'} 0%, ${ROLE_CONFIGS[user.role]?.color || '#666'}dd 100%)`,
+                      color: 'white',
+                      display: 'grid',
+                      placeItems: 'center',
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      flexShrink: 0
+                    }}>
+                      {(user.full_name || user.nama || '').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.875rem' }}>{user.full_name || user.nama}</strong>
+                      <p className="muted" style={{ fontSize: '0.75rem', margin: 0 }}>{user.email}</p>
+                    </div>
                   </div>
                 </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <td>
+                  <RoleBadge role={user.role} />
+                  <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                    {ROLE_CONFIGS[user.role]?.description}
+                  </p>
+                </td>
+                <td>
+                  <StatusBadge isActive={user.is_active} />
+                </td>
+                {canEdit && (
+                  <td className="text-center">
+                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                      <button 
+                        className="ghost icon-only" 
+                        onClick={() => onEdit(user)}
+                        title="Edit"
+                        aria-label="Edit"
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button 
+                        className="ghost icon-only" 
+                        onClick={() => onToggleStatus(user.id)}
+                        title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                        aria-label={user.is_active ? 'Nonaktifkan user' : 'Aktifkan user'}
+                        style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)' }}
+                      >
+                        {user.is_active ? (
+                          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+                          </svg>
+                        ) : (
+                          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                            <path d="M5 12h14" /><path d="M12 5v14" />
+                          </svg>
+                        )}
+                      </button>
+                      <button 
+                        className="ghost icon-only" 
+                        onClick={() => onDelete(user.id)}
+                        title="Hapus"
+                        aria-label="Hapus"
+                        style={{ color: 'var(--danger)' }}
+                      >
+                        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 // ============ KOMPONEN MODAL ============
 function UserModal({ user, onSave, onClose }) {
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   const [form, setForm] = useState({
     nama: user?.full_name || user?.nama || '',
     username: user?.username || '',
@@ -335,13 +357,13 @@ function UserModal({ user, onSave, onClose }) {
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{user?.id ? 'Edit' : 'Tambah'} User</h2>
-          <button onClick={onClose}>✕</button>
+          <button onClick={onClose} aria-label="Tutup modal">✕</button>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="card-form-body">
             {error && (
-              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} role="alert">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 {error}
@@ -350,8 +372,11 @@ function UserModal({ user, onSave, onClose }) {
 
             <div className="form-grid">
               <div className="full">
-                <label>Nama Lengkap</label>
+                <label htmlFor="nama">Nama Lengkap</label>
                 <input 
+                  id="nama"
+                  name="nama"
+                  autoComplete="name"
                   value={form.nama}
                   onChange={e => setForm({ ...form, nama: e.target.value })}
                   placeholder="Contoh: Budi Santoso"
@@ -359,8 +384,12 @@ function UserModal({ user, onSave, onClose }) {
                 />
               </div>
               <div className="full">
-                <label>Username</label>
+                <label htmlFor="username">Username</label>
                 <input 
+                  id="username"
+                  name="username"
+                  autoComplete="username"
+                  spellCheck="false"
                   value={form.username}
                   onChange={e => setForm({ ...form, username: e.target.value })}
                   placeholder="Contoh: budisantoso"
@@ -368,9 +397,12 @@ function UserModal({ user, onSave, onClose }) {
                 />
               </div>
               <div className="full">
-                <label>Email</label>
+                <label htmlFor="email">Email</label>
                 <input 
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
                   value={form.email}
                   onChange={e => setForm({ ...form, email: e.target.value })}
                   placeholder="Contoh: budi@usc.ac.id"
@@ -378,8 +410,10 @@ function UserModal({ user, onSave, onClose }) {
                 />
               </div>
               <div className="full">
-                <label>Role</label>
+                <label htmlFor="role">Role</label>
                 <select 
+                  id="role"
+                  name="role"
                   value={form.role}
                   onChange={e => setForm({ ...form, role: e.target.value })}
                   required
@@ -393,9 +427,12 @@ function UserModal({ user, onSave, onClose }) {
                 </p>
               </div>
               <div className="full">
-                <label>{user?.id ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password'}</label>
+                <label htmlFor="password">{user?.id ? 'Password Baru (kosongkan jika tidak diubah)' : 'Password'}</label>
                 <input 
+                  id="password"
+                  name="password"
                   type="password"
+                  autoComplete={user?.id ? "new-password" : "new-password"}
                   value={form.password}
                   onChange={e => setForm({ ...form, password: e.target.value })}
                   placeholder={user?.id ? "Biarkan kosong jika tidak diubah" : "Masukkan password"}
@@ -451,36 +488,55 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
+          aria-label="Halaman sebelumnya"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
 
         <div className="flex items-center gap-1">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => onPageChange(page)}
-              className="btn icon-only"
-              style={{ 
-                minWidth: '2.25rem',
-                background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
-                color: currentPage === page ? 'white' : 'var(--text)',
-                border: currentPage === page ? 'none' : '1px solid var(--border)'
-              }}
-            >
-              {page}
-            </button>
-          ))}
+          {(() => {
+            const pages = [];
+            const addPage = (p) => pages.push(
+              <button
+                key={p}
+                onClick={() => onPageChange(p)}
+                className="btn icon-only"
+                style={{ 
+                  minWidth: '2.25rem',
+                  background: currentPage === p ? 'var(--primary)' : 'var(--surface)',
+                  color: currentPage === p ? 'white' : 'var(--text)',
+                  border: currentPage === p ? 'none' : '1px solid var(--border)'
+                }}
+              >
+                {p}
+              </button>
+            );
+            const addEllipsis = (k) => pages.push(<span key={`ellipsis-${k}`} style={{ padding: '0 4px', color: 'var(--text-3)' }}>…</span>);
+
+            if (totalPages <= 7) {
+              for (let i = 1; i <= totalPages; i++) addPage(i);
+            } else {
+              addPage(1);
+              if (currentPage > 4) addEllipsis('start');
+              const start = Math.max(2, currentPage - 2);
+              const end = Math.min(totalPages - 1, currentPage + 2);
+              for (let i = start; i <= end; i++) addPage(i);
+              if (currentPage < totalPages - 3) addEllipsis('end');
+              addPage(totalPages);
+            }
+            return pages;
+          })()}
         </div>
 
         <button
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
+          aria-label="Halaman berikutnya"
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </button>
@@ -502,6 +558,7 @@ export default function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   const userRole = 'super_admin';
   const canEdit = userRole === 'super_admin';
@@ -579,23 +636,27 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Apakah Anda yakin ingin menghapus user ini?')) {
-      try {
-        setActionLoading(true);
-        await deleteUser(id);
-      } catch (err) {
-        alert('Gagal menghapus user: ' + err.message);
-      } finally {
-        setActionLoading(false);
-      }
+  const handleDelete = (id) => {
+    setDeleteConfirm(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    try {
+      setActionLoading(true);
+      await deleteUser(deleteConfirm);
+    } catch (err) {
+      alert('Gagal menghapus user: ' + err.message);
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirm(null);
     }
   };
 
   if (!canEdit) {
     return (
       <div className="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
         </svg>
         <h3>Akses Ditolak</h3>
@@ -608,7 +669,7 @@ export default function UsersPage() {
     return (
       <div className="empty-state">
         <div style={{ width: '3rem', height: '3rem', border: '3px solid var(--surface-2)', borderTopColor: 'var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1rem' }} />
-        <h3>Memuat Data...</h3>
+        <h3>Memuat Data…</h3>
         <p>Sedang mengambil data user dari server</p>
         <style jsx>{`
           @keyframes spin {
@@ -622,7 +683,7 @@ export default function UsersPage() {
   if (error) {
     return (
       <div className="empty-state">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', color: 'var(--danger)' }}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', color: 'var(--danger)' }}>
           <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
         <h3>Terjadi Kesalahan</h3>
@@ -644,11 +705,11 @@ export default function UsersPage() {
         </div>
         <div className="page-actions">
           <button className="btn btn-secondary hide-mobile" onClick={refreshUsers}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
             Refresh
           </button>
           <button className="btn btn-primary" onClick={() => { setEditingItem(null); setShowModal(true); }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Tambah Pengguna
           </button>
         </div>
@@ -660,7 +721,7 @@ export default function UsersPage() {
           title="Total User"
           value={stats.total}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
               <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
@@ -671,7 +732,7 @@ export default function UsersPage() {
           title="User Aktif"
           value={stats.active}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" />
             </svg>
           }
@@ -681,7 +742,7 @@ export default function UsersPage() {
           title="User Nonaktif"
           value={stats.inactive}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
               <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
             </svg>
           }
@@ -691,7 +752,7 @@ export default function UsersPage() {
           title="Super Admin"
           value={stats.byRole.find(r => r.role === 'super_admin')?.count || 0}
           icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           }
@@ -702,9 +763,10 @@ export default function UsersPage() {
       {/* Filter Bar */}
       <div className="card mb-4">
         <div className="card-body">
-          <div className="toolbar" style={{ marginBottom: 0 }}>
-            <div className="filter-group filter-search" style={{ maxWidth: '20rem' }}>
-              <svg className="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {/* Search - full width */}
+            <div className="filter-group filter-search" style={{ maxWidth: '100%', width: '100%' }}>
+              <svg aria-hidden="true" className="filter-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
               </svg>
               <input
@@ -713,24 +775,27 @@ export default function UsersPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="filter-input"
+                style={{ width: '100%' }}
               />
               {searchQuery && (
                 <button 
                   onClick={() => setSearchQuery('')}
                   className="filter-clear-btn"
+                  aria-label="Bersihkan pencarian"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Filters row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <select 
                 value={filterRole} 
                 onChange={(e) => setFilterRole(e.target.value)}
-                style={{ minWidth: '8rem' }}
+                style={{ minWidth: '7rem', flex: '1 1 auto', height: '40px', fontSize: '0.875rem' }}
               >
                 <option value="">Semua Role</option>
                 {Object.entries(ROLE_CONFIGS).map(([key, config]) => (
@@ -741,14 +806,14 @@ export default function UsersPage() {
               <select 
                 value={filterStatus} 
                 onChange={(e) => setFilterStatus(e.target.value)}
-                style={{ minWidth: '8rem' }}
+                style={{ minWidth: '7rem', flex: '1 1 auto', height: '40px', fontSize: '0.875rem' }}
               >
                 <option value="">Semua Status</option>
                 <option value="active">Aktif</option>
                 <option value="inactive">Nonaktif</option>
               </select>
 
-              <div className="flex" style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '0.25rem' }}>
+              <div className="flex" style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '0.25rem', flexShrink: 0 }}>
                 <button
                   onClick={() => setViewMode('card')}
                   className="btn icon-only"
@@ -758,8 +823,9 @@ export default function UsersPage() {
                     color: viewMode === 'card' ? 'var(--primary)' : 'var(--text-2)'
                   }}
                   title="Card View"
+                  aria-label="Tampilan card"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
                     <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
                   </svg>
@@ -773,8 +839,9 @@ export default function UsersPage() {
                     color: viewMode === 'table' ? 'var(--primary)' : 'var(--text-2)'
                   }}
                   title="Table View"
+                  aria-label="Tampilan tabel"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
                     <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
                     <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
@@ -789,7 +856,7 @@ export default function UsersPage() {
       {/* User List */}
       {filteredUsers.length === 0 ? (
         <div className="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '3rem', height: '3rem', marginBottom: '1rem', opacity: 0.4 }}>
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" />
           </svg>
           <h3>Tidak ada user ditemukan</h3>
@@ -841,6 +908,34 @@ export default function UsersPage() {
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
         />
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteConfirm && (
+        <div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-head">
+              <h3>Konfirmasi Hapus</h3>
+              <button onClick={() => setDeleteConfirm(null)} aria-label="Tutup">✕</button>
+            </div>
+            <div className="card-form-body">
+              <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>
+                Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.
+              </p>
+            </div>
+            <div className="card-form-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Batal</button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={confirmDelete}
+                disabled={actionLoading}
+              >
+                {actionLoading ? 'Menghapus…' : 'Hapus User'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
