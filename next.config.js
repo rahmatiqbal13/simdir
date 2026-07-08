@@ -3,7 +3,13 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  buildExcludes: [/middleware-manifest.json$/],
+  buildExcludes: [
+    /middleware-manifest\.json$/,
+    /_next\/app-build-manifest\.json$/,
+    /_next\/app-paths-manifest\.json$/,
+    /_next\/react-loadable-manifest\.json$/,
+    /_next\/build-manifest\.json$/,
+  ],
   // Scope dan start URL
   scope: '/',
   sw: 'sw.js',
