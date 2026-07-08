@@ -231,7 +231,7 @@ const MediaRotator = ({ t }) => {
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current)
     if (cur?.type === 'youtube') return
-    const dur = cur?.duration || MEDIA_CONFIG.SLIDE_DURATION
+    const dur = cur?.duration || 15000
     timerRef.current = setInterval(() => nextRef.current(), dur)
     return () => clearInterval(timerRef.current)
   }, [idx, cur])
