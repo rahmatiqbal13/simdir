@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
-import { MEDIA_CONFIG } from './media-config'
+// MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
 import { getUnitColor, UNIT_COLORS } from './unit-colors'
 
 // ============ HELPERS ============
@@ -203,9 +203,12 @@ const MediaRotator = ({ t }) => {
   }, [])
 
   const playlist = useMemo(() => {
-    const yt = MEDIA_CONFIG.playlist.filter(m => m.type === 'youtube')
-    const imgs = dbPamflets.map(p => ({ type: 'image', src: p.src_url, title: p.title, duration: p.duration * 1000 }))
-    return [...yt, ...imgs]
+    return dbPamflets.map(p => {
+      if (p.type === 'youtube') {
+        return { type: 'youtube', url: p.src_url, title: p.title, duration: p.duration * 1000 }
+      }
+      return { type: 'image', src: p.src_url, title: p.title, duration: p.duration * 1000 }
+    })
   }, [dbPamflets])
 
   const playlistRef = useRef(playlist)

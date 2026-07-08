@@ -5,13 +5,23 @@ import { useState, useEffect, useRef } from 'react'
 export default function TVPamfletPage() {
   const [pamflets, setPamflets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('image') // 'image' | 'youtube'
+  
+  // Image upload state
   const [uploading, setUploading] = useState(false)
   const [selectedFile, setSelectedFile] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
-  const [title, setTitle] = useState('')
-  const [duration, setDuration] = useState(15)
-  const [message, setMessage] = useState({ type: '', text: '' })
+  const [imgTitle, setImgTitle] = useState('')
+  const [imgDuration, setImgDuration] = useState(15)
   const fileInputRef = useRef(null)
+  
+  // YouTube link state
+  const [ytTitle, setYtTitle] = useState('')
+  const [ytUrl, setYtUrl] = useState('')
+  const [ytDuration, setYtDuration] = useState(15)
+  const [ytSaving, setYtSaving] = useState(false)
+  
+  const [message, setMessage] = useState({ type: '', text: '' })
 
   useEffect(() => {
     loadPamflets()
@@ -36,6 +46,7 @@ export default function TVPamfletPage() {
     setTimeout(() => setMessage({ type: '', text: '' }), 5000)
   }
 
+  // ============ IMAGE UPLOAD ============
   const handleFileSelect = (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -56,21 +67,21 @@ export default function TVPamfletPage() {
     reader.onloadend = () => setPreviewUrl(reader.result)
     reader.readAsDataURL(file)
 
-    if (!title) {
-      setTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '))
+    if (!imgTitle) {
+      setImgTitle(file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '))
     }
   }
 
   const handleUpload = async () => {
     if (!selectedFile) return showMessage('error', 'Pilih file gambar terlebih dahulu')
-    if (!title.trim()) return showMessage('error', 'Masukkan judul pamflet')
+    if (!imgTitle.trim()) return showMessage('error', 'Masukkan judul pamflet')
 
     setUploading(true)
     try {
       const form = new FormData()
       form.append('file', selectedFile)
-      form.append('title', title.trim())
-      form.append('duration', String(duration))
+      form.append('title', imgTitle.trim())
+      form.append('duration', String(imgDuration))
 
       const res = await fetch('/api/tv-pamflets', { method: 'POST', body: form })
       const data = await res.json()
@@ -80,8 +91,8 @@ export default function TVPamfletPage() {
       setPamflets(prev => [...prev, data])
       setSelectedFile(null)
       setPreviewUrl(null)
-      setTitle('')
-      setDuration(15)
+      setImgTitle('')
+      setImgDuration(15)
       if (fileInputRef.current) fileInputRef.current.value = ''
       showMessage('success', `Pamflet "${data.title}" berhasil diupload! TV Display akan update otomatis.`)
     } catch (err) {
@@ -91,8 +102,41 @@ export default function TVPamfletPage() {
     }
   }
 
+  // ============ YOUTUBE LINK ============
+  const handleSaveYoutube = async () => {
+    if (!ytTitle.trim()) return showMessage('error', 'Masukkan judul video')
+    if (!ytUrl.trim()) return showMessage('error', 'Masukkan URL YouTube')
+
+    setYtSaving(true)
+    try {
+      const res = await fetch('/api/tv-pamflets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: ytTitle.trim(),
+          url: ytUrl.trim(),
+          duration: ytDuration,
+        }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan')
+
+      setPamflets(prev => [...prev, data])
+      setYtTitle('')
+      setYtUrl('')
+      setYtDuration(15)
+      showMessage('success', `Video "${data.title}" berhasil ditambahkan!`)
+    } catch (err) {
+      showMessage('error', err.message || 'Gagal menyimpan video')
+    } finally {
+      setYtSaving(false)
+    }
+  }
+
+  // ============ DELETE ============
   const handleDelete = async (pamflet) => {
-    if (!confirm(`Hapus pamflet "${pamflet.title}"?`)) return
+    if (!confirm(`Hapus "${pamflet.title}"?`)) return
 
     try {
       const res = await fetch(`/api/tv-pamflets/${pamflet.id}`, { method: 'DELETE' })
@@ -101,12 +145,13 @@ export default function TVPamfletPage() {
         throw new Error(data.error || 'Gagal menghapus')
       }
       setPamflets(prev => prev.filter(p => p.id !== pamflet.id))
-      showMessage('success', `Pamflet "${pamflet.title}" berhasil dihapus`)
+      showMessage('success', `"${pamflet.title}" berhasil dihapus`)
     } catch (err) {
       showMessage('error', err.message)
     }
   }
 
+  // ============ EDIT DURATION ============
   const handleEditDuration = async (pamflet, newDuration) => {
     try {
       const res = await fetch(`/api/tv-pamflets/${pamflet.id}`, {
@@ -126,7 +171,7 @@ export default function TVPamfletPage() {
       <div className="page-header">
         <div className="page-title-wrap">
           <h1 className="page-title">TV Pamflet</h1>
-          <p className="page-subtitle">Kelola gambar pamflet yang ditampilkan di TV Display.</p>
+          <p className="page-subtitle">Kelola gambar dan video YouTube yang ditampilkan di TV Display.</p>
         </div>
       </div>
 
@@ -148,91 +193,210 @@ export default function TVPamfletPage() {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-        {/* Form Upload */}
+        {/* Form Input */}
         <div style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', border: '1px solid #e2e8f0' }}>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload Pamflet Baru</h2>
-
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
-              File Gambar *
-            </label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".jpg,.jpeg,.png,.webp"
-              onChange={handleFileSelect}
-              style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-            />
-            <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem' }}>
-              JPG, PNG, WebP — maks. 5MB — ideal: 1920×1080px
-            </p>
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb', paddingBottom: '0.75rem' }}>
+            <button
+              onClick={() => setActiveTab('image')}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: activeTab === 'image' ? '#3b82f6' : '#f3f4f6',
+                color: activeTab === 'image' ? '#fff' : '#6b7280',
+              }}
+            >
+              🖼️ Upload Gambar
+            </button>
+            <button
+              onClick={() => setActiveTab('youtube')}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '6px',
+                border: 'none',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: activeTab === 'youtube' ? '#ef4444' : '#f3f4f6',
+                color: activeTab === 'youtube' ? '#fff' : '#6b7280',
+              }}
+            >
+              ▶️ Link YouTube
+            </button>
           </div>
 
-          <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
-              Judul *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Judul pamflet"
-              style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
-            />
-          </div>
+          {activeTab === 'image' ? (
+            <>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem' }}>Upload Pamflet Baru</h2>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
-              Durasi tampil: <strong>{duration} detik</strong>
-            </label>
-            <input
-              type="range"
-              value={duration}
-              onChange={(e) => setDuration(Number(e.target.value))}
-              min="5"
-              max="60"
-              step="5"
-              style={{ width: '100%', accentColor: '#3b82f6' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9ca3af' }}>
-              <span>5 dtk</span><span>60 dtk</span>
-            </div>
-          </div>
-
-          {previewUrl && (
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
-                <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  File Gambar *
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.webp"
+                  onChange={handleFileSelect}
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem' }}>
+                  JPG, PNG, WebP — maks. 5MB — ideal: 1920×1080px
+                </p>
               </div>
-            </div>
-          )}
 
-          <button
-            onClick={handleUpload}
-            disabled={uploading || !selectedFile || !title.trim()}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              background: uploading || !selectedFile || !title.trim() ? '#9ca3af' : '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              cursor: uploading || !selectedFile || !title.trim() ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {uploading ? (
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                <span style={{
-                  width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
-                  borderTopColor: '#fff', borderRadius: '50%',
-                  display: 'inline-block', animation: 'spin 0.7s linear infinite',
-                }} />
-                Mengupload...
-              </span>
-            ) : 'Upload Pamflet'}
-          </button>
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  Judul *
+                </label>
+                <input
+                  type="text"
+                  value={imgTitle}
+                  onChange={(e) => setImgTitle(e.target.value)}
+                  placeholder="Judul pamflet"
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  Durasi tampil: <strong>{imgDuration} detik</strong>
+                </label>
+                <input
+                  type="range"
+                  value={imgDuration}
+                  onChange={(e) => setImgDuration(Number(e.target.value))}
+                  min="5"
+                  max="60"
+                  step="5"
+                  style={{ width: '100%', accentColor: '#3b82f6' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span>5 dtk</span><span>60 dtk</span>
+                </div>
+              </div>
+
+              {previewUrl && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <div style={{ border: '1px solid #e5e7eb', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
+                    <img src={previewUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={handleUpload}
+                disabled={uploading || !selectedFile || !imgTitle.trim()}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: uploading || !selectedFile || !imgTitle.trim() ? '#9ca3af' : '#3b82f6',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: uploading || !selectedFile || !imgTitle.trim() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {uploading ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#fff', borderRadius: '50%',
+                      display: 'inline-block', animation: 'spin 0.7s linear infinite',
+                    }} />
+                    Mengupload...
+                  </span>
+                ) : 'Upload Pamflet'}
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1.5rem' }}>Tambah Video YouTube</h2>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  URL YouTube *
+                </label>
+                <input
+                  type="url"
+                  value={ytUrl}
+                  onChange={(e) => setYtUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/playlist?list=... atau https://www.youtube.com/watch?v=..."
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem' }}>
+                  Support: Playlist URL atau Single Video URL
+                </p>
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  Judul *
+                </label>
+                <input
+                  type="text"
+                  value={ytTitle}
+                  onChange={(e) => setYtTitle(e.target.value)}
+                  placeholder="Judul video"
+                  style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>
+                  Durasi tampil: <strong>{ytDuration} detik</strong>
+                </label>
+                <input
+                  type="range"
+                  value={ytDuration}
+                  onChange={(e) => setYtDuration(Number(e.target.value))}
+                  min="5"
+                  max="60"
+                  step="5"
+                  style={{ width: '100%', accentColor: '#ef4444' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span>5 dtk</span><span>60 dtk</span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem' }}>
+                  Tips: Gunakan durasi lebih lama (30-60 dtk) untuk video
+                </p>
+              </div>
+
+              <button
+                onClick={handleSaveYoutube}
+                disabled={ytSaving || !ytUrl.trim() || !ytTitle.trim()}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: ytSaving || !ytUrl.trim() || !ytTitle.trim() ? '#9ca3af' : '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: ytSaving || !ytUrl.trim() || !ytTitle.trim() ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {ytSaving ? (
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <span style={{
+                      width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)',
+                      borderTopColor: '#fff', borderRadius: '50%',
+                      display: 'inline-block', animation: 'spin 0.7s linear infinite',
+                    }} />
+                    Menyimpan...
+                  </span>
+                ) : 'Simpan Video YouTube'}
+              </button>
+            </>
+          )}
         </div>
 
         {/* Daftar Pamflet */}
@@ -260,7 +424,7 @@ export default function TVPamfletPage() {
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
-                <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Belum ada pamflet. Upload gambar baru.</p>
+                <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Belum ada pamflet. Upload gambar atau tambah video YouTube.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -269,21 +433,39 @@ export default function TVPamfletPage() {
                     key={pamflet.id}
                     style={{ display: 'flex', gap: '0.75rem', padding: '0.75rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}
                   >
-                    {/* Thumbnail */}
-                    <div style={{ width: '100px', height: '56px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#000' }}>
-                      <img
-                        src={pamflet.src_url}
-                        alt={pamflet.title}
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        onError={(e) => { e.target.style.opacity = '0' }}
-                      />
+                    {/* Thumbnail / Icon */}
+                    <div style={{ width: '100px', height: '56px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, background: '#000', display: 'grid', placeItems: 'center' }}>
+                      {pamflet.type === 'youtube' ? (
+                        <div style={{ color: '#fff', fontSize: '1.5rem' }}>▶️</div>
+                      ) : (
+                        <img
+                          src={pamflet.src_url}
+                          alt={pamflet.title}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          onError={(e) => { e.target.style.opacity = '0' }}
+                        />
+                      )}
                     </div>
 
                     {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {pamflet.title}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                        <p style={{ fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {pamflet.title}
+                        </p>
+                        <span style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          background: pamflet.type === 'youtube' ? '#fee2e2' : '#dbeafe',
+                          color: pamflet.type === 'youtube' ? '#dc2626' : '#2563eb',
+                          flexShrink: 0,
+                        }}>
+                          {pamflet.type === 'youtube' ? 'YouTube' : 'Gambar'}
+                        </span>
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Durasi:</label>
                         <select
@@ -327,8 +509,9 @@ export default function TVPamfletPage() {
             </p>
             <ul style={{ fontSize: '0.8125rem', color: '#166534', paddingLeft: '1.25rem', lineHeight: '1.8', margin: 0 }}>
               <li>Upload gambar → langsung tersimpan ke cloud storage</li>
+              <li>Tambah video YouTube → cukup paste URL, sistem auto-embed</li>
               <li>TV Display refresh otomatis setiap 5 menit</li>
-              <li>Hapus pamflet → gambar ikut terhapus dari server</li>
+              <li>Hapus pamflet → gambar/video ikut terhapus dari daftar</li>
               <li>Ubah durasi langsung dari daftar di atas</li>
             </ul>
           </div>
