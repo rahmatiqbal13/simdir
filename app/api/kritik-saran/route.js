@@ -54,6 +54,13 @@ export async function POST(request) {
     const body = await request.json()
 
     // Validation
+    if (!body.jenis_kelamin || !['Laki-laki', 'Perempuan'].includes(body.jenis_kelamin)) {
+      return NextResponse.json(
+        { error: 'Jenis kelamin wajib dipilih (Laki-laki atau Perempuan)' },
+        { status: 400 }
+      )
+    }
+
     if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
       return NextResponse.json(
         { error: 'Minimal pilih 1 fasilitas dan berikan rating & penjelasan' },
@@ -76,6 +83,17 @@ export async function POST(request) {
         if (!item.jawaban_pilihan || !item.jawaban_pilihan.trim()) {
           return NextResponse.json(
             { error: `Pilihan untuk "${item.aspek || item.fasilitas}" wajib diisi` },
+            { status: 400 }
+          )
+        }
+      } else if (tipe === 'checkbox') {
+        let jawabanArr = []
+        if (item.jawaban_pilihan) {
+          try { jawabanArr = JSON.parse(item.jawaban_pilihan) } catch {}
+        }
+        if (!Array.isArray(jawabanArr) || jawabanArr.length === 0) {
+          return NextResponse.json(
+            { error: `Pilihan untuk "${item.aspek || item.fasilitas}" wajib dipilih minimal 1` },
             { status: 400 }
           )
         }
@@ -119,8 +137,21 @@ export async function POST(request) {
         email: body.is_anonim ? null : (body.email || null),
         telepon: body.is_anonim ? null : (body.telepon || null),
         unit_kerja: body.unit_kerja || null,
+        jenis_kelamin: body.jenis_kelamin,
         kategori: body.items.map(i => i.fasilitas).join(', '),
-        isi: body.items.map(i => `[${i.fasilitas}] ${i.penjelasan || i.jawaban_pilihan || ''}`).join('\n\n'),
+        isi: body.items.map(i => {
+          let jawaban = i.penjelasan || ''
+          if (i.jawaban_pilihan) {
+            try {
+              const arr = JSON.parse(i.jawaban_pilihan)
+              if (Array.isArray(arr)) jawaban = arr.join(', ')
+              else jawaban = i.jawaban_pilihan
+            } catch {
+              jawaban = i.jawaban_pilihan
+            }
+          }
+          return `[${i.fasilitas}] ${jawaban}`
+        }).join('\n\n'),
         is_anonim: body.is_anonim || false,
         status: 'baru',
         total_items: body.items.length,
@@ -198,6 +229,39 @@ export async function PATCH(request) {
   } catch (err) {
     return NextResponse.json(
       { error: err.message || 'Gagal mengupdate' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/kritik-saran?id=xxx — delete feedback (auth required, super_admin only)
+export async function DELETE(request) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID wajib diisi' }, { status: 400 })
+    }
+
+    const supabase = getServiceClient()
+
+    const { error } = await supabase
+      .from('kritik_saran')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+
+    return NextResponse.json({ success: true, message: 'Kritik & saran berhasil dihapus' })
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message || 'Gagal menghapus' },
       { status: 500 }
     )
   }

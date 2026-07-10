@@ -421,7 +421,7 @@ p:last-child { margin-bottom: 0; }
   border-radius: 10px;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all .15s ease;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, color .15s ease, border-color .15s ease;
   font-family: inherit;
 }
 .btn:hover { transform: translateY(-1px); }
@@ -1267,6 +1267,15 @@ button.icon-only {
 
   .toolbar {
     flex-wrap: wrap;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .filter-search {
+    max-width: 100% !important;
+    width: 100%;
   }
 }
 
