@@ -7,21 +7,6 @@ import { UNIT_COLORS } from './unit-colors'
 import { MONTHS, MONTHS_L, DAYS, formatTime, getAgendaStatus, sortActiveAgenda, DARK, LIGHT, useStageScale, useTheme, useClock } from './shared'
 import AgendaTvTable from './AgendaTvTable'
 
-const getCountdown = (item) => {
-  if (!item) return ''
-  const st = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  if (st === 'ongoing') return 'Berlangsung Sekarang'
-  const target = new Date(item.tanggal_mulai + 'T' + (item.waktu_mulai || '00:00'))
-  const diff = target - new Date()
-  if (diff <= 0) return 'Berlangsung Sekarang'
-  const dd = Math.floor(diff / 86400000)
-  const hh = Math.floor((diff % 86400000) / 3600000)
-  const mm = Math.floor((diff % 3600000) / 60000)
-  if (dd > 0) return `${dd} hari ${hh} jam lagi`
-  if (hh > 0) return `${hh} jam ${mm} menit lagi`
-  return `${mm} menit lagi`
-}
-
 // ============ WMO WEATHER CODES ============
 const WMO = {
   0:{icon:'☀️',label:'Cerah'}, 1:{icon:'🌤️',label:'Cerah Berawan'},
@@ -309,100 +294,6 @@ const MediaRotator = ({ t }) => {
   )
 }
 
-// ============ FEATURED CARD ============
-const FEATURED_ROTATE_MS = 5000
-
-const FeaturedCard = ({ agenda, t }) => {
-  const ongoingList = useMemo(() =>
-    agenda.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing')
-  , [agenda])
-
-  const fallback = useMemo(() =>
-    agenda.find(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed') || null
-  , [agenda])
-
-  const isCarousel = ongoingList.length > 1
-  const [activeIdx, setActiveIdx] = useState(0)
-  const [visible,   setVisible]   = useState(true)
-
-  useEffect(() => {
-    if (!isCarousel) { setActiveIdx(0); return }
-    const id = setInterval(() => {
-      setVisible(false)
-      setTimeout(() => {
-        setActiveIdx(p => (p + 1) % ongoingList.length)
-        setVisible(true)
-      }, 400)
-    }, FEATURED_ROTATE_MS)
-    return () => clearInterval(id)
-  }, [isCarousel, ongoingList.length])
-
-  useEffect(() => { setActiveIdx(0); setVisible(true) }, [ongoingList.length])
-
-  const item = ongoingList.length > 0 ? ongoingList[activeIdx] : fallback
-
-  if (!item) return (
-    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: '0.8vw', padding: '2vw', flexShrink: 0 }}>
-      <div style={{ fontSize: '0.9vw', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: t.accent }}>
-        ⭐ Agenda Berikutnya
-      </div>
-      <div style={{ marginTop: '1vw', color: t.text2, fontSize: '1.1vw' }}>Tidak ada agenda mendatang</div>
-    </div>
-  )
-
-  const st = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  const d  = new Date(item.tanggal_mulai)
-  const eyebrow = st === 'ongoing'
-    ? (isCarousel ? `🔴 Berlangsung (${activeIdx + 1}/${ongoingList.length})` : '🔴 Sedang Berlangsung')
-    : '⭐ Agenda Berikutnya'
-  const countdown = getCountdown(item)
-
-  return (
-    <div style={{ background: t.featuredBg, border: `1px solid ${t.featuredBorder}`, borderRadius: '0.8vw', padding: '1.2vw', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: '-5vw', right: '-4vw', width: '15vw', height: '15vw', background: 'radial-gradient(circle, rgba(245,185,21,0.25), transparent 65%)', pointerEvents: 'none' }} />
-
-      <div style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.4s ease' }}>
-        <div style={{ fontSize: '0.75vw', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.accent, marginBottom: '0.6vw', display: 'flex', alignItems: 'center', gap: '0.4vw' }}>
-          {eyebrow}
-        </div>
-        <h2 style={{ margin: '0 0 0.6vw', fontSize: '1.2vw', fontWeight: 800, lineHeight: 1.3, letterSpacing: '-0.015em', color: t.text }}>{item.judul}</h2>
-        <div style={{ display: 'grid', gap: '0.35vw', fontSize: '0.9vw', color: t.text2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: '0.9vw', height: '0.9vw', flexShrink: 0 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <span>{DAYS[d.getDay()]}, {d.getDate()} {MONTHS_L[d.getMonth()]} · {formatTime(item.waktu_mulai)}</span>
-          </div>
-          {item.lokasi && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: '0.9vw', height: '0.9vw', flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-              <span>{item.lokasi}</span>
-            </div>
-          )}
-        </div>
-        <div style={{ marginTop: '0.8vw', paddingTop: '0.8vw', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.8vw' }}>
-          <div style={{ fontSize: '0.7vw', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: t.text3 }}>
-            {st === 'ongoing' ? 'STATUS' : 'DIMULAI DALAM'}
-          </div>
-          <div style={{ fontSize: '1.1vw', fontWeight: 800, fontFamily: '"JetBrains Mono", monospace', letterSpacing: '-0.02em', color: t.accent, textAlign: 'right' }}>
-            {countdown}
-          </div>
-        </div>
-      </div>
-
-      {isCarousel && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.4vw', marginTop: '0.8vw' }}>
-          {ongoingList.map((_, i) => (
-            <span key={i} style={{
-              width: i === activeIdx ? '1.2vw' : '0.4vw', height: '0.4vw', borderRadius: 999,
-              background: i === activeIdx ? t.accent : t.border,
-              transition: 'all 0.3s ease', display: 'block',
-            }} />
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
   const scale                 = useStageScale()
@@ -633,17 +524,28 @@ export default function AgendaTVPage() {
             overflow: 'hidden'
           }}>
 
-            {/* LEFT: Table */}
-            <AgendaTvTable agenda={filtered} t={t} scale={scale} />
+            {/* LEFT: Table (dibatasi 4 baris) + QR Kritik & Saran mengisi sisa ruang */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2vw', minHeight: 0 }}>
+              <AgendaTvTable agenda={filtered} t={t} scale={scale} maxRows={4} />
+
+              <div style={{ flex: 1, minHeight: 0, background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '0.8vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1vh', padding: '1.5vh' }}>
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://managementusc.vercel.app/kritik-saran')}`}
+                  alt="QR Kritik Saran"
+                  style={{ width: '9vw', height: '9vw', borderRadius: '0.4vw', display: 'block', background: '#fff', padding: '0.4vw', outline: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, outlineOffset: '-1px' }}
+                />
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.1vw', fontWeight: 800, color: t.text, letterSpacing: '0.02em' }}>Kritik & Saran</div>
+                  <div style={{ fontSize: '0.85vw', color: t.text2, marginTop: '0.3vh' }}>Scan dengan HP untuk memberi masukan</div>
+                </div>
+              </div>
+            </div>
 
             {/* RIGHT: Side panel */}
             <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5vh', minHeight: 0 }}>
 
-              {/* Featured card */}
-              <FeaturedCard agenda={filtered} t={t} />
-
               {/* Media card */}
-              <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: '1vw', overflow: 'hidden', flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '1vw', overflow: 'hidden', flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '1.2vh 1.4vw', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2 }}>
                     <svg viewBox="0 0 24 24" fill={t.accent} style={{ width: '1.2vw', height: '1.2vw' }}><path d="M21.582 7.176a2.506 2.506 0 0 0-1.768-1.768C18.254 5 12 5 12 5s-6.254 0-7.814.408a2.506 2.506 0 0 0-1.768 1.768C2 8.746 2 12 2 12s0 3.254.418 4.824c.23.864.908 1.538 1.768 1.768C5.746 19 12 19 12 19s6.254 0 7.814-.408a2.506 2.506 0 0 0 1.768-1.768C22 15.254 22 12 22 12s0-3.254-.418-4.824zM10 15V9l5.2 3-5.2 3z"/></svg>
@@ -659,7 +561,7 @@ export default function AgendaTVPage() {
           </main>
 
           {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto auto', gap: '1.2vw', alignItems: 'center', padding: '1.2vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
+          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '1.2vw', alignItems: 'center', padding: '1.2vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.7vh 1.2vw', borderRadius: 999, flexShrink: 0 }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '1vw', height: '1vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               PENGUMUMAN
@@ -668,18 +570,6 @@ export default function AgendaTVPage() {
               <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: '1.15vw', fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
                 {marqueeText}
               </span>
-            </div>
-            {/* QR Code Kritik & Saran */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', flexShrink: 0, background: t.card, padding: '0.6vh 1vw', borderRadius: '0.5vw', border: `1px solid ${t.border}` }}>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=60x60&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://managementusc.vercel.app/kritik-saran')}`}
-                alt="QR Kritik Saran"
-                style={{ width: '2.2vw', height: '2.2vw', borderRadius: '0.2vw', display: 'block' }}
-              />
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: '0.75vw', fontWeight: 700, color: t.text, letterSpacing: '0.04em', lineHeight: 1.2 }}>Kritik & Saran</span>
-                <span style={{ fontSize: '0.65vw', color: t.text3, lineHeight: 1.2 }}>Scan dengan HP</span>
-              </div>
             </div>
             <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.9vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
               SIMDIR v2.0 · TV
