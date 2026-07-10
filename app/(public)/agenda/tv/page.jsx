@@ -3,27 +3,9 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
-import { getUnitColor, UNIT_COLORS } from './unit-colors'
-
-// ============ HELPERS ============
-const MONTHS     = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
-const MONTHS_L   = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
-const DAYS       = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu']
-
-const formatTime = (t) => {
-  if (!t) return '--:--'
-  const p = String(t).split(':')
-  return `${p[0].padStart(2,'0')}:${(p[1]||'00').padStart(2,'0')}`
-}
-
-const getAgendaStatus = (mulai, selesai) => {
-  const today = new Date(); today.setHours(0,0,0,0)
-  const s = new Date(mulai); s.setHours(0,0,0,0)
-  const e = new Date(selesai); e.setHours(0,0,0,0)
-  if (today > e) return 'completed'
-  if (today >= s) return 'ongoing'
-  return Math.ceil((s - today) / 86400000) <= 3 ? 'upcoming_soon' : 'upcoming'
-}
+import { UNIT_COLORS } from './unit-colors'
+import { MONTHS, MONTHS_L, DAYS, formatTime, getAgendaStatus, sortActiveAgenda, DARK, LIGHT, useStageScale, useTheme, useClock } from './shared'
+import AgendaTvTable from './AgendaTvTable'
 
 const getCountdown = (item) => {
   if (!item) return ''
@@ -40,40 +22,6 @@ const getCountdown = (item) => {
   return `${mm} menit lagi`
 }
 
-// ============ TEMA ============
-const DARK = {
-  bg: '#0a1228', bg2: '#0f1a3a', card: '#142a5e', card2: '#1a3370',
-  border: 'rgba(255,255,255,0.08)', accent: '#f5b915', primary: '#4f7df9',
-  text: '#ffffff', text2: 'rgba(255,255,255,0.7)', text3: 'rgba(255,255,255,0.5)',
-  success: '#10b981',
-  stageBg: 'radial-gradient(ellipse 1920px 600px at 20% 0%, rgba(79,125,249,0.18), transparent 60%), radial-gradient(ellipse 800px 600px at 100% 100%, rgba(245,185,21,0.12), transparent 65%), linear-gradient(180deg, #0a1228 0%, #0f1a3a 100%)',
-  rowOngoing: 'linear-gradient(90deg, rgba(16,185,129,0.18), rgba(16,185,129,0.04))',
-  rowSoon: 'linear-gradient(90deg, rgba(245,185,21,0.12), transparent)',
-  theadBg: 'rgba(255,255,255,0.04)',
-  featuredBg: 'linear-gradient(135deg, rgba(245,185,21,0.18), rgba(245,185,21,0.04))',
-  featuredBorder: 'rgba(245,185,21,0.3)',
-  footerBg: 'linear-gradient(90deg, rgba(245,185,21,0.16), rgba(79,125,249,0.16))',
-  statusOngoingBg: 'rgba(16,185,129,0.2)', statusOngoingFg: '#34d399',
-  statusSoonBg: 'rgba(245,185,21,0.2)', statusSoonFg: '#f5b915',
-  statusUpcomingBg: 'rgba(79,125,249,0.2)', statusUpcomingFg: '#4f7df9',
-}
-const LIGHT = {
-  bg: '#f5f7fb', bg2: '#ffffff', card: '#ffffff', card2: '#f8fafc',
-  border: '#e4e7ee', accent: '#c98800', primary: '#1e3a8a',
-  text: '#0f172a', text2: '#475569', text3: '#94a3b8',
-  success: '#047857',
-  stageBg: 'radial-gradient(ellipse 1920px 600px at 20% 0%, rgba(30,58,138,0.08), transparent 60%), radial-gradient(ellipse 800px 600px at 100% 100%, rgba(245,185,21,0.10), transparent 65%), linear-gradient(180deg, #f5f7fb 0%, #ffffff 100%)',
-  rowOngoing: 'linear-gradient(90deg, rgba(4,120,87,0.10), rgba(4,120,87,0.02))',
-  rowSoon: 'linear-gradient(90deg, rgba(245,185,21,0.12), transparent)',
-  theadBg: '#f8fafc',
-  featuredBg: 'linear-gradient(135deg, rgba(245,185,21,0.18), rgba(245,185,21,0.04))',
-  featuredBorder: 'rgba(201,136,0,0.35)',
-  footerBg: 'linear-gradient(90deg, rgba(245,185,21,0.18), rgba(30,58,138,0.10))',
-  statusOngoingBg: 'rgba(4,120,87,0.12)', statusOngoingFg: '#047857',
-  statusSoonBg: 'rgba(245,185,21,0.18)', statusSoonFg: '#b45309',
-  statusUpcomingBg: 'rgba(30,58,138,0.10)', statusUpcomingFg: '#1e3a8a',
-}
-
 // ============ WMO WEATHER CODES ============
 const WMO = {
   0:{icon:'☀️',label:'Cerah'}, 1:{icon:'🌤️',label:'Cerah Berawan'},
@@ -83,67 +31,6 @@ const WMO = {
   61:{icon:'🌧️',label:'Hujan Ringan'}, 63:{icon:'🌧️',label:'Hujan Sedang'}, 65:{icon:'🌧️',label:'Hujan Lebat'},
   80:{icon:'🌦️',label:'Hujan Ringan'}, 81:{icon:'🌧️',label:'Hujan'}, 82:{icon:'⛈️',label:'Hujan Deras'},
   95:{icon:'⛈️',label:'Badai Petir'}, 96:{icon:'⛈️',label:'Badai Petir'}, 99:{icon:'⛈️',label:'Badai Hebat'},
-}
-
-const ROTATE_MS = 15000
-
-// ============ HOOKS ============
-function useStageScale() {
-  const [scale, setScale] = useState({ s: 1, width: 1920, height: 1080 })
-  
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    const update = () => {
-      const w = window.innerWidth || 1920
-      const h = window.innerHeight || 1080
-      
-      // Calculate scale based on both width and height
-      // Use the smaller ratio to ensure content fits
-      const scaleX = w / 1920
-      const scaleY = h / 1080
-      const s = Math.min(scaleX, scaleY)
-      
-      setScale({ s, width: w, height: h })
-    }
-    
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
-  
-  return scale
-}
-
-function useTheme() {
-  const [isDark, setIsDark] = useState(true)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const s = localStorage.getItem('simdir-tv-theme')
-      if (s === 'light') setIsDark(false)
-      else if (s === 'dark') setIsDark(true)
-    } catch {}
-  }, [])
-  const toggle = useCallback(() => setIsDark(p => {
-    const next = !p
-    if (typeof window !== 'undefined') {
-      try { localStorage.setItem('simdir-tv-theme', next ? 'dark' : 'light') } catch {}
-    }
-    return next
-  }), [])
-  return { isDark, t: isDark ? DARK : LIGHT, toggle }
-}
-
-function useClock() {
-  const [now, setNow] = useState(null)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    setNow(new Date())
-    const id = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(id)
-  }, [])
-  return now
 }
 
 function useWeather() {
@@ -516,97 +403,6 @@ const FeaturedCard = ({ agenda, t }) => {
   )
 }
 
-// ============ TABLE ROW ============
-const AgendaTableRow = ({ item, num, t }) => {
-  const st        = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  const d         = new Date(item.tanggal_mulai)
-  const unitColor = getUnitColor(item.jenis, item.penyelenggara)
-
-  const rowBg   = st === 'ongoing' ? t.rowOngoing : st === 'upcoming_soon' ? t.rowSoon : unitColor.bg
-  const borderL = `0.3vw solid ${st === 'ongoing' ? t.success : unitColor.border}`
-
-  const statusMap = {
-    ongoing:      { txt: 'Berlangsung', bg: t.statusOngoingBg,  fg: t.statusOngoingFg,  pulse: true  },
-    upcoming_soon:{ txt: 'Segera',      bg: t.statusSoonBg,     fg: t.statusSoonFg,     pulse: false },
-    upcoming:     { txt: 'Akan Datang', bg: t.statusUpcomingBg, fg: t.statusUpcomingFg, pulse: false },
-  }
-  const sCfg = statusMap[st] || statusMap.upcoming
-
-  const pic = item.jenis === 'pimpinan' && item.disposisi
-    ? `→ ${item.disposisi}`
-    : (item.pic || '-').replace(/^Manual:\s*/, '')
-
-  return (
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: '4vw 13vw 1fr 18vw 13vw', 
-      gap: '1vw', 
-      padding: '1.8vh 1.5vw', 
-      alignItems: 'center', 
-      borderBottom: `1px solid ${t.border}`, 
-      flex: 1, 
-      minHeight: 0, 
-      background: rowBg, 
-      borderLeft: borderL 
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden', minWidth: 0 }}>
-        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '1.8vw', fontWeight: 700, color: t.text3 }}>
-          {String(num).padStart(2, '0')}
-        </span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '0.4vw', overflow: 'hidden', minWidth: 0 }}>
-        <div>
-          <span style={{ fontSize: '1.7vw', fontWeight: 700, color: t.text }}>{d.getDate()}</span>
-          {' '}
-          <span style={{ fontSize: '1.4vw', fontWeight: 600, color: t.text }}>{MONTHS[d.getMonth()]}</span>
-        </div>
-        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '1.1vw', color: t.text3, letterSpacing: '0.03em' }}>
-          {formatTime(item.waktu_mulai)} – {formatTime(item.waktu_selesai)}
-        </span>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', gap: '0.3vw', overflow: 'hidden', minWidth: 0 }}>
-        <span style={{ 
-          fontSize: '1.35vw', 
-          fontWeight: 700, 
-          lineHeight: 1.3, 
-          color: t.text,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}>
-          {item.judul}
-        </span>
-        {item.penyelenggara && (
-          <span style={{
-            fontSize: '1vw', fontWeight: 700,
-            color: unitColor.text,
-            background: unitColor.bg,
-            border: `0.1vw solid ${unitColor.border}`,
-            padding: '0.2vw 0.6vw', borderRadius: 999,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-            display: 'inline-block',
-          }}>
-            {item.penyelenggara}
-          </span>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5vw', overflow: 'hidden', minWidth: 0 }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: '1.2vw', height: '1.2vw', flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span style={{ fontSize: '1.2vw', color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.lokasi || '—'}</span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', overflow: 'hidden', minWidth: 0 }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4vw', padding: '0.5vw 0.9vw', borderRadius: 999, fontSize: '1vw', fontWeight: 700, letterSpacing: '0.02em', textTransform: 'uppercase', background: sCfg.bg, color: sCfg.fg, whiteSpace: 'nowrap' }}>
-          {sCfg.pulse && (
-            <span style={{ width: '0.7vw', height: '0.7vw', borderRadius: '50%', background: 'currentColor', animation: 'dotpulse 1.5s infinite' }} />
-          )}
-          {sCfg.txt}
-        </span>
-      </div>
-    </div>
-  )
-}
-
 // ============ HALAMAN UTAMA ============
 export default function AgendaTVPage() {
   const scale                 = useStageScale()
@@ -636,8 +432,6 @@ export default function AgendaTVPage() {
   const [agenda,      setAgenda]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [progress,    setProgress]    = useState(0)
 
   const load = useCallback(async () => {
     if (typeof window === 'undefined') return
@@ -668,40 +462,13 @@ export default function AgendaTVPage() {
     return () => clearInterval(id) 
   }, [load])
 
-  const filtered = useMemo(() =>
-    agenda
-      .filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')
-      .sort((a, b) => new Date(a.tanggal_mulai + 'T' + (a.waktu_mulai || '00:00')) - new Date(b.tanggal_mulai + 'T' + (b.waktu_mulai || '00:00')))
-  , [agenda])
+  const filtered = useMemo(() => sortActiveAgenda(agenda), [agenda])
 
-  const [rowsPerPage, setRowsPerPage] = useState(6)
-
-  // Dynamic rows per page via ResizeObserver
-  const tbodyRef = useRef(null)
-  useEffect(() => {
-    if (typeof window === 'undefined' || !tbodyRef.current) return
-    const el = tbodyRef.current
-    const ro = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const h = entry.contentRect.height
-        const minRowH = Math.max(70, 85 * scale.s)
-        const rows = Math.max(4, Math.min(14, Math.floor(h / minRowH)))
-        setRowsPerPage(rows)
-      }
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [scale.s])
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / rowsPerPage))
-  const currentRows = useMemo(() => filtered.slice(currentPage * rowsPerPage, (currentPage + 1) * rowsPerPage), [filtered, currentPage])
-  const emptyCount  = Math.max(0, rowsPerPage - currentRows.length)
-
-  // Keyboard shortcuts
+  // Keyboard shortcuts (fullscreen, theme toggle — page navigation is handled
+  // inside AgendaTvTable, which owns its own currentPage state)
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
     const handler = (e) => {
-      if (e.key === 'ArrowLeft')  setCurrentPage(p => Math.max(0, p - 1))
-      if (e.key === 'ArrowRight') setCurrentPage(p => Math.min(totalPages - 1, p + 1))
       if (e.key === 'f' || e.key === 'F' || e.key === 'F11') {
         e.preventDefault()
         try {
@@ -718,28 +485,7 @@ export default function AgendaTVPage() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggle, totalPages])
-
-  const pageRef = useRef(currentPage)
-  useEffect(() => { pageRef.current = currentPage }, [currentPage])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (totalPages <= 1) { setProgress(0); return }
-    const id = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          setCurrentPage((pageRef.current + 1) % totalPages)
-          return 0
-        }
-        return prev + (100 / (ROTATE_MS / 100))
-      })
-    }, 100)
-    return () => clearInterval(id)
-  }, [totalPages])
-
-  useEffect(() => { setProgress(0) }, [currentPage])
-  useEffect(() => { setCurrentPage(0); setProgress(0) }, [totalPages])
+  }, [toggle])
 
   const marqueeText = useMemo(() => {
     const ongoing  = filtered.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing')
@@ -888,36 +634,7 @@ export default function AgendaTVPage() {
           }}>
 
             {/* LEFT: Table */}
-            <div style={{ background: t.card, border: `1px solid ${t.border}`, borderRadius: '0.8vw', display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
-              {/* Table head */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '4vw 13vw 1fr 18vw 13vw', 
-                gap: '1vw', 
-                padding: '1.2vh 1.5vw', 
-                background: t.theadBg, 
-                borderBottom: `1px solid ${t.border}`, 
-                fontSize: '1vw', 
-                fontWeight: 700, 
-                letterSpacing: '0.06em', 
-                textTransform: 'uppercase', 
-                color: t.text2, 
-                flexShrink: 0 
-              }}>
-                {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi', 'Status'].map(col => (
-                  <div key={col}>{col}</div>
-                ))}
-              </div>
-              {/* Table body */}
-              <div ref={tbodyRef} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                {currentRows.map((item, i) => (
-                  <AgendaTableRow key={item.id} item={item} num={currentPage * rowsPerPage + i + 1} t={t} />
-                ))}
-                {Array.from({ length: emptyCount }).map((_, i) => (
-                  <div key={`e${i}`} style={{ flex: 1, minHeight: 0, borderBottom: `1px solid ${t.border}` }} />
-                ))}
-              </div>
-            </div>
+            <AgendaTvTable agenda={filtered} t={t} scale={scale} />
 
             {/* RIGHT: Side panel */}
             <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5vh', minHeight: 0 }}>
@@ -938,21 +655,6 @@ export default function AgendaTVPage() {
                 </div>
               </div>
 
-              {/* Pager */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1vw', background: t.card, border: `1px solid ${t.border}`, borderRadius: '1vw', padding: '1.4vh 1.8vw', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.9vw', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: t.text3 }}>Halaman</span>
-                <div style={{ flex: 1, height: '0.6vh', background: t.border, borderRadius: 999, overflow: 'hidden', minWidth: '5vw' }}>
-                  <div style={{ width: `${progress}%`, height: '100%', background: `linear-gradient(90deg, ${t.accent}, #ffd34d)`, transition: 'width 0.1s linear' }} />
-                </div>
-                <div style={{ display: 'flex', gap: '0.5vw' }}>
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <button key={i} onClick={() => { setCurrentPage(i); setProgress(0) }} style={{ width: i === currentPage ? '1.8vw' : '0.6vw', height: '0.6vw', borderRadius: 999, background: i === currentPage ? t.accent : t.border, border: 'none', cursor: 'pointer', transition: 'all 0.3s', padding: 0 }} />
-                  ))}
-                </div>
-                <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '1.1vw', color: t.text2, fontWeight: 600 }}>
-                  {currentPage + 1}/{totalPages}
-                </span>
-              </div>
             </aside>
           </main>
 
