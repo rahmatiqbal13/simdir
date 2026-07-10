@@ -305,6 +305,11 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
                 <JenisBadge jenis={item.jenis} />
+                {item.tampil_publik && (
+                  <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
+                    Publik
+                  </span>
+                )}
               </div>
               {canEdit && (
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -439,7 +444,14 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
                 )}
               </td>
               <td>
-                <JenisBadge jenis={item.jenis} />
+                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                  <JenisBadge jenis={item.jenis} />
+                  {item.tampil_publik && (
+                    <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
+                      Publik
+                    </span>
+                  )}
+                </div>
               </td>
               <td>
                 <div style={{ fontSize: '0.8125rem' }}>{formatDate(item.tanggal_mulai)}</div>
@@ -524,6 +536,7 @@ function AgendaModal({ item, onSave, onClose }) {
     disposisi_staff: item?.disposisi || '',
     pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
+    tampil_publik: item?.tampil_publik || false,
   })
   const [error, setError] = useState('')
 
@@ -576,6 +589,7 @@ function AgendaModal({ item, onSave, onClose }) {
       deskripsi: form.deskripsi,
       disposisi: jenis === 'pimpinan' && form.disposisi_staff ? form.disposisi_staff : null,
       pic: jenis === 'pimpinan' ? null : picValue,
+      tampil_publik: form.tampil_publik,
     }
     onSave(newItem)
   }
@@ -605,6 +619,20 @@ function AgendaModal({ item, onSave, onClose }) {
                 Jenis Kegiatan
               </label>
               <JenisToggle value={jenis} onChange={setJenis} />
+            </div>
+
+            <div className="form-section">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', fontWeight: 500, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.tampil_publik}
+                  onChange={e => setForm({ ...form, tampil_publik: e.target.checked })}
+                />
+                Tampilkan di TV Publik
+              </label>
+              <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
+                Jika dicentang, agenda ini akan muncul di layar TV lobby publik. Jika tidak, agenda hanya terlihat di layar TV internal.
+              </p>
             </div>
 
             <div>
