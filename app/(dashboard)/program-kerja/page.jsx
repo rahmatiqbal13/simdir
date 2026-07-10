@@ -496,11 +496,11 @@ function FilterBar({
             borderTop: '1px solid var(--border)'
           }}>
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Unit Kerja</label>
+              <label>Unit Kerja</label>
               <select
                 value={selectedUnit}
                 onChange={(e) => setSelectedUnit(e.target.value)}
-                style={{ width: '100%' }}
+
               >
                 <option value="">Semua Unit Kerja</option>
                 {UNIT_KERJA_LIST.map((uk) => (
@@ -510,11 +510,11 @@ function FilterBar({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Tahun Anggaran</label>
+              <label>Tahun Anggaran</label>
               <select
                 value={selectedTahun}
                 onChange={(e) => setSelectedTahun(e.target.value)}
-                style={{ width: '100%' }}
+
               >
                 <option value="">Semua Tahun</option>
                 {TAHUN_LIST.map((t) => (
@@ -524,11 +524,11 @@ function FilterBar({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Sumber Dana</label>
+              <label>Sumber Dana</label>
               <select
                 value={selectedSumberDana}
                 onChange={(e) => setSelectedSumberDana(e.target.value)}
-                style={{ width: '100%' }}
+
               >
                 <option value="">Semua Sumber Dana</option>
                 {SUMBER_DANA_LIST.map((sd) => (
@@ -538,11 +538,11 @@ function FilterBar({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Urutkan</label>
+              <label>Urutkan</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{ width: '100%' }}
+
               >
                 <option value="newest">Terbaru</option>
                 <option value="oldest">Terlama</option>

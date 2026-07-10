@@ -227,7 +227,6 @@ function AgendaCard({ item }) {
       borderRadius: '16px',
       border: '1px solid #e2e8f0',
       overflow: 'hidden',
-      transition: 'all 0.3s ease',
       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
       height: '100%',
       display: 'flex',
@@ -430,6 +429,9 @@ function NavigationDots({ total, current, onSelect }) {
         <button
           key={i}
           onClick={() => onSelect(i)}
+          className="agenda-nav-dot"
+          aria-label={`Halaman ${i + 1}`}
+          aria-current={i === current ? 'true' : undefined}
           style={{
             width: i === current ? '2rem' : '0.75rem',
             height: '0.75rem',
@@ -437,7 +439,7 @@ function NavigationDots({ total, current, onSelect }) {
             background: i === current ? '#4f46e5' : '#cbd5e1',
             border: 'none',
             cursor: 'pointer',
-            transition: 'all 0.3s ease'
+            transition: 'width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease'
           }}
         />
       ))}
@@ -803,6 +805,7 @@ export default function AgendaPage() {
             {/* Toggle Show Completed */}
             <button
               onClick={() => setShowCompleted(!showCompleted)}
+              className="agenda-press-btn"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -903,7 +906,7 @@ export default function AgendaPage() {
                     gap: '1rem'
                   }}>
                     <button
-                      className="nav-btn"
+                      className="nav-btn agenda-press-btn"
                       onClick={() => {
                         setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages)
                         setProgress(0)
@@ -938,7 +941,7 @@ export default function AgendaPage() {
                     />
 
                     <button
-                      className="nav-btn"
+                      className="nav-btn agenda-press-btn"
                       onClick={() => {
                         setCurrentPage((prev) => (prev + 1) % totalPages)
                         setProgress(0)
@@ -1010,6 +1013,41 @@ export default function AgendaPage() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+
+        @keyframes agendaCardEnter {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .agenda-public-card {
+          animation: agendaCardEnter 300ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+          transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms ease;
+        }
+        .agenda-public-grid .agenda-public-card:nth-child(1) { animation-delay: 0ms; }
+        .agenda-public-grid .agenda-public-card:nth-child(2) { animation-delay: 50ms; }
+        .agenda-public-grid .agenda-public-card:nth-child(3) { animation-delay: 100ms; }
+        .agenda-public-grid .agenda-public-card:nth-child(4) { animation-delay: 150ms; }
+
+        @media (hover: hover) and (pointer: fine) {
+          .agenda-public-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12);
+          }
+        }
+
+        .agenda-press-btn {
+          transition: transform 120ms ease-out;
+        }
+        .agenda-press-btn:active {
+          transform: scale(0.97);
+        }
+
+        .agenda-nav-dot {
+          transition: transform 120ms ease-out, width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease;
+        }
+        .agenda-nav-dot:active {
+          transform: scale(0.9);
         }
       `}</style>
     </div>

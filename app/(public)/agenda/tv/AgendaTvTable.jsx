@@ -26,7 +26,7 @@ function AgendaTableRow({ item, num, t, rowH }) {
   const borderL = `3px solid ${st === 'ongoing' ? t.success : unitColor.border}`
 
   return (
-    <div style={{
+    <div className="agenda-tv-row" style={{
       display: 'grid',
       gridTemplateColumns: '1fr 3fr 13fr 5fr',
       gap: '1cqw',
@@ -226,6 +226,15 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
       <style>{`
         .pager-dot { transition: transform 0.15s ease; }
         .pager-dot:active { transform: scale(0.96); }
+
+        @keyframes agendaTvRowEnter {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .agenda-tv-row {
+          animation: agendaTvRowEnter 350ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+        }
+        ${Array.from({ length: 14 }, (_, i) => `.agenda-tv-row:nth-child(${i + 1}) { animation-delay: ${i * 50}ms; }`).join('\n        ')}
       `}</style>
     </div>
   )

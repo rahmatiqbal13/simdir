@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import { usePencairan } from '@/context/PencairanContext';
+import { useFocusTrap } from '@/app/components/useFocusTrap';
 
 const ITEMS_PER_PAGE = 5;
 
@@ -31,8 +32,9 @@ const formatDateFull = (date) => {
 
 // ============ CONFIRM MODAL ============
 function ConfirmModal({ message, onConfirm, onCancel }) {
+  const modalRef = useFocusTrap(true, onCancel)
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay" onClick={onCancel} ref={modalRef}>
       <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3>Konfirmasi Hapus</h3>
@@ -204,12 +206,12 @@ function FilterBar({
             borderTop: '1px solid var(--border)'
           }}>
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Program Kerja</label>
+              <label>Program Kerja</label>
               <select
                 className="select"
                 value={selectedProgram}
                 onChange={(e) => setSelectedProgram(e.target.value)}
-                style={{ width: '100%', height: 40 }}
+
               >
                 <option value="">Semua Program</option>
                 {programs.map((p) => (
@@ -219,12 +221,12 @@ function FilterBar({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Status SPJ</label>
+              <label>Status SPJ</label>
               <select
                 className="select"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                style={{ width: '100%', height: 40 }}
+
               >
                 <option value="">Semua Status</option>
                 <option value="pending">Menunggu SPJ</option>
@@ -234,12 +236,12 @@ function FilterBar({
             </div>
 
             <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>Urutkan</label>
+              <label>Urutkan</label>
               <select
                 className="select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                style={{ width: '100%', height: 40 }}
+
               >
                 <option value="newest">Terbaru</option>
                 <option value="oldest">Terlama</option>
@@ -888,6 +890,7 @@ function ProgramSearchSelect({ programs, onSelect }) {
 
 // ============ KOMPONEN MODAL ============
 function PencairanModal({ item, onSave, onClose, programs = [] }) {
+  const modalRef = useFocusTrap(true, onClose)
   const [form, setForm] = useState({
     nama: item?.nama || '',
     tanggal: item?.tanggal || new Date().toISOString().split('T')[0],
@@ -969,7 +972,7 @@ function PencairanModal({ item, onSave, onClose, programs = [] }) {
   const availablePrograms = programs.filter(p => !selectedPrograms.find(sp => sp.id === p.id));
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit' : 'Tambah'} Pencairan Dana</h3>

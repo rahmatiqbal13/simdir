@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef } from 'react';
 import { useSurat } from '@/context/SuratContext';
+import { useFocusTrap } from '@/app/components/useFocusTrap';
 
 const ITEMS_PER_PAGE = 15;
 
@@ -26,8 +27,9 @@ const UNIT_KERJA_LIST = [
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-';
 
 function ConfirmModal({ message, onConfirm, onCancel }) {
+  const modalRef = useFocusTrap(true, onCancel)
   return (
-    <div className="modal-overlay" onClick={onCancel}>
+    <div className="modal-overlay" onClick={onCancel} ref={modalRef}>
       <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3>Konfirmasi Hapus</h3>
@@ -64,6 +66,9 @@ export default function SuratPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const fileInputRef = useRef(null);
+
+  const closeModal = () => { setShowModal(false); setEditingItem(null); }
+  const modalRef = useFocusTrap(showModal, closeModal)
 
   const { suratMasuk, suratKeluar, loading, addSuratMasuk, addSuratKeluar, updateSurat, deleteSurat, getStats } = useSurat();
 
@@ -288,10 +293,10 @@ export default function SuratPage() {
                     </td>
                     <td className="text-right">
                       <div style={{ display: 'inline-flex', gap: 4 }}>
-                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setEditingItem(item); setShowModal(true); }} title="Edit">
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setEditingItem(item); setShowModal(true); }} title="Edit" aria-label="Edit surat">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
-                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => handleDelete(item.id)} title="Hapus" style={{ color: 'var(--danger)' }}>
+                        <button className="btn btn-ghost btn-sm btn-icon" onClick={() => handleDelete(item.id)} title="Hapus" aria-label="Hapus surat" style={{ color: 'var(--danger)' }}>
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                         </button>
                       </div>
@@ -352,7 +357,7 @@ export default function SuratPage() {
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </button>
-                <button className="btn btn-secondary btn-sm btn-icon" onClick={() => handleDelete(item.id)} style={{ color: 'var(--danger)' }}>
+                <button className="btn btn-secondary btn-sm btn-icon" onClick={() => handleDelete(item.id)} aria-label="Hapus surat" style={{ color: 'var(--danger)' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
               </div>
@@ -385,11 +390,11 @@ export default function SuratPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => { setShowModal(false); setEditingItem(null); }}>
+        <div className="modal-overlay" onClick={closeModal} ref={modalRef}>
           <div className="modal modal-lg" onClick={e => e.stopPropagation()}>
             <div className="modal-head">
               <h3>{editingItem ? 'Edit' : 'Catat'} Surat {activeTab === 'masuk' ? 'Masuk' : 'Keluar'}</h3>
-              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => { setShowModal(false); setEditingItem(null); }}>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={closeModal} aria-label="Tutup">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -473,7 +478,7 @@ export default function SuratPage() {
                 </div>
               </div>
               <div className="modal-foot">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(false); setEditingItem(null); }} disabled={isSubmitting}>Batal</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSubmitting}>Batal</button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
                   {isSubmitting ? 'Menyimpan...' : (
                     <>

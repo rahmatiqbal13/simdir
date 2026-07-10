@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import useAutosave from '@/app/components/useAutosave';
+import { safeLocalStorage } from '@/lib/localStorage';
 
 // ============ HELPERS ============
 const formatRupiah = (num) => {
@@ -120,6 +122,8 @@ export default function CreateInvoicePage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingCustomers, setFetchingCustomers] = useState(true);
+  const [submitted, setSubmitted] = useState(false);
+  const [draftFound, setDraftFound] = useState(false);
   
   // Mode customer: 'select' | 'new'
   const [customerMode, setCustomerMode] = useState('select');
@@ -183,13 +187,16 @@ export default function CreateInvoicePage() {
         if (error) throw error;
         setCustomers(data || []);
         
-        // Set default jatuh tempo (14 days from now)
+        // Set default jatuh tempo (14 days from now) only if not already set
         const today = new Date();
         const twoWeeks = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-        setFormData(prev => ({
-          ...prev,
-          tanggal_jatuh_tempo: twoWeeks.toISOString().split('T')[0]
-        }));
+        setFormData(prev => {
+          if (prev.tanggal_jatuh_tempo) return prev;
+          return {
+            ...prev,
+            tanggal_jatuh_tempo: twoWeeks.toISOString().split('T')[0]
+          };
+        });
       } catch (err) {
         console.error('Error fetching customers:', err);
       } finally {
@@ -264,6 +271,117 @@ export default function CreateInvoicePage() {
     if (stempel.dikirim) return 'dikirim';
     if (stempel.disetujui) return 'disetujui';
     return 'dibuat';
+  };
+
+  // Reset form without confirmation
+  const resetForm = () => {
+    setCustomerMode('select');
+    setSelectedCustomerId('');
+    setNewCustomer({
+      kode_pelanggan: generateCustomerCode(),
+      nama_pelanggan: '',
+      email: '',
+      telepon: '',
+      alamat: '',
+      npwp: '',
+      jenis_pelanggan: 'perorangan',
+    });
+    setFormData({
+      tanggal_invoice: new Date().toISOString().split('T')[0],
+      tanggal_jatuh_tempo: '',
+      catatan: '',
+    });
+    setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
+    setPajak({ aktif: true, mode: 'persen', persen: 11, nominal: 0 });
+    setDiskon({ aktif: false, nominal: 0 });
+    setBiayaPengiriman({ aktif: false, nominal: 0 });
+    setStempel({
+      lunas: false,
+      segera: false,
+      jatuh_tempo: false,
+      final: false,
+      dikirim: false,
+      disetujui: false,
+    });
+  };
+
+  // Draft object for autosave
+  const draftPayload = useMemo(() => ({
+    version: 1,
+    customerMode,
+    selectedCustomerId,
+    newCustomer,
+    formData,
+    items,
+    pajak,
+    diskon,
+    biayaPengiriman,
+    stempel,
+  }), [customerMode, selectedCustomerId, newCustomer, formData, items, pajak, diskon, biayaPengiriman, stempel]);
+
+  useAutosave(draftPayload, 'simdir_invoice_draft', !submitted);
+
+  // Check for saved draft on mount
+  useEffect(() => {
+    try {
+      const raw = safeLocalStorage.getItem('simdir_invoice_draft');
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.version === 1) {
+          setDraftFound(true);
+        }
+      }
+    } catch (e) {
+      console.error('Error reading draft:', e);
+    }
+  }, []);
+
+  const restoreDraft = () => {
+    try {
+      const raw = safeLocalStorage.getItem('simdir_invoice_draft');
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.version === 1) {
+          setCustomerMode(draft.customerMode || 'select');
+          setSelectedCustomerId(draft.selectedCustomerId || '');
+          setNewCustomer(draft.newCustomer || {
+            kode_pelanggan: generateCustomerCode(),
+            nama_pelanggan: '',
+            email: '',
+            telepon: '',
+            alamat: '',
+            npwp: '',
+            jenis_pelanggan: 'perorangan',
+          });
+          setFormData(draft.formData || {
+            tanggal_invoice: new Date().toISOString().split('T')[0],
+            tanggal_jatuh_tempo: '',
+            catatan: '',
+          });
+          setItems(draft.items || [{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
+          setPajak(draft.pajak || { aktif: true, mode: 'persen', persen: 11, nominal: 0 });
+          setDiskon(draft.diskon || { aktif: false, nominal: 0 });
+          setBiayaPengiriman(draft.biayaPengiriman || { aktif: false, nominal: 0 });
+          setStempel(draft.stempel || {
+            lunas: false,
+            segera: false,
+            jatuh_tempo: false,
+            final: false,
+            dikirim: false,
+            disetujui: false,
+          });
+          setDraftFound(false);
+        }
+      }
+    } catch (e) {
+      console.error('Error restoring draft:', e);
+    }
+  };
+
+  const clearDraftAndReset = () => {
+    safeLocalStorage.removeItem('simdir_invoice_draft');
+    setDraftFound(false);
+    resetForm();
   };
 
   // Handle submit
@@ -424,6 +542,10 @@ export default function CreateInvoicePage() {
       
       console.log('Items created:', insertedItems?.length || 0);
       
+      // Clear draft and mark submitted before navigating
+      safeLocalStorage.removeItem('simdir_invoice_draft');
+      setSubmitted(true);
+      
       router.push('/e-invoice');
     } catch (err) {
       console.error('Error creating invoice:', err);
@@ -457,34 +579,7 @@ export default function CreateInvoicePage() {
   // Handle reset
   const handleReset = () => {
     if (confirm('Apakah Anda yakin ingin mengreset form?')) {
-      setCustomerMode('select');
-      setSelectedCustomerId('');
-      setNewCustomer({
-        kode_pelanggan: generateCustomerCode(),
-        nama_pelanggan: '',
-        email: '',
-        telepon: '',
-        alamat: '',
-        npwp: '',
-        jenis_pelanggan: 'perorangan',
-      });
-      setFormData({
-        tanggal_invoice: new Date().toISOString().split('T')[0],
-        tanggal_jatuh_tempo: '',
-        catatan: '',
-      });
-      setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
-      setPajak({ aktif: true, mode: 'persen', persen: 11, nominal: 0 });
-      setDiskon({ aktif: false, nominal: 0 });
-      setBiayaPengiriman({ aktif: false, nominal: 0 });
-      setStempel({
-        lunas: false,
-        segera: false,
-        jatuh_tempo: false,
-        final: false,
-        dikirim: false,
-        disetujui: false,
-      });
+      resetForm();
     }
   };
 
@@ -502,6 +597,58 @@ export default function CreateInvoicePage() {
           </Link>
         </div>
       </div>
+
+      {/* Draft Banner */}
+      {draftFound && (
+        <div style={{ 
+          backgroundColor: '#fef3c7', 
+          border: '1px solid #f59e0b', 
+          borderRadius: '8px', 
+          padding: '1rem', 
+          marginBottom: '1.5rem',
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center' 
+        }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e', fontWeight: 500 }}>
+            Draft invoice tersimpan ditemukan.
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              type="button" 
+              className="btn btn-sm" 
+              onClick={restoreDraft} 
+              style={{ 
+                backgroundColor: '#f59e0b', 
+                color: 'white', 
+                border: '1px solid #f59e0b',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Lanjutkan
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-sm" 
+              onClick={clearDraftAndReset}
+              style={{ 
+                backgroundColor: 'white', 
+                color: '#475569', 
+                border: '1px solid #cbd5e1',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Buat Baru
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gap: '1.5rem' }}>
@@ -765,13 +912,13 @@ export default function CreateInvoicePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
                 {/* Left - Notes */}
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Catatan</label>
+                  <label>Catatan</label>
                   <textarea
                     value={formData.catatan}
                     onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
                     placeholder="Anda bisa menulis catatan tambahan untuk pelanggan Anda di sini."
                     rows={4}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.75rem' }}
+
                   />
                 </div>
 

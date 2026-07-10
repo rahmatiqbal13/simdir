@@ -7,15 +7,144 @@ import { UNIT_COLORS } from './unit-colors'
 import { MONTHS, MONTHS_L, DAYS, formatTime, getAgendaStatus, sortActiveAgenda, DARK, LIGHT, useStageScale, useTheme, useClock } from './shared'
 import AgendaTvTable from './AgendaTvTable'
 
+// ============ WEATHER ICON COMPONENT ============
+function WeatherIcon({ code, size = '1.8vw', color = '#f5b915' }) {
+  const s = { width: size, height: size, display: 'block' }
+  // Map WMO code to SVG
+  const svgs = {
+    // Clear / Sunny
+    0: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+      </svg>
+    ),
+    // Mainly clear
+    1: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M12 2v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M19.78 4.22l-1.42 1.42"/><circle cx="12" cy="9" r="3.5" fill={color} fillOpacity="0.15"/>
+      </svg>
+    ),
+    // Partly cloudy
+    2: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M12 2v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M19.78 4.22l-1.42 1.42"/><path d="M17.5 12a5.5 5.5 0 0 0-5-3.5"/><circle cx="12" cy="9" r="2.5" fill={color} fillOpacity="0.15"/>
+      </svg>
+    ),
+    // Overcast
+    3: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M18 13a6 6 0 0 0-6-6"/><path d="M6 13a6 6 0 0 1 6-6"/><rect x="8" y="10" width="8" height="4" rx="2" fill={color} fillOpacity="0.1"/>
+      </svg>
+    ),
+    // Fog
+    45: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M4 14h16"/><path d="M4 18h16"/><path d="M4 10h16"/><path d="M6 6h12"/><path d="M8 14l2-4"/><path d="M14 14l-2-4"/>
+      </svg>
+    ),
+    48: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M4 14h16"/><path d="M4 18h16"/><path d="M4 10h16"/><path d="M6 6h12"/><path d="M8 14l2-4"/><path d="M14 14l-2-4"/>
+      </svg>
+    ),
+    // Drizzle
+    51: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 17c0-3.037-2.463-5.5-5.5-5.5S6.5 13.963 6.5 17"/><path d="M17.5 17h-11"/><path d="M8 20l-1 2"/><path d="M12 20v2"/><path d="M16 20l1 2"/>
+      </svg>
+    ),
+    53: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 17c0-3.037-2.463-5.5-5.5-5.5S6.5 13.963 6.5 17"/><path d="M17.5 17h-11"/><path d="M7 20l-1 2"/><path d="M10 20l-1 2"/><path d="M13 20v2"/><path d="M16 20l1 2"/><path d="M19 20l1 2"/>
+      </svg>
+    ),
+    55: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M6 19l-1 2"/><path d="M9 19l-1 2"/><path d="M12 19v2"/><path d="M15 19l1 2"/><path d="M18 19l1 2"/><path d="M21 19l1 2"/>
+      </svg>
+    ),
+    // Rain
+    61: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M8 19l-2 3"/><path d="M12 19l-2 3"/><path d="M16 19l-2 3"/>
+      </svg>
+    ),
+    63: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 15c0-3.037-2.463-5.5-5.5-5.5S6.5 11.963 6.5 15"/><path d="M17.5 15h-11"/><path d="M7 18l-2 3"/><path d="M10 18l-2 3"/><path d="M13 18l-2 3"/><path d="M16 18l-2 3"/><path d="M19 18l-2 3"/>
+      </svg>
+    ),
+    65: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M6 17l-2 3"/><path d="M9 17l-2 3"/><path d="M12 17l-2 3"/><path d="M15 17l-2 3"/><path d="M18 17l-2 3"/><path d="M21 17l-2 3"/>
+      </svg>
+    ),
+    // Rain showers
+    80: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M8 19l-2 3"/><path d="M12 19l-2 3"/><path d="M16 19l-2 3"/>
+      </svg>
+    ),
+    81: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 15c0-3.037-2.463-5.5-5.5-5.5S6.5 11.963 6.5 15"/><path d="M17.5 15h-11"/><path d="M7 18l-2 3"/><path d="M10 18l-2 3"/><path d="M13 18l-2 3"/><path d="M16 18l-2 3"/><path d="M19 18l-2 3"/>
+      </svg>
+    ),
+    // Heavy rain showers
+    82: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 13c0-3.037-2.463-5.5-5.5-5.5S6.5 9.963 6.5 13"/><path d="M17.5 13h-11"/><path d="M5 16l-2 3"/><path d="M8 16l-2 3"/><path d="M11 16l-2 3"/><path d="M14 16l-2 3"/><path d="M17 16l-2 3"/><path d="M20 16l-2 3"/><path d="M23 16l-2 3"/>
+      </svg>
+    ),
+    // Thunderstorm
+    95: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M11 17l-2 3h3l-1 3"/><path d="M15 17l-2 3"/>
+      </svg>
+    ),
+    96: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M11 17l-2 3h3l-1 3"/><path d="M15 17l-2 3"/>
+      </svg>
+    ),
+    99: (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <path d="M17.5 13c0-3.037-2.463-5.5-5.5-5.5S6.5 9.963 6.5 13"/><path d="M17.5 13h-11"/><path d="M10 16l-2 3h3l-1 3"/><path d="M14 16l-2 3h3l-1 3"/><path d="M18 16l-2 3"/>
+      </svg>
+    ),
+  }
+
+  // Fallback for unknown codes
+  if (!svgs[code]) {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+      </svg>
+    )
+  }
+  return svgs[code]
+}
+
 // ============ WMO WEATHER CODES ============
 const WMO = {
-  0:{icon:'☀️',label:'Cerah'}, 1:{icon:'🌤️',label:'Cerah Berawan'},
-  2:{icon:'⛅',label:'Berawan Sebagian'}, 3:{icon:'☁️',label:'Berawan'},
-  45:{icon:'🌫️',label:'Berkabut'}, 48:{icon:'🌫️',label:'Kabut'},
-  51:{icon:'🌦️',label:'Gerimis Ringan'}, 53:{icon:'🌦️',label:'Gerimis'}, 55:{icon:'🌦️',label:'Gerimis Lebat'},
-  61:{icon:'🌧️',label:'Hujan Ringan'}, 63:{icon:'🌧️',label:'Hujan Sedang'}, 65:{icon:'🌧️',label:'Hujan Lebat'},
-  80:{icon:'🌦️',label:'Hujan Ringan'}, 81:{icon:'🌧️',label:'Hujan'}, 82:{icon:'⛈️',label:'Hujan Deras'},
-  95:{icon:'⛈️',label:'Badai Petir'}, 96:{icon:'⛈️',label:'Badai Petir'}, 99:{icon:'⛈️',label:'Badai Hebat'},
+  0: { label: 'Cerah' },
+  1: { label: 'Cerah Berawan' },
+  2: { label: 'Berawan Sebagian' },
+  3: { label: 'Berawan' },
+  45: { label: 'Berkabut' },
+  48: { label: 'Kabut' },
+  51: { label: 'Gerimis Ringan' },
+  53: { label: 'Gerimis' },
+  55: { label: 'Gerimis Lebat' },
+  61: { label: 'Hujan Ringan' },
+  63: { label: 'Hujan Sedang' },
+  65: { label: 'Hujan Lebat' },
+  80: { label: 'Hujan Ringan' },
+  81: { label: 'Hujan' },
+  82: { label: 'Hujan Deras' },
+  95: { label: 'Badai Petir' },
+  96: { label: 'Badai Petir' },
+  99: { label: 'Badai Hebat' },
 }
 
 function useWeather() {
@@ -36,6 +165,23 @@ function useWeather() {
     return () => clearInterval(id)
   }, [fetch_])
   return weather
+}
+
+// ============ NETWORK STATUS ============
+function useNetworkStatus() {
+  const [isOnline, setIsOnline] = useState(true)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const update = () => setIsOnline(navigator.onLine)
+    update()
+    window.addEventListener('online', update)
+    window.addEventListener('offline', update)
+    return () => {
+      window.removeEventListener('online', update)
+      window.removeEventListener('offline', update)
+    }
+  }, [])
+  return isOnline
 }
 
 // ============ MEDIA ROTATOR ============
@@ -300,6 +446,7 @@ export default function AgendaTVPage() {
   const { isDark, t, toggle } = useTheme()
   const now                   = useClock()
   const weather               = useWeather()
+  const isOnline              = useNetworkStatus()
 
   useEffect(() => {
     if (typeof document === 'undefined') return
@@ -382,13 +529,13 @@ export default function AgendaTVPage() {
     const ongoing  = filtered.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing')
     const upcoming = filtered.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'ongoing').slice(0, 5)
     const parts = []
-    ongoing.forEach(a => parts.push(`🔴 SEDANG BERLANGSUNG: ${a.judul} di ${a.lokasi || '—'}`))
+    ongoing.forEach(a => parts.push(`[BERLANGSUNG] ${a.judul} di ${a.lokasi || '—'}`))
     upcoming.forEach(a => {
       const d = new Date(a.tanggal_mulai)
-      parts.push(`📅 ${d.getDate()} ${MONTHS[d.getMonth()]} ${formatTime(a.waktu_mulai)} — ${a.judul} (${a.lokasi || '—'})`)
+      parts.push(`[AGENDA] ${d.getDate()} ${MONTHS[d.getMonth()]} ${formatTime(a.waktu_mulai)} — ${a.judul} (${a.lokasi || '—'})`)
     })
-    parts.push('💡 Untuk info lengkap, kunjungi SIMDIR atau hubungi Sekretariat USC')
-    return parts.map(p => `${p} ● `).join('') + parts.map(p => `${p} ● `).join('')
+    parts.push('[INFO] Untuk info lengkap, kunjungi SIMDIR atau hubungi Sekretariat USC')
+    return parts.map(p => `${p}  •  `).join('') + parts.map(p => `${p}  •  `).join('')
   }, [filtered])
 
   const hh        = now ? String(now.getHours()).padStart(2, '0')   : '--'
@@ -396,15 +543,29 @@ export default function AgendaTVPage() {
   const dateShort = now ? `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS_L[now.getMonth()]} ${now.getFullYear()}` : '—'
   const dateLong  = dateShort
 
-  const wInfo = weather ? (WMO[weather.code] || { icon: '🌡️', label: 'Tidak Diketahui' }) : null
+  const wInfo = weather ? (WMO[weather.code] || { label: 'Tidak Diketahui' }) : null
 
-  if (loading || error) {
+  // Show loading only if no data cached yet
+  if (loading && agenda.length === 0) {
     return (
       <div style={{ height: '100vh', background: '#0a1228', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
-        <div style={{ width: 80, height: 80, borderRadius: 16, background: error ? '#7f1d1d' : 'linear-gradient(135deg,#f5b915,#d97706)', display: 'grid', placeItems: 'center', color: error ? '#fca5a5' : '#0f172a', fontWeight: 900, fontSize: 32 }}>
-          {error ? '!' : 'S'}
+        <div style={{ width: 80, height: 80, borderRadius: 16, background: 'linear-gradient(135deg,#f5b915,#d97706)', display: 'grid', placeItems: 'center', color: '#0f172a', fontWeight: 900, fontSize: 32 }}>
+          S
         </div>
-        <p style={{ color: error ? '#f87171' : '#64748b', fontSize: 18 }}>{error || 'Memuat agenda...'}</p>
+        <p style={{ color: '#64748b', fontSize: 18 }}>Memuat agenda...</p>
+      </div>
+    )
+  }
+
+  // Show fatal error only if truly no data
+  if (error && agenda.length === 0) {
+    return (
+      <div style={{ height: '100vh', background: '#0a1228', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
+        <div style={{ width: 80, height: 80, borderRadius: 16, background: '#7f1d1d', display: 'grid', placeItems: 'center', color: '#fca5a5', fontWeight: 900, fontSize: 32 }}>
+          !
+        </div>
+        <p style={{ color: '#f87171', fontSize: 18 }}>{error}</p>
+        {!isOnline && <p style={{ color: '#94a3b8', fontSize: 14 }}>Koneksi internet terputus. Periksa jaringan.</p>}
       </div>
     )
   }
@@ -478,8 +639,8 @@ export default function AgendaTVPage() {
 
                 {/* Weather */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', padding: '0.8vh 1vw', background: 'rgba(255,255,255,0.04)', border: `1px solid ${t.border}`, borderRadius: '0.6vw', minWidth: '10vw' }}>
-                  <div style={{ width: '2.5vw', height: '2.5vw', display: 'grid', placeItems: 'center', fontSize: '1.8vw', lineHeight: 1, flexShrink: 0 }}>
-                    {wInfo ? wInfo.icon : '🌡️'}
+                  <div style={{ width: '2.5vw', height: '2.5vw', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                    <WeatherIcon code={weather?.code} size="2.2vw" color={t.accent} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, minWidth: 0 }}>
                     <div style={{ fontSize: '1.4vw', fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"JetBrains Mono", monospace', color: t.text }}>
@@ -499,6 +660,23 @@ export default function AgendaTVPage() {
                   </div>
                   <div style={{ fontSize: '0.8vw', color: t.text2, marginTop: '0.3vh', letterSpacing: '0.04em' }}>{dateShort}</div>
                 </div>
+
+                {/* Offline indicator */}
+                {!isOnline && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '0.4vw',
+                    padding: '0.6vh 0.8vw',
+                    background: 'rgba(185,28,28,0.2)',
+                    border: '1px solid rgba(185,28,28,0.4)',
+                    borderRadius: '0.5vw',
+                    animation: 'pulse 2s infinite',
+                  }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" style={{ width: '1.1vw', height: '1.1vw' }}>
+                      <path d="M18.36 6.64a9 9 0 0 1 1.66 8.88"/><path d="M5.64 5.64a9 9 0 0 1 12.72 12.72"/><path d="M15.34 15.34A5 5 0 0 1 8.66 8.66"/><line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    <span style={{ fontSize: '0.7vw', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Offline</span>
+                  </div>
+                )}
               </div>
             </div>
 
