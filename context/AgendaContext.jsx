@@ -72,6 +72,7 @@ export function AgendaProvider({ children }) {
         disposisi: item.disposisi || null,
         pic: item.pic || null,
         status: item.status || 'upcoming',
+        tampil_publik: item.tampil_publik ?? false,
         created_by: user?.id || null
       };
 
