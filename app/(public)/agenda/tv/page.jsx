@@ -437,7 +437,7 @@ export default function AgendaTVPage() {
     if (typeof window === 'undefined') return
     try {
       if (!supabase) { setError('Supabase belum dikonfigurasi'); setLoading(false); return }
-      const { data, error: err } = await supabase.from('agenda').select('*').order('tanggal_mulai', { ascending: true })
+      const { data, error: err } = await supabase.from('agenda').select('*').eq('tampil_publik', true).order('tanggal_mulai', { ascending: true })
       if (err) {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
@@ -623,14 +623,14 @@ export default function AgendaTVPage() {
           </header>
 
           {/* ── MAIN ── */}
-          <main style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '2.2fr 1fr', 
-            gap: '1.2vw', 
-            padding: '1.5vh 1.5vw', 
+          <main style={{
+            display: 'grid',
+            gridTemplateColumns: '2fr 3fr',
+            gap: '1.2vw',
+            padding: '1.5vh 1.5vw',
             flex: 1,
-            minHeight: 0, 
-            overflow: 'hidden' 
+            minHeight: 0,
+            overflow: 'hidden'
           }}>
 
             {/* LEFT: Table */}
