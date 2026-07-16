@@ -8,8 +8,6 @@ import { verifySession } from '@/lib/session'
 const ROLE_RULES = [
   { prefix: '/kelola-agenda', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/surat', roles: ['super_admin', 'pimpinan'] },
-  { prefix: '/program-kerja', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
-  { prefix: '/pencairan', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
   { prefix: '/laporan', roles: ['super_admin'] },
   { prefix: '/pengaturan', roles: ['super_admin'] },
   { prefix: '/tv-pamflet', roles: ['super_admin', 'admin'] },
