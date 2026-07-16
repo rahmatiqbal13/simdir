@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAgenda } from '@/context/AgendaContext'
 import { useToast } from '@/app/components/Toast'
+import { useFocusTrap } from '@/app/components/useFocusTrap'
 import { SearchInput } from '@/app/components/Search'
 import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
 
@@ -305,6 +306,11 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
                 <JenisBadge jenis={item.jenis} />
+                {item.tampil_publik && (
+                  <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
+                    Publik
+                  </span>
+                )}
               </div>
               {canEdit && (
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
@@ -312,6 +318,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                     className="btn btn-ghost btn-sm btn-icon"
                     onClick={() => onEdit(item)}
                     title="Edit"
+                    aria-label="Edit agenda"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -322,6 +329,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                     className="btn btn-ghost btn-sm btn-icon"
                     onClick={() => onDelete(item.id)}
                     title="Hapus"
+                    aria-label="Hapus agenda"
                     style={{ color: 'var(--danger)' }}
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
@@ -439,7 +447,14 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
                 )}
               </td>
               <td>
-                <JenisBadge jenis={item.jenis} />
+                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
+                  <JenisBadge jenis={item.jenis} />
+                  {item.tampil_publik && (
+                    <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
+                      Publik
+                    </span>
+                  )}
+                </div>
               </td>
               <td>
                 <div style={{ fontSize: '0.8125rem' }}>{formatDate(item.tanggal_mulai)}</div>
@@ -503,6 +518,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
 
 // ============ KOMPONEN MODAL ============
 function AgendaModal({ item, onSave, onClose }) {
+  const modalRef = useFocusTrap(true, onClose)
   const [jenis, setJenis] = useState(item?.jenis || 'internal')
   const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
@@ -524,6 +540,7 @@ function AgendaModal({ item, onSave, onClose }) {
     disposisi_staff: item?.disposisi || '',
     pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
+    tampil_publik: item?.tampil_publik || false,
   })
   const [error, setError] = useState('')
 
@@ -576,12 +593,13 @@ function AgendaModal({ item, onSave, onClose }) {
       deskripsi: form.deskripsi,
       disposisi: jenis === 'pimpinan' && form.disposisi_staff ? form.disposisi_staff : null,
       pic: jenis === 'pimpinan' ? null : picValue,
+      tampil_publik: form.tampil_publik,
     }
     onSave(newItem)
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h3>
@@ -592,8 +610,8 @@ function AgendaModal({ item, onSave, onClose }) {
         <form onSubmit={handleSubmit}>
           <div className="card-form-body">
             {error && (
-              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 {error}
@@ -601,16 +619,26 @@ function AgendaModal({ item, onSave, onClose }) {
             )}
 
             <div className="form-section">
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                Jenis Kegiatan
-              </label>
+              <label>Jenis Kegiatan</label>
               <JenisToggle value={jenis} onChange={setJenis} />
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                Judul Agenda
+            <div className="form-section">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.tampil_publik}
+                  onChange={e => setForm({ ...form, tampil_publik: e.target.checked })}
+                />
+                Tampilkan di TV Publik
               </label>
+              <p className="muted">
+                Jika dicentang, agenda ini akan muncul di layar TV lobby publik. Jika tidak, agenda hanya terlihat di layar TV internal.
+              </p>
+            </div>
+
+            <div className="form-section">
+              <label>Judul Agenda</label>
               <input 
                 value={form.judul}
                 onChange={e => setForm({ ...form, judul: e.target.value })}
@@ -619,11 +647,9 @@ function AgendaModal({ item, onSave, onClose }) {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                  Tanggal Mulai <span className="muted">*</span>
-                </label>
+                <label>Tanggal Mulai <span className="muted">*</span></label>
                 <input 
                   type="date"
                   value={form.tanggal_mulai}
@@ -632,9 +658,7 @@ function AgendaModal({ item, onSave, onClose }) {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                  Tanggal Selesai <span className="muted">*</span>
-                </label>
+                <label>Tanggal Selesai <span className="muted">*</span></label>
                 <input 
                   type="date"
                   value={form.tanggal_selesai}
@@ -644,11 +668,9 @@ function AgendaModal({ item, onSave, onClose }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                  Jam Mulai <span className="muted" style={{ fontSize: '0.6875rem', fontWeight: 400 }}>(Opsional)</span>
-                </label>
+                <label>Jam Mulai <span className="muted">(Opsional)</span></label>
                 <input 
                   type="time"
                   value={form.waktu_mulai}
@@ -656,9 +678,7 @@ function AgendaModal({ item, onSave, onClose }) {
                 />
               </div>
               <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                  Jam Selesai <span className="muted" style={{ fontSize: '0.6875rem', fontWeight: 400 }}>(Opsional)</span>
-                </label>
+                <label>Jam Selesai <span className="muted">(Opsional)</span></label>
                 <input 
                   type="time"
                   value={form.waktu_selesai}
@@ -667,10 +687,8 @@ function AgendaModal({ item, onSave, onClose }) {
               </div>
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                Lokasi Kegiatan
-              </label>
+            <div className="form-section">
+              <label>Lokasi Kegiatan</label>
               <input 
                 value={form.lokasi}
                 onChange={e => setForm({ ...form, lokasi: e.target.value })}
@@ -678,23 +696,19 @@ function AgendaModal({ item, onSave, onClose }) {
               />
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                Link Meeting <span className="muted" style={{ fontSize: '0.6875rem', fontWeight: 400 }}>(Zoom/Google Meet - Opsional)</span>
-              </label>
+            <div className="form-section">
+              <label>Link Meeting <span className="muted">(Zoom/Google Meet - Opsional)</span></label>
               <input 
                 type="url"
                 value={form.link_meeting}
                 onChange={e => setForm({ ...form, link_meeting: e.target.value })}
                 placeholder="https://zoom.us/j/... atau https://meet.google.com/..."
               />
-              <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
-                Isi jika kegiatan dilakukan secara online
-              </p>
+              <p className="muted">Isi jika kegiatan dilakukan secara online</p>
             </div>
 
-            <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
+            <div className="form-section">
+              <label>
                 {jenis === 'internal' ? 'Unit Kerja Penyelenggara' : 
                  jenis === 'pimpinan' ? 'Nama Pimpinan/Instansi' : 'Nama Penyelenggara'}
               </label>
@@ -759,10 +773,8 @@ function AgendaModal({ item, onSave, onClose }) {
             </div>
 
             {jenis === 'pimpinan' && (
-              <div>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                  Disposisi ke Staff (jika pimpinan berhalangan)
-                </label>
+              <div className="form-section">
+                <label>Disposisi ke Staff (jika pimpinan berhalangan)</label>
                 <select 
                   value={form.disposisi_staff}
                   onChange={e => setForm({ ...form, disposisi_staff: e.target.value })}
@@ -772,16 +784,12 @@ function AgendaModal({ item, onSave, onClose }) {
                     <option key={staff.value} value={staff.value}>{staff.label}</option>
                   ))}
                 </select>
-                <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.25rem' }}>
-                  Pilih staff yang mewakili pimpinan jika berhalangan hadir
-                </p>
+                <p className="muted">Pilih staff yang mewakili pimpinan jika berhalangan hadir</p>
               </div>
             )}
 
-            <div>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', display: 'block' }}>
-                Deskripsi (Opsional)
-              </label>
+            <div className="form-section">
+              <label>Deskripsi <span className="muted">(Opsional)</span></label>
               <textarea 
                 value={form.deskripsi}
                 onChange={e => setForm({ ...form, deskripsi: e.target.value })}
@@ -791,9 +799,9 @@ function AgendaModal({ item, onSave, onClose }) {
             </div>
 
             {jenis !== 'pimpinan' && (
-              <div style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
+              <div className="form-section" style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
@@ -801,9 +809,7 @@ function AgendaModal({ item, onSave, onClose }) {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginBottom: '0.25rem', display: 'block' }}>
-                      Pilih PIC
-                    </label>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Pilih PIC</label>
                     <select
                       value={form.pic_select}
                       onChange={(e) => {
@@ -819,9 +825,7 @@ function AgendaModal({ item, onSave, onClose }) {
                   </div>
                   {showManualPic && (
                     <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginBottom: '0.25rem', display: 'block' }}>
-                        Nama PIC Manual
-                      </label>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama PIC Manual</label>
                       <input 
                         type="text" 
                         value={form.pic_manual}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { useFocusTrap } from '@/app/components/useFocusTrap';
 
 // ============ HELPERS ============
 const generateCustomerCode = () => {
@@ -14,6 +15,7 @@ const generateCustomerCode = () => {
 
 // ============ MODAL FORM CUSTOMER ============
 function CustomerFormModal({ show, onClose, onSubmit, customer, isEditing }) {
+  const modalRef = useFocusTrap(show, onClose)
   const [formData, setFormData] = useState({
     kode_pelanggan: '',
     nama_pelanggan: '',
@@ -59,13 +61,13 @@ function CustomerFormModal({ show, onClose, onSubmit, customer, isEditing }) {
   if (!show) return null;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
             {isEditing ? 'Edit Pelanggan' : 'Tambah Pelanggan'}
           </h3>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose}>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -162,14 +164,15 @@ function CustomerFormModal({ show, onClose, onSubmit, customer, isEditing }) {
 
 // ============ MODAL HAPUS ============
 function DeleteConfirmModal({ show, onClose, onConfirm, customer }) {
+  const modalRef = useFocusTrap(show, onClose)
   if (!show || !customer) return null;
   
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Konfirmasi Hapus</h3>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose}>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -548,6 +551,7 @@ export default function CustomersPage() {
                                 setFormModalOpen(true);
                               }}
                               title="Edit"
+                              aria-label="Edit pelanggan"
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -562,6 +566,7 @@ export default function CustomersPage() {
                                 setDeleteModalOpen(true);
                               }}
                               title="Hapus"
+                              aria-label="Hapus pelanggan"
                               disabled={(customer.invoices?.count || 0) > 0}
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>

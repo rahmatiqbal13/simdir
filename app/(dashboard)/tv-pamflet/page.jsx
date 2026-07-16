@@ -469,7 +469,7 @@ export default function TVPamfletPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>Durasi:</label>
                         <select
-                          value={pamflet.duration}
+                          value={pamflet.duration ?? 15}
                           onChange={(e) => handleEditDuration(pamflet, Number(e.target.value))}
                           style={{ fontSize: '0.75rem', border: '1px solid #d1d5db', borderRadius: '4px', padding: '1px 4px', color: '#374151' }}
                         >

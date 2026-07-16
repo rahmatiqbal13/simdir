@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { useFocusTrap } from '@/app/components/useFocusTrap';
 
 // ============ KONSTANTA ============
 const BULAN_LIST = [
@@ -257,7 +258,7 @@ function FilterSection({
 
           {/* Jenis Periode */}
           <div style={{ gridColumn: filterPeriode === 'custom' ? 'span 2' : 'auto' }}>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Jenis Periode</label>
+            <label>Jenis Periode</label>
             <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '0.25rem', gap: '0.125rem' }}>
               {periodeOptions.map(opt => (
                 <button key={opt.value} onClick={() => setFilterPeriode(opt.value)} style={tabStyle(filterPeriode === opt.value)}>
@@ -270,8 +271,8 @@ function FilterSection({
           {/* Pilihan spesifik per jenis periode */}
           {filterPeriode === 'bulanan' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Bulan</label>
-              <select value={filterBulan} onChange={e => setFilterBulan(e.target.value)} style={{ width: '100%' }}>
+              <label>Bulan</label>
+              <select value={filterBulan} onChange={e => setFilterBulan(e.target.value)}>
                 {BULAN_LIST.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
             </div>
@@ -279,7 +280,7 @@ function FilterSection({
 
           {filterPeriode === 'triwulan' && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Triwulan</label>
+              <label>Triwulan</label>
               <div style={{ display: 'flex', gap: '0.375rem' }}>
                 {TRIWULAN.map(tw => (
                   <button key={tw.value} onClick={() => setFilterTW(tw.value)}
@@ -305,28 +306,28 @@ function FilterSection({
           {filterPeriode === 'custom' && (
             <>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Dari Tanggal</label>
-                <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={{ width: '100%' }} />
+                <label>Dari Tanggal</label>
+                <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Hingga Tanggal</label>
-                <input type="date" value={filterDateTo} min={filterDateFrom} onChange={e => setFilterDateTo(e.target.value)} style={{ width: '100%' }} />
+                <label>Hingga Tanggal</label>
+                <input type="date" value={filterDateTo} min={filterDateFrom} onChange={e => setFilterDateTo(e.target.value)} />
               </div>
             </>
           )}
 
           {/* Tahun */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Tahun Anggaran</label>
-            <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)} style={{ width: '100%' }}>
+            <label>Tahun Anggaran</label>
+            <select value={filterTahun} onChange={e => setFilterTahun(e.target.value)}>
               {TAHUN_LIST.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
 
           {/* Unit Kerja */}
           <div>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem' }}>Unit Kerja</label>
-            <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)} style={{ width: '100%' }}>
+            <label>Unit Kerja</label>
+            <select value={filterUnit} onChange={e => setFilterUnit(e.target.value)}>
               <option value="">Semua Unit</option>
               {unitKerjaList.map(u => <option key={u.id} value={u.nama}>{u.nama}</option>)}
             </select>
@@ -364,6 +365,7 @@ function FilterSection({
 
 // ============ PREVIEW MODAL ============
 function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, topPrograms, filterTahun, filterUnit, jumlahUnit }) {
+  const modalRef = useFocusTrap(show, onClose)
   if (!show || !dateRange) return null;
 
   const narasi = generateNarasi({
@@ -383,11 +385,11 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
   const serapan = totals.pagu > 0 ? Math.round((totals.pencairanPeriode / totals.pagu) * 100) : 0;
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" style={{ maxWidth: '1000px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h2 style={{ fontSize: '1rem', fontWeight: 700 }}>Preview Laporan</h2>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose}>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

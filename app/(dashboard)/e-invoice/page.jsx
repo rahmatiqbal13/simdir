@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
+import { useFocusTrap } from '@/app/components/useFocusTrap';
 
 // ============ KONSTANTA ============
 const STATUS_CONFIG = {
@@ -165,14 +166,15 @@ function StatCard({ title, value, subtitle, color }) {
 
 // ============ MODAL KONFIRMASI HAPUS ============
 function DeleteConfirmModal({ show, onClose, onConfirm, invoice }) {
+  const modalRef = useFocusTrap(show, onClose)
   if (!show || !invoice) return null;
   
   return (
-    <div className="modal-backdrop" onClick={onClose}>
+    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
       <div className="modal-content" style={{ maxWidth: '400px' }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>Konfirmasi Hapus</h3>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose}>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -519,6 +521,7 @@ export default function EInvoicePage() {
                             href={`/e-invoice/${invoice.id}`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Lihat Detail"
+                            aria-label="Lihat detail invoice"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
@@ -528,6 +531,7 @@ export default function EInvoicePage() {
                             href={`/e-invoice/${invoice.id}/print`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Cetak Invoice"
+                            aria-label="Cetak invoice"
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
@@ -539,6 +543,7 @@ export default function EInvoicePage() {
                             href={`/e-invoice/${invoice.id}/edit`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Edit Invoice"
+                            aria-label="Edit invoice"
                             style={{ color: 'var(--primary)' }}
                           >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
@@ -555,6 +560,7 @@ export default function EInvoicePage() {
                                 setDeleteModalOpen(true);
                               }}
                               title="Hapus"
+                              aria-label="Hapus invoice"
                             >
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                                 <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>

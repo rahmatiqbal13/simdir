@@ -703,13 +703,13 @@ export default function EditInvoicePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
                 {/* Left - Notes */}
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Catatan</label>
+                  <label>Catatan</label>
                   <textarea
                     value={formData.catatan}
                     onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
                     placeholder="Anda bisa menulis catatan tambahan untuk pelanggan Anda di sini."
                     rows={4}
-                    style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.75rem' }}
+
                   />
                 </div>
 
