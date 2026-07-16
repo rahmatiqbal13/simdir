@@ -105,7 +105,7 @@ export default function LoginPage() {
               Sistem Informasi <br /> Direktorat <span style={{ color: 'var(--accent)' }}>USC</span>
             </h1>
             <p style={{ fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
-              Kelola agenda, program kerja, pencairan anggaran, dan tata persuratan
+              Kelola agenda, penilaian fasilitas, kritik &amp; saran, dan laporan
               direktorat dalam satu platform terintegrasi.
             </p>
 

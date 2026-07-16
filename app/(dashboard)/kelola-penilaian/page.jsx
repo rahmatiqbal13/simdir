@@ -186,14 +186,14 @@ export default function KritikSaranAdminPage() {
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
-            Kelola Kritik & Saran
+            Kelola Penilaian Fasilitas
           </h1>
           <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
-            Review dan tanggapi masukan dari pengguna untuk fasilitas USC
+            Lihat dan tanggapi penilaian bintang dari pengguna fasilitas USC
           </p>
         </div>
         <Link
-          href="/kelola-kritik-saran/pertanyaan"
+          href="/kelola-penilaian/pertanyaan"
           style={{
             padding: '8px 16px', background: '#eff6ff', color: '#1e3a8a',
             borderRadius: '8px', fontSize: '13px', fontWeight: 600,

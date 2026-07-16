@@ -1,725 +1,552 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 
-// 🎯 Daftar fasilitas — tambah/edit di sini untuk fasilitas baru
-const FACILITIES = [
-  { id: 'achilles-gym', name: 'Achilles Gym Hub', icon: '🏋️', color: '#dbeafe', textColor: '#1e3a8a' },
-  { id: 'kolam-renang', name: 'Kolam Renang Unesa', icon: '🏊', color: '#dcfce7', textColor: '#047857' },
-  { id: 'driving-golf', name: 'Driving Golf Unesa', icon: '⛳', color: '#fef3c7', textColor: '#b45309' },
+const FASILITAS_LIST = [
+  'Achilles Gym Hub', 'Kolam Renang Unesa', 'Driving Golf Unesa',
+  'SSFC', 'PUIPT DIC', 'PUIPT SERC', 'PUI Disabilitas',
+  'ULABK', 'PUI Seni', 'PUI Olahraga', 'USC (Umum)', 'Lainnya',
 ]
 
-const RATING_LABELS = {
-  1: 'Buruk',
-  2: 'Kurang Baik',
-  3: 'Cukup',
-  4: 'Baik',
-  5: 'Sangat Baik',
-}
+const JENIS_LIST = [
+  {
+    value: 'kritik', icon: '⚠️', label: 'Kritik',
+    desc: 'Sampaikan keluhan atau masalah yang Anda alami',
+    color: '#fef2f2', border: '#fecaca', accent: '#dc2626',
+  },
+  {
+    value: 'saran', icon: '💡', label: 'Saran',
+    desc: 'Berikan ide atau masukan untuk perbaikan layanan',
+    color: '#fffbeb', border: '#fde68a', accent: '#d97706',
+  },
+  {
+    value: 'permohonan_kelas', icon: '📚', label: 'Permohonan Kelas',
+    desc: 'Ajukan permintaan kelas atau pelatihan baru',
+    color: '#eff6ff', border: '#bfdbfe', accent: '#2563eb',
+  },
+  {
+    value: 'permohonan_kegiatan', icon: '🎯', label: 'Permohonan Kegiatan',
+    desc: 'Usulkan event atau kegiatan yang ingin diadakan',
+    color: '#f0fdf4', border: '#bbf7d0', accent: '#16a34a',
+  },
+]
 
-// Helper: generate unique ID for each rating item
-let nextId = 1
-const genId = () => nextId++
+const UNIT_KERJA_LIST = [
+  'USC (Umum)', 'Achilles Gym Hub', 'Kolam Renang Unesa', 'Driving Golf Unesa',
+  'SSFC', 'PUIPT DIC', 'PUIPT SERC', 'PUI Disabilitas',
+  'ULABK', 'PUI Seni', 'PUI Olahraga', 'Eksternal',
+]
+
+const STEPS = ['Jenis', 'Detail', 'Identitas']
 
 export default function KritikSaranPage() {
-  const [items, setItems] = useState([])
-  const [customQuestions, setCustomQuestions] = useState({})
-  const [questionsLoading, setQuestionsLoading] = useState(true)
-  const [profile, setProfile] = useState({
+  const [step, setStep] = useState(0)
+  const [done, setDone] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const [form, setForm] = useState({
+    jenis: '', fasilitas: '', judul: '', isi: '',
+    nama_kelas_kegiatan: '', tanggal_diinginkan: '', estimasi_peserta: '', catatan: '',
     nama: '', email: '', telepon: '', unit_kerja: '', jenis_kelamin: '', is_anonim: false,
   })
-  const [loading, setLoading] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [error, setError] = useState('')
-  const [currentStep, setCurrentStep] = useState(0)
-  const [isMobile, setIsMobile] = useState(false)
-  const wizardRef = useRef(null)
 
-  const scrollToWizard = () => {
-    wizardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
-
-  // Detect mobile viewport
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)')
-    const check = () => setIsMobile(mq.matches)
-    check()
-    mq.addEventListener('change', check)
-    return () => mq.removeEventListener('change', check)
-  }, [])
-
-  // Scale helper: shrink sizes on mobile
-  const spx = (val) => isMobile ? `${Math.round(val * 0.72)}px` : `${val}px`
-
-  // Fetch custom questions on mount
-  useEffect(() => {
-    async function loadQuestions() {
-      try {
-        const res = await fetch('/api/pertanyaan-kritik-saran?active=true')
-        const data = await res.json()
-        if (res.ok && data.grouped) {
-          setCustomQuestions(data.grouped)
-        }
-      } catch (err) {
-        console.error('Failed to load custom questions:', err)
-      } finally {
-        setQuestionsLoading(false)
-      }
-    }
-    loadQuestions()
-  }, [])
-
-  const hasCustomQuestions = (facilityName) => {
-    const qs = customQuestions[facilityName]
-    return qs && qs.length > 0
-  }
-
-  const addFacilityWithQuestions = (facilityName) => {
-    const qs = customQuestions[facilityName]
-    if (qs && qs.length > 0) {
-      // Add all active custom questions for this facility
-      qs.filter(q => q.is_active).forEach(q => {
-        if (!items.some(i => i.fasilitas === facilityName && i.pertanyaan_id === q.id)) {
-          setItems(prev => [...prev, {
-            id: genId(),
-            fasilitas: facilityName,
-            aspek: q.pertanyaan,
-            rating: 0,
-            penjelasan: '',
-            jawaban_pilihan: '',
-            pertanyaan_id: q.id,
-            tipe: q.tipe || 'rating',
-            opsi_pilihan: q.opsi_pilihan || null,
-          }])
-        }
-      })
-    } else {
-      setError('Belum ada pertanyaan untuk fasilitas ini. Silakan hubungi admin.')
-      return
-    }
-    setError('')
-    scrollToWizard()
-  }
-
-  const removeItem = (id) => {
-    setItems(prev => prev.filter(i => i.id !== id))
-  }
-
-  const updateItem = (id, field, value) => {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i))
-    setError('')
-  }
-
-  const getItemsByFasilitas = () => {
-    const grouped = {}
-    items.forEach(item => {
-      if (!grouped[item.fasilitas]) grouped[item.fasilitas] = []
-      grouped[item.fasilitas].push(item)
-    })
-    return grouped
-  }
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setError('') }
+  const selected = JENIS_LIST.find(j => j.value === form.jenis)
+  const isPermohonan = form.jenis === 'permohonan_kelas' || form.jenis === 'permohonan_kegiatan'
 
   const validate = () => {
-    if (!profile.jenis_kelamin) return 'Jenis kelamin wajib dipilih'
-    if (items.length === 0) return 'Pilih minimal 1 fasilitas untuk dinilai'
-    for (const item of items) {
-      const tipe = item.tipe || 'rating'
-      if (tipe === 'pilihan_ganda') {
-        if (!item.jawaban_pilihan || !item.jawaban_pilihan.trim()) {
-          return `Pilihan untuk "${item.aspek}" wajib diisi`
-        }
-      } else if (tipe === 'checkbox') {
-        const jawabanArr = parseCheckboxJawaban(item.jawaban_pilihan)
-        if (!jawabanArr || jawabanArr.length === 0) {
-          return `Pilihan untuk "${item.aspek}" wajib dipilih minimal 1`
-        }
-      } else if (tipe === 'teks') {
-        if (!item.penjelasan.trim()) {
-          return `Penjelasan untuk "${item.aspek}" wajib diisi`
-        }
+    if (step === 0 && !form.jenis) return 'Pilih jenis terlebih dahulu'
+    if (step === 1) {
+      if (!form.fasilitas) return 'Pilih fasilitas atau layanan terkait'
+      if (isPermohonan) {
+        if (!form.nama_kelas_kegiatan.trim()) return 'Nama kelas/kegiatan wajib diisi'
+        if (!form.tanggal_diinginkan) return 'Tanggal yang diinginkan wajib diisi'
       } else {
-        if (!item.rating || item.rating < 1) return `Rating untuk "${item.aspek}" wajib diisi`
-        if (!item.penjelasan.trim()) return `Penjelasan untuk "${item.aspek}" wajib diisi`
+        if (!form.judul.trim()) return 'Judul wajib diisi'
+        const len = form.isi.trim().length
+        if (len < 20) return 'Isi pesan minimal 20 karakter'
+        if (len > 2000) return 'Isi pesan maksimal 2000 karakter'
       }
     }
-    return null
-  }
-
-  const parseCheckboxJawaban = (val) => {
-    if (!val) return []
-    if (Array.isArray(val)) return val
-    try { return JSON.parse(val) } catch { return [] }
-  }
-
-  const validateStep = (stepIndex) => {
-    const item = items[stepIndex]
-    if (!item) return null
-    const tipe = item.tipe || 'rating'
-    if (tipe === 'pilihan_ganda') {
-      if (!item.jawaban_pilihan || !item.jawaban_pilihan.trim()) {
-        return `Pilihan untuk "${item.aspek}" wajib diisi`
-      }
-    } else if (tipe === 'checkbox') {
-      const jawabanArr = parseCheckboxJawaban(item.jawaban_pilihan)
-      if (!jawabanArr || jawabanArr.length === 0) {
-        return `Pilihan untuk "${item.aspek}" wajib dipilih minimal 1`
-      }
-    } else if (tipe === 'teks') {
-      if (!item.penjelasan.trim()) {
-        return `Jawaban untuk "${item.aspek}" wajib diisi`
-      }
-    } else {
-      if (!item.rating || item.rating < 1) return `Rating untuk "${item.aspek}" wajib diisi`
-      if (!item.penjelasan.trim()) return `Penjelasan untuk "${item.aspek}" wajib diisi`
+    if (step === 2) {
+      if (!form.jenis_kelamin) return 'Jenis kelamin wajib dipilih'
+      if (!form.is_anonim && !form.nama.trim()) return 'Nama wajib diisi (atau centang Anonim)'
     }
-    return null
+    return ''
   }
 
-  const goNext = () => {
-    const err = validateStep(currentStep)
-    if (err) return setError(err)
-    setError('')
-    setCurrentStep(prev => Math.min(prev + 1, items.length - 1))
-    scrollToWizard()
+  const next = () => {
+    const err = validate()
+    if (err) { setError(err); return }
+    setStep(s => s + 1)
   }
 
-  const goPrev = () => {
-    setError('')
-    setCurrentStep(prev => Math.max(prev - 1, 0))
-    scrollToWizard()
-  }
+  const back = () => { setError(''); setStep(s => s - 1) }
 
-  useEffect(() => {
-    if (items.length === 0) setCurrentStep(0)
-    else if (currentStep >= items.length) setCurrentStep(items.length - 1)
-  }, [items.length])
+  const resetForm = () => ({
+    jenis: '', fasilitas: '', judul: '', isi: '',
+    nama_kelas_kegiatan: '', tanggal_diinginkan: '', estimasi_peserta: '', catatan: '',
+    nama: '', email: '', telepon: '', unit_kerja: '', jenis_kelamin: '', is_anonim: false,
+  })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     const err = validate()
-    if (err) return setError(err)
-
+    if (err) { setError(err); return }
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/kritik-saran', {
+      const res = await fetch('/api/saran', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...profile,
-          items: items.map(({ fasilitas, aspek, rating, penjelasan, jawaban_pilihan, pertanyaan_id, tipe }) => ({
-            fasilitas, aspek, rating, penjelasan, jawaban_pilihan, pertanyaan_id, tipe,
-          })),
-        }),
+        body: JSON.stringify(form),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Gagal mengirim')
-      setSubmitted(true)
+      setDone(true)
     } catch (err) {
-      setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.')
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
-  const grouped = getItemsByFasilitas()
-  const selectedFasilitas = Object.keys(grouped)
-  const availableFacilities = FACILITIES.filter(f => !selectedFasilitas.includes(f.name))
-
-  // Progress stats
-  const totalFacilities = selectedFasilitas.length
-  const totalItems = items.length
-  const ratedItems = items.filter(i => i.rating > 0).length
-  const explainedItems = items.filter(i => i.penjelasan.trim().length > 0).length
-  const answeredItems = items.filter(i => {
-    const tipe = i.tipe || 'rating'
-    if (tipe === 'pilihan_ganda') return i.jawaban_pilihan && i.jawaban_pilihan.trim().length > 0
-    if (tipe === 'checkbox') {
-      const arr = parseCheckboxJawaban(i.jawaban_pilihan)
-      return arr.length > 0
-    }
-    if (tipe === 'teks') return i.penjelasan.trim().length > 0
-    return i.rating > 0 && i.penjelasan.trim().length > 0
-  }).length
-  const isComplete = totalItems > 0 && answeredItems === totalItems
-
-  if (submitted) {
+  if (done) {
     return (
-      <div style={getPageStyle(isMobile)}>
-        <div style={{
-          maxWidth: isMobile ? '100%' : '640px',
-          width: '100%',
-          background: 'white',
-          borderRadius: isMobile ? '16px' : '20px',
-          padding: isMobile ? '24px 16px' : '48px 32px',
-          textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        }}>
+      <div style={pageStyle}>
+        <PublicHeader />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
           <div style={{
-            width: isMobile ? '64px' : '96px', height: isMobile ? '64px' : '96px', background: '#dcfce7', borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px', fontSize: isMobile ? '32px' : '44px',
-          }}>✓</div>
-          <h2 style={{ margin: '0 0 16px', color: '#0f172a', fontSize: isMobile ? '24px' : '32px', fontWeight: 700 }}>Terima Kasih!</h2>
-          <p style={{ margin: '0 0 32px', color: '#64748b', fontSize: isMobile ? '16px' : '20px', lineHeight: '1.6' }}>
-            Kritik dan saran Anda untuk {totalFacilities} fasilitas ({totalItems} penilaian) telah berhasil dikirim.
-          </p>
-          <button
-            onClick={() => {
-              setSubmitted(false)
-              setItems([])
-              setCurrentStep(0)
-              setProfile({ nama:'', email:'', telepon:'', unit_kerja:'', jenis_kelamin:'', is_anonim:false })
-            }}
-            style={{
-              padding: isMobile ? '14px 24px' : '18px 32px', background: '#1e3a8a', color: 'white', border: 'none',
-              borderRadius: '12px', fontSize: isMobile ? '16px' : '20px', fontWeight: '700', cursor: 'pointer', width: '100%',
-            }}
-          >Kirim Lagi</button>
+            maxWidth: 460, width: '100%', background: 'white', borderRadius: 24,
+            padding: '48px 32px', textAlign: 'center',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+          }}>
+            <div style={{
+              width: 72, height: 72, background: selected?.color || '#f0fdf4', borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px', fontSize: 32,
+            }}>{selected?.icon || '✅'}</div>
+            <h1 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>
+              Terima Kasih!
+            </h1>
+            <p style={{ margin: '0 0 28px', color: '#475569', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+              {isPermohonan
+                ? 'Permohonan Anda telah diterima. Tim kami akan meninjau dan menghubungi Anda secepatnya.'
+                : 'Masukan Anda telah berhasil dikirim. Kami sangat menghargai setiap pendapat yang membantu kami berkembang.'}
+            </p>
+            <button
+              onClick={() => { setDone(false); setStep(0); setForm(resetForm()) }}
+              style={{ ...primaryBtnStyle, background: selected?.accent || '#2563eb' }}
+            >
+              Kirim yang Lain
+            </button>
+            <div style={{ marginTop: 14 }}>
+              <a href="/penilaian" style={linkStyle}>Ingin menilai fasilitas USC? →</a>
+            </div>
+          </div>
         </div>
+        <PublicFooter />
       </div>
     )
   }
 
   return (
-    <div style={getPageStyle(isMobile)}>
-      <div style={{
-        maxWidth: isMobile ? '100%' : '800px',
-        width: '100%',
-        background: 'white',
-        borderRadius: isMobile ? '12px' : '16px',
-        padding: isMobile ? '16px 12px' : '32px 28px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-      }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: isMobile ? '16px' : '24px' }}>
-          <div style={{
-            width: isMobile ? '48px' : '64px', height: isMobile ? '48px' : '64px', background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
-            borderRadius: isMobile ? '12px' : '14px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 12px', fontSize: isMobile ? '22px' : '28px',
-          }}>💬</div>
-          <h1 style={{ margin: '0 0 6px', color: '#0f172a', fontSize: isMobile ? '22px' : '28px', fontWeight: '700' }}>
-            Kritik & Saran
-          </h1>
-          <p style={{ margin: 0, color: '#64748b', fontSize: isMobile ? '14px' : '18px' }}>Unesa Science Center (USC)</p>
-          <p style={{ margin: '8px 0 0', color: '#94a3b8', fontSize: isMobile ? '13px' : '16px' }}>
-            Berikan penilaian untuk fasilitas USC
-          </p>
-        </div>
+    <div style={pageStyle}>
+      <PublicHeader />
 
-        {/* Progress Bar */}
-        {totalItems > 0 && (
-          <div style={{
-            marginBottom: isMobile ? '14px' : '20px', padding: isMobile ? '10px 12px' : '14px 16px', background: '#f8fafc',
-            borderRadius: isMobile ? '10px' : '12px', border: '1px solid #e2e8f0',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '6px' : '8px' }}>
-              <span style={{ fontSize: isMobile ? '14px' : '18px', fontWeight: 600, color: '#475569' }}>
-                Progress: {answeredItems}/{totalItems} dijawab
-              </span>
-              <span style={{
-                fontSize: isMobile ? '13px' : '16px', fontWeight: 700,
-                color: isComplete ? '#047857' : '#b45309',
-                background: isComplete ? '#dcfce7' : '#fef3c7',
-                padding: isMobile ? '2px 8px' : '4px 10px', borderRadius: '6px',
-              }}>
-                {isComplete ? 'Siap Kirim ✓' : 'Belum Lengkap'}
-              </span>
-            </div>
-            <div style={{ height: isMobile ? '8px' : '10px', background: '#e2e8f0', borderRadius: '5px', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', width: `${totalItems > 0 ? (answeredItems / totalItems) * 100 : 0}%`,
-                background: isComplete ? '#10b981' : '#3b82f6', borderRadius: '5px',
-                transition: 'width 0.3s ease',
-              }} />
-            </div>
-          </div>
-        )}
+      <div style={{ flex: 1, padding: '28px 16px 40px' }}>
+        <div style={{ maxWidth: 580, margin: '0 auto' }}>
 
-        {error && (
-          <div style={{
-            padding: isMobile ? '10px 14px' : '14px 18px', background: '#fef2f2', border: '1px solid #fecaca',
-            borderRadius: isMobile ? '8px' : '10px', color: '#dc2626', fontSize: isMobile ? '15px' : '18px', marginBottom: isMobile ? '12px' : '18px', fontWeight: 500,
-          }}>{error}</div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          {/* Profile */}
-          <div style={{ marginBottom: isMobile ? '16px' : '24px' }}>
-            <label style={{
-              display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '10px', padding: isMobile ? '10px 12px' : '14px 16px',
-              background: '#f8fafc', borderRadius: isMobile ? '8px' : '10px', cursor: 'pointer', fontSize: isMobile ? '15px' : '18px', color: '#374151',
+          {/* Page Title */}
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 56, height: 56,
+              background: selected ? `linear-gradient(135deg, ${selected.accent}22, ${selected.accent}44)` : 'linear-gradient(135deg, #eff6ff, #dbeafe)',
+              borderRadius: 16, fontSize: 26, marginBottom: 14,
+              border: `1.5px solid ${selected?.border || '#bfdbfe'}`,
+              transition: 'all 0.3s',
             }}>
-              <input
-                type="checkbox" checked={profile.is_anonim}
-                onChange={(e) => setProfile(p => ({ ...p, is_anonim: e.target.checked }))}
-                style={{ width: isMobile ? '18px' : '22px', height: isMobile ? '18px' : '22px', accentColor: '#1e3a8a', cursor: 'pointer' }}
-              />
-              <span>Kirim secara anonim (nama & kontak tidak tampil)</span>
-            </label>
-            {!profile.is_anonim && (
-              <div style={{ marginTop: isMobile ? '8px' : '12px', display: 'grid', gap: isMobile ? '8px' : '12px' }}>
-                <input type="text" placeholder="Nama (opsional)" value={profile.nama}
-                  onChange={(e) => setProfile(p => ({ ...p, nama: e.target.value }))} style={getInputStyle(isMobile)} />
-                <input type="text" placeholder="Email atau Telepon (opsional)"
-                  value={profile.email || profile.telepon}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    if (val.includes('@')) setProfile(p => ({ ...p, email: val, telepon: '' }))
-                    else setProfile(p => ({ ...p, telepon: val, email: '' }))
-                  }} style={getInputStyle(isMobile)} />
+              {selected?.icon || '💬'}
+            </div>
+            <h1 style={{ margin: '0 0 6px', color: '#0f172a', fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+              Kritik &amp; Saran
+            </h1>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9375rem' }}>
+              Sampaikan pendapat, masukan, atau permohonan Anda
+            </p>
+          </div>
+
+          {/* Step Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0, marginBottom: 24 }}>
+            {STEPS.map((label, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontWeight: 700, fontSize: '0.8125rem',
+                    background: i < step ? '#0f172a' : i === step ? (selected?.accent || '#2563eb') : '#e2e8f0',
+                    color: i <= step ? 'white' : '#94a3b8',
+                    transition: 'all 0.3s',
+                  }}>
+                    {i < step ? '✓' : i + 1}
+                  </div>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: i === step ? '#0f172a' : '#94a3b8' }}>{label}</span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div style={{
+                    width: 56, height: 2, margin: '0 4px 18px',
+                    background: i < step ? '#0f172a' : '#e2e8f0', transition: 'background 0.3s',
+                  }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Card */}
+          <div style={{ background: 'white', borderRadius: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+
+            {/* ---- STEP 0: Jenis ---- */}
+            {step === 0 && (
+              <div style={{ padding: 28 }}>
+                <h2 style={cardTitleStyle}>Apa yang ingin Anda sampaikan?</h2>
+                <p style={cardSubStyle}>Pilih jenis yang paling sesuai dengan kebutuhan Anda</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {JENIS_LIST.map(j => (
+                    <button key={j.value} type="button" onClick={() => set('jenis', j.value)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
+                        border: `2px solid ${form.jenis === j.value ? j.accent : '#e2e8f0'}`,
+                        borderRadius: 14, background: form.jenis === j.value ? j.color : 'white',
+                        cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                      }}>
+                      <span style={{
+                        width: 46, height: 46, borderRadius: 12, background: j.color,
+                        border: `1.5px solid ${j.border}`, display: 'flex', alignItems: 'center',
+                        justifyContent: 'center', fontSize: 22, flexShrink: 0,
+                      }}>{j.icon}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9375rem' }}>{j.label}</div>
+                        <div style={{ color: '#64748b', fontSize: '0.8125rem', marginTop: 3 }}>{j.desc}</div>
+                      </div>
+                      <div style={{
+                        width: 22, height: 22, borderRadius: '50%', border: `2px solid ${form.jenis === j.value ? j.accent : '#e2e8f0'}`,
+                        background: form.jenis === j.value ? j.accent : 'transparent', flexShrink: 0, transition: 'all 0.15s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {form.jenis === j.value && <span style={{ color: 'white', fontSize: 12, lineHeight: 1 }}>✓</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {error && <ErrorMsg>{error}</ErrorMsg>}
+                <button type="button" onClick={next}
+                  style={{ ...primaryBtnStyle, marginTop: 20, background: selected?.accent || '#2563eb' }}>
+                  Lanjut →
+                </button>
               </div>
             )}
-            <input type="text" placeholder="Unit Kerja / Instansi (opsional)" value={profile.unit_kerja}
-              onChange={(e) => setProfile(p => ({ ...p, unit_kerja: e.target.value }))}
-              style={{ ...getInputStyle(isMobile), marginTop: isMobile ? '8px' : '12px' }} />
 
-            {/* Jenis Kelamin — wajib */}
-            <div style={{ marginTop: isMobile ? '12px' : '16px' }}>
-              <label style={{ ...getLabelStyle(isMobile), marginBottom: isMobile ? '6px' : '10px' }}>
-                Jenis Kelamin <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <div style={{ display: 'flex', gap: isMobile ? '8px' : '12px' }}>
-                {['Laki-laki', 'Perempuan'].map(jk => (
-                  <button
-                    key={jk}
-                    type="button"
-                    onClick={() => setProfile(p => ({ ...p, jenis_kelamin: jk }))}
-                    style={{
-                      flex: 1, padding: isMobile ? '10px 12px' : '14px 16px', borderRadius: isMobile ? '8px' : '10px', border: '2px solid',
-                      borderColor: profile.jenis_kelamin === jk ? '#3b82f6' : '#e2e8f0',
-                      background: profile.jenis_kelamin === jk ? '#eff6ff' : 'white',
-                      color: profile.jenis_kelamin === jk ? '#1e3a8a' : '#64748b',
-                      fontSize: isMobile ? '16px' : '20px', fontWeight: profile.jenis_kelamin === jk ? '700' : '500',
-                      cursor: 'pointer', transition: 'all 0.15s',
-                    }}
-                  >
-                    {jk === 'Laki-laki' ? '👨' : '👩'} {jk}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+            {/* ---- STEP 1: Detail ---- */}
+            {step === 1 && (
+              <div style={{ padding: 28 }}>
+                {/* Jenis badge */}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '4px 12px', borderRadius: 99, fontSize: '0.8125rem', fontWeight: 700,
+                  background: selected?.color, color: selected?.accent, border: `1px solid ${selected?.border}`,
+                  marginBottom: 16,
+                }}>
+                  {selected?.icon} {selected?.label}
+                </span>
 
-          {/* Add Facility Buttons */}
-          {availableFacilities.length > 0 && (
-            <div style={{ marginBottom: isMobile ? '14px' : '20px' }}>
-              <label style={{ ...getLabelStyle(isMobile), marginBottom: isMobile ? '8px' : '12px' }}>
-                Pilih Fasilitas <span style={{ color: '#dc2626' }}>*</span>
-                <span style={{ color: '#9ca3af', fontWeight: 400, fontSize: isMobile ? '13px' : '16px' }}> (minimal 1)</span>
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '8px' : '12px' }}>
-                {availableFacilities.map(facility => {
-                  const hasCQ = hasCustomQuestions(facility.name)
-                  const cqCount = customQuestions[facility.name]?.filter(q => q.is_active).length || 0
-                  return (
-                    <button key={facility.id} type="button" onClick={() => addFacilityWithQuestions(facility.name)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '16px', padding: isMobile ? '12px 14px' : '18px 20px',
-                        borderRadius: isMobile ? '12px' : '14px', border: '2px solid #e2e8f0', background: 'white',
-                        cursor: 'pointer', transition: 'all 0.15s', width: '100%', textAlign: 'left',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.background = '#eff6ff' }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = 'white' }}>
-                      <div style={{
-                        width: isMobile ? '44px' : '56px', height: isMobile ? '44px' : '56px', borderRadius: '12px', background: facility.color,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '22px' : '28px', flexShrink: 0,
-                      }}>{facility.icon}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: isMobile ? '16px' : '20px', fontWeight: 700, color: '#0f172a' }}>{facility.name}</div>
-                        <div style={{ fontSize: isMobile ? '13px' : '16px', color: '#64748b', marginTop: '4px' }}>
-                          {hasCQ
-                            ? `${cqCount} pertanyaan siap dinilai`
-                            : 'Belum ada pertanyaan'
-                          }
+                <h2 style={cardTitleStyle}>{isPermohonan ? 'Detail Permohonan' : 'Detail Pesan'}</h2>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Fasilitas */}
+                  <div>
+                    <label style={labelStyle}>Fasilitas / Layanan Terkait <Req /></label>
+                    <select value={form.fasilitas} onChange={e => set('fasilitas', e.target.value)} style={selectStyle}>
+                      <option value="">-- Pilih fasilitas --</option>
+                      {FASILITAS_LIST.map(f => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </div>
+
+                  {isPermohonan ? (
+                    <>
+                      <div>
+                        <label style={labelStyle}>
+                          Nama {form.jenis === 'permohonan_kelas' ? 'Kelas' : 'Kegiatan'} yang Diinginkan <Req />
+                        </label>
+                        <input type="text" value={form.nama_kelas_kegiatan}
+                          onChange={e => set('nama_kelas_kegiatan', e.target.value)}
+                          placeholder={form.jenis === 'permohonan_kelas' ? 'Contoh: Kelas Yoga Pagi, Renang Tingkat Lanjut...' : 'Contoh: Turnamen Futsal, Workshop Fitness...'}
+                          style={fullInputStyle} maxLength={200} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div>
+                          <label style={labelStyle}>Tanggal yang Diinginkan <Req /></label>
+                          <input type="date" value={form.tanggal_diinginkan}
+                            onChange={e => set('tanggal_diinginkan', e.target.value)}
+                            min={new Date().toISOString().split('T')[0]} style={fullInputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Estimasi Peserta</label>
+                          <input type="number" value={form.estimasi_peserta}
+                            onChange={e => set('estimasi_peserta', e.target.value)}
+                            placeholder="Contoh: 20" min={1} max={9999} style={fullInputStyle} />
                         </div>
                       </div>
-                      <div style={{
-                        width: isMobile ? '28px' : '36px', height: isMobile ? '28px' : '36px', borderRadius: '50%', border: '2px solid #cbd5e1',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: isMobile ? '16px' : '20px', color: '#94a3b8', fontWeight: 700,
-                      }}>+</div>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Wizard Questions */}
-          {items.length > 0 && (
-            <div ref={wizardRef} style={{ marginBottom: isMobile ? '16px' : '24px' }}>
-              {/* Step indicator */}
-              <div style={{ marginBottom: isMobile ? '14px' : '20px', textAlign: 'center' }}>
-                <div style={{ fontSize: isMobile ? '16px' : '20px', color: '#64748b', marginBottom: isMobile ? '6px' : '10px', fontWeight: 500 }}>
-                  Pertanyaan {currentStep + 1} dari {items.length}
+                      <div>
+                        <label style={labelStyle}>Keterangan Tambahan</label>
+                        <textarea value={form.catatan}
+                          onChange={e => set('catatan', e.target.value)}
+                          placeholder="Deskripsikan lebih detail — tujuan, jadwal reguler, atau hal lain yang perlu diketahui..."
+                          rows={4} maxLength={1000}
+                          style={{ ...fullInputStyle, resize: 'vertical' }} />
+                        <div style={charCount}>{form.catatan.length}/1000</div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <label style={labelStyle}>Judul <Req /></label>
+                        <input type="text" value={form.judul}
+                          onChange={e => set('judul', e.target.value)}
+                          placeholder={form.jenis === 'kritik' ? 'Ringkasan masalah yang Anda alami...' : 'Ringkasan saran Anda...'}
+                          maxLength={150} style={fullInputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Isi Pesan <Req /></label>
+                        <textarea value={form.isi}
+                          onChange={e => set('isi', e.target.value)}
+                          placeholder={form.jenis === 'kritik'
+                            ? 'Ceritakan masalah Anda secara detail — kapan terjadi, apa yang dialami, dampaknya...'
+                            : 'Jelaskan saran Anda secara detail — apa yang perlu diperbaiki atau ditingkatkan...'
+                          }
+                          rows={5} maxLength={2000}
+                          style={{ ...fullInputStyle, resize: 'vertical' }} />
+                        <div style={{ ...charCount, color: form.isi.length < 20 && form.isi.length > 0 ? '#dc2626' : '#94a3b8' }}>
+                          {form.isi.length}/2000
+                          {form.isi.length > 0 && form.isi.length < 20 && ' · minimal 20 karakter'}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div style={{ height: isMobile ? '8px' : '12px', background: '#e2e8f0', borderRadius: isMobile ? '4px' : '6px', overflow: 'hidden' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${((currentStep + 1) / items.length) * 100}%`,
-                    background: '#1e3a8a',
-                    borderRadius: isMobile ? '4px' : '6px',
-                    transition: 'width 0.3s ease',
-                  }} />
+
+                {error && <ErrorMsg>{error}</ErrorMsg>}
+                <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                  <button type="button" onClick={back} style={backBtnStyle}>← Kembali</button>
+                  <button type="button" onClick={next}
+                    style={{ ...primaryBtnStyle, flex: 2, background: selected?.accent || '#2563eb' }}>
+                    Lanjut →
+                  </button>
                 </div>
               </div>
+            )}
 
-              {(() => {
-                const item = items[currentStep]
-                const facility = FACILITIES.find(f => f.name === item.fasilitas)
-                const isLastStep = currentStep === items.length - 1
-                return (
-                  <div style={{
-                    background: '#f8fafc', borderRadius: isMobile ? '12px' : '16px', padding: isMobile ? '16px' : '24px',
-                    border: '2px solid #e2e8f0',
+            {/* ---- STEP 2: Identitas ---- */}
+            {step === 2 && (
+              <form onSubmit={handleSubmit}>
+                <div style={{ padding: 28 }}>
+                  <h2 style={cardTitleStyle}>Identitas Pengirim</h2>
+                  <p style={cardSubStyle}>
+                    Data ini membantu kami menindaklanjuti {isPermohonan ? 'permohonan' : 'masukan'} Anda
+                  </p>
+
+                  {/* Anonim Toggle */}
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+                    background: '#f8fafc', borderRadius: 12, border: '1.5px solid #e2e8f0',
+                    cursor: 'pointer', marginBottom: 16,
                   }}>
-                    {/* Facility Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '14px', marginBottom: isMobile ? '14px' : '20px' }}>
-                      <div style={{
-                        width: isMobile ? '44px' : '56px', height: isMobile ? '44px' : '56px', borderRadius: '12px', background: facility?.color || '#e2e8f0',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '22px' : '28px', flexShrink: 0,
-                      }}>{facility?.icon || '🏢'}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: isMobile ? '17px' : '22px', fontWeight: 700, color: facility?.textColor || '#0f172a' }}>
-                          {item.fasilitas}
-                        </div>
-                        <div style={{ fontSize: isMobile ? '13px' : '16px', color: '#94a3b8' }}>
-                          {items.filter(i => i.fasilitas === item.fasilitas).length} pertanyaan untuk fasilitas ini
-                        </div>
+                    <input type="checkbox" checked={form.is_anonim}
+                      onChange={e => set('is_anonim', e.target.checked)}
+                      style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2563eb', flexShrink: 0 }} />
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.875rem' }}>Kirim sebagai Anonim</div>
+                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 2 }}>Nama dan kontak tidak akan disimpan</div>
+                    </div>
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Jenis Kelamin */}
+                    <div>
+                      <label style={labelStyle}>Jenis Kelamin <Req /></label>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        {['Laki-laki', 'Perempuan'].map(jk => (
+                          <button key={jk} type="button" onClick={() => set('jenis_kelamin', jk)}
+                            style={{
+                              flex: 1, padding: '10px', borderRadius: 10, cursor: 'pointer',
+                              border: `2px solid ${form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : '#e2e8f0'}`,
+                              background: form.jenis_kelamin === jk ? (selected?.color || '#eff6ff') : 'white',
+                              fontWeight: 600, fontSize: '0.875rem',
+                              color: form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : '#475569',
+                              transition: 'all 0.15s',
+                            }}>
+                            {jk}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
-                    {/* Question Card */}
-                    <div style={{
-                      background: 'white', borderRadius: isMobile ? '12px' : '14px', padding: isMobile ? '14px' : '20px',
-                      border: '2px solid #e2e8f0',
-                    }}>
-                      {/* Question Label */}
-                      <div style={{ marginBottom: isMobile ? '12px' : '16px' }}>
-                        <label style={{ fontSize: isMobile ? '14px' : '18px', fontWeight: 600, color: '#475569', display: 'block', marginBottom: isMobile ? '6px' : '8px' }}>
-                          Pertanyaan <span style={{ color: '#dc2626' }}>*</span>
-                        </label>
-                        <div style={{
-                          padding: isMobile ? '10px 12px' : '14px 16px', background: '#eff6ff', borderRadius: isMobile ? '8px' : '10px',
-                          border: '1px solid #dbeafe', fontSize: isMobile ? '17px' : '22px', color: '#1e3a8a', fontWeight: 600, lineHeight: 1.4,
-                        }}>
-                          {item.aspek}
+                    {!form.is_anonim && (
+                      <>
+                        <div>
+                          <label style={labelStyle}>Nama Lengkap <Req /></label>
+                          <input type="text" value={form.nama}
+                            onChange={e => set('nama', e.target.value)}
+                            placeholder="Nama Anda" style={fullInputStyle} maxLength={100} />
                         </div>
-                      </div>
-
-                      {/* Answer input based on tipe */}
-                      {(item.tipe || 'rating') === 'pilihan_ganda' && item.opsi_pilihan ? (
-                        <div style={{ marginBottom: isMobile ? '8px' : '12px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '10px' }}>
-                            {item.opsi_pilihan.map((opsi, idx) => (
-                              <label key={idx} style={{
-                                display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px',
-                                padding: isMobile ? '10px 12px' : '14px 16px', borderRadius: isMobile ? '8px' : '10px', cursor: 'pointer',
-                                background: item.jawaban_pilihan === opsi ? '#eff6ff' : 'white',
-                                border: '2px solid',
-                                borderColor: item.jawaban_pilihan === opsi ? '#3b82f6' : '#e2e8f0',
-                                fontSize: isMobile ? '16px' : '20px', color: '#0f172a', transition: 'all 0.15s',
-                              }}>
-                                <input
-                                  type="radio"
-                                  name={`pg-${item.id}`}
-                                  checked={item.jawaban_pilihan === opsi}
-                                  onChange={() => updateItem(item.id, 'jawaban_pilihan', opsi)}
-                                  style={{ width: isMobile ? '18px' : '24px', height: isMobile ? '18px' : '24px', accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }}
-                                />
-                                <span style={{ fontWeight: item.jawaban_pilihan === opsi ? 700 : 500 }}>
-                                  {String.fromCharCode(65 + idx)}. {opsi}
-                                </span>
-                              </label>
-                            ))}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          <div>
+                            <label style={labelStyle}>No. WhatsApp / Telepon</label>
+                            <input type="tel" value={form.telepon}
+                              onChange={e => set('telepon', e.target.value)}
+                              placeholder="08xxxxxxxxxx" style={fullInputStyle} maxLength={20} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Email</label>
+                            <input type="email" value={form.email}
+                              onChange={e => set('email', e.target.value)}
+                              placeholder="email@contoh.com" style={fullInputStyle} />
                           </div>
                         </div>
-                      ) : (item.tipe || 'rating') === 'checkbox' && item.opsi_pilihan ? (
-                        <div style={{ marginBottom: isMobile ? '8px' : '12px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '6px' : '10px' }}>
-                            {(() => {
-                              const selectedArr = parseCheckboxJawaban(item.jawaban_pilihan)
-                              return item.opsi_pilihan.map((opsi, idx) => {
-                                const isChecked = selectedArr.includes(opsi)
-                                return (
-                                  <label key={idx} style={{
-                                    display: 'flex', alignItems: 'center', gap: isMobile ? '8px' : '12px',
-                                    padding: isMobile ? '10px 12px' : '14px 16px', borderRadius: isMobile ? '8px' : '10px', cursor: 'pointer',
-                                    background: isChecked ? '#eff6ff' : 'white',
-                                    border: '2px solid',
-                                    borderColor: isChecked ? '#3b82f6' : '#e2e8f0',
-                                    fontSize: isMobile ? '16px' : '20px', color: '#0f172a', transition: 'all 0.15s',
-                                  }}>
-                                    <input
-                                      type="checkbox"
-                                      checked={isChecked}
-                                      onChange={() => {
-                                        let nextArr = isChecked
-                                          ? selectedArr.filter(v => v !== opsi)
-                                          : [...selectedArr, opsi]
-                                        updateItem(item.id, 'jawaban_pilihan', JSON.stringify(nextArr))
-                                      }}
-                                      style={{ width: isMobile ? '18px' : '24px', height: isMobile ? '18px' : '24px', accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }}
-                                    />
-                                    <span style={{ fontWeight: isChecked ? 700 : 500 }}>
-                                      {String.fromCharCode(65 + idx)}. {opsi}
-                                    </span>
-                                  </label>
-                                )
-                              })
-                            })()}
-                          </div>
-                        </div>
-                      ) : (item.tipe || 'rating') === 'teks' ? (
-                        <textarea value={item.penjelasan}
-                          onChange={(e) => updateItem(item.id, 'penjelasan', e.target.value)}
-                          placeholder={`Jelaskan jawaban Anda untuk "${item.aspek}"...`}
-                          rows={3}
-                          style={{
-                            width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: '2px solid #e2e8f0',
-                            borderRadius: isMobile ? '8px' : '10px', fontSize: isMobile ? '16px' : '20px', color: '#0f172a', resize: 'vertical',
-                            minHeight: isMobile ? '72px' : '100px', fontFamily: "'Segoe UI', system-ui, sans-serif", outline: 'none',
-                            boxSizing: 'border-box',
-                          }} />
-                      ) : (
-                        <>
-                          {/* Rating with labels */}
-                          <div style={{ marginBottom: isMobile ? '12px' : '16px' }}>
-                            <div style={{ display: 'flex', gap: isMobile ? '4px' : '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                              {[1, 2, 3, 4, 5].map(star => (
-                                <button key={star} type="button"
-                                  onClick={() => updateItem(item.id, 'rating', star)}
-                                  style={{
-                                    background: 'transparent', border: 'none', fontSize: isMobile ? '28px' : '36px',
-                                    cursor: 'pointer', padding: '4px', lineHeight: 1,
-                                    filter: star <= item.rating ? 'none' : 'grayscale(1)',
-                                    opacity: star <= item.rating ? 1 : 0.3, transition: 'all 0.15s',
-                                  }}>⭐</button>
-                              ))}
-                              <span style={{
-                                fontSize: isMobile ? '14px' : '18px', fontWeight: 700, marginLeft: '4px',
-                                color: item.rating > 0 ? '#047857' : '#94a3b8',
-                                background: item.rating > 0 ? '#dcfce7' : 'transparent',
-                                padding: item.rating > 0 ? '4px 12px' : '0',
-                                borderRadius: '6px',
-                              }}>
-                                {item.rating > 0 ? `${item.rating}/5 — ${RATING_LABELS[item.rating]}` : 'Pilih rating 1-5'}
-                              </span>
-                            </div>
-                            {/* Rating scale hint */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: isMobile ? '6px' : '8px', padding: '0 4px' }}>
-                              <span style={{ fontSize: isMobile ? '13px' : '16px', color: '#ef4444', fontWeight: 600 }}>Buruk</span>
-                              <span style={{ fontSize: isMobile ? '13px' : '16px', color: '#10b981', fontWeight: 600 }}>Sangat Baik</span>
-                            </div>
-                          </div>
+                      </>
+                    )}
 
-                          {/* Penjelasan */}
-                          <textarea value={item.penjelasan}
-                            onChange={(e) => updateItem(item.id, 'penjelasan', e.target.value)}
-                            placeholder={`Jelaskan penilaian Anda untuk "${item.aspek}"...`}
-                            rows={3}
-                            style={{
-                              width: '100%', padding: isMobile ? '10px 12px' : '14px 16px', border: '2px solid #e2e8f0',
-                              borderRadius: isMobile ? '8px' : '10px', fontSize: isMobile ? '16px' : '20px', color: '#0f172a', resize: 'vertical',
-                              minHeight: isMobile ? '72px' : '100px', fontFamily: "'Segoe UI', system-ui, sans-serif", outline: 'none',
-                              boxSizing: 'border-box',
-                            }} />
-                        </>
-                      )}
-
-                      {/* Navigation Buttons */}
-                      <div style={{ display: 'flex', gap: isMobile ? '10px' : '16px', marginTop: isMobile ? '16px' : '24px' }}>
-                        {currentStep > 0 && (
-                          <button type="button" onClick={goPrev}
-                            style={{
-                              flex: 1, padding: isMobile ? '12px' : '18px', background: '#f1f5f9', color: '#475569', border: 'none',
-                              borderRadius: isMobile ? '10px' : '12px', fontSize: isMobile ? '16px' : '20px', fontWeight: '700', cursor: 'pointer',
-                              transition: 'background 0.15s',
-                            }}>
-                            ← Sebelumnya
-                          </button>
-                        )}
-                        {!isLastStep ? (
-                          <button type="button" onClick={goNext}
-                            style={{
-                              flex: 1, padding: isMobile ? '12px' : '18px', background: '#1e3a8a', color: 'white', border: 'none',
-                              borderRadius: isMobile ? '10px' : '12px', fontSize: isMobile ? '16px' : '20px', fontWeight: '700', cursor: 'pointer',
-                              transition: 'background 0.15s',
-                            }}>
-                            Berikutnya →
-                          </button>
-                        ) : (
-                          <button type="submit" disabled={loading}
-                            style={{
-                              flex: 1, padding: isMobile ? '12px' : '18px', background: loading ? '#93c5fd' : '#059669', color: 'white', border: 'none',
-                              borderRadius: isMobile ? '10px' : '12px', fontSize: isMobile ? '16px' : '20px', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer',
-                              transition: 'background 0.15s',
-                            }}>
-                            {loading ? (
-                              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                                <span style={{
-                                  width: isMobile ? '18px' : '24px', height: isMobile ? '18px' : '24px', border: '3px solid rgba(255,255,255,0.3)',
-                                  borderTopColor: 'white', borderRadius: '50%', display: 'inline-block',
-                                  animation: 'spin 0.7s linear infinite',
-                                }} /> Mengirim...
-                              </span>
-                            ) : (
-                              '✓ Kirim Kritik & Saran'
-                            )}
-                          </button>
-                        )}
-                      </div>
+                    <div>
+                      <label style={labelStyle}>Asal Unit / Instansi</label>
+                      <select value={form.unit_kerja} onChange={e => set('unit_kerja', e.target.value)} style={selectStyle}>
+                        <option value="">-- Pilih unit (opsional) --</option>
+                        {UNIT_KERJA_LIST.map(u => <option key={u} value={u}>{u}</option>)}
+                      </select>
                     </div>
                   </div>
-                )
-              })()}
-            </div>
-          )}
-        </form>
 
-        <p style={{
-          textAlign: 'center', marginTop: isMobile ? '14px' : '20px', color: '#9ca3af', fontSize: isMobile ? '13px' : '16px', lineHeight: '1.5',
-        }}>
-          Masukan Anda akan ditinjau oleh pimpinan USC.<br/>Tidak akan dipublikasikan atau ditampilkan di layar publik.
-        </p>
+                  {error && <ErrorMsg>{error}</ErrorMsg>}
+                  <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                    <button type="button" onClick={back} style={backBtnStyle}>← Kembali</button>
+                    <button type="submit" disabled={loading}
+                      style={{
+                        ...primaryBtnStyle, flex: 2,
+                        background: selected?.accent || '#2563eb',
+                        opacity: loading ? 0.7 : 1,
+                      }}>
+                      {loading ? 'Mengirim...' : `Kirim ${selected?.label || 'Pesan'}`}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+
+          {/* Cross-link */}
+          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem', marginTop: 20 }}>
+            Ingin menilai fasilitas USC?{' '}
+            <a href="/penilaian" style={linkStyle}>Buka halaman Penilaian Fasilitas →</a>
+          </p>
+        </div>
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
+      <PublicFooter />
+      <style>{`
+        @media (max-width: 480px) {
+          .detail-grid { grid-template-columns: 1fr !important; }
+          .contact-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   )
 }
 
-function getPageStyle(isMobile) {
-  return {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #0a1228 0%, #1e3a8a 100%)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    padding: isMobile ? '8px' : '20px',
-    fontFamily: "'Segoe UI', system-ui, sans-serif",
-  }
+function PublicHeader() {
+  return (
+    <header style={{
+      background: 'white', borderBottom: '1px solid #e2e8f0',
+      padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100,
+    }}>
+      <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="/images/logo USC.png" alt="USC" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0f172a', lineHeight: 1.2 }}>Unesa Science Center</div>
+            <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Sistem Informasi Direktorat</div>
+          </div>
+        </div>
+        <a href="/penilaian" style={{
+          fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
+          textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
+          border: '1px solid #bfdbfe', background: '#eff6ff',
+        }}>
+          Penilaian Fasilitas
+        </a>
+      </div>
+    </header>
+  )
 }
 
-function getLabelStyle(isMobile) {
-  return {
-    display: 'block',
-    fontSize: isMobile ? '15px' : '18px',
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: isMobile ? '6px' : '10px',
-  }
+function PublicFooter() {
+  return (
+    <footer style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '16px 20px', textAlign: 'center' }}>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+        © 2026 Direktorat Unesa Science Center · Masukan Anda bersifat rahasia
+      </p>
+    </footer>
+  )
 }
 
-function getInputStyle(isMobile) {
-  return {
-    width: '100%',
-    padding: isMobile ? '10px 12px' : '14px 16px',
-    border: '2px solid #e2e8f0',
-    borderRadius: isMobile ? '8px' : '10px',
-    fontSize: isMobile ? '15px' : '18px',
-    color: '#0f172a',
-    background: 'white',
-    outline: 'none',
-    fontFamily: "'Segoe UI', system-ui, sans-serif",
-    boxSizing: 'border-box',
-  }
+function Req() {
+  return <span style={{ color: '#dc2626' }}>*</span>
 }
+
+function ErrorMsg({ children }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8, marginTop: 12,
+      padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca',
+      borderRadius: 10, color: '#dc2626', fontSize: '0.875rem',
+    }}>
+      <span>⚠️</span> {children}
+    </div>
+  )
+}
+
+const pageStyle = {
+  minHeight: '100vh', display: 'flex', flexDirection: 'column',
+  background: 'linear-gradient(160deg, #f0f4ff 0%, #fafafa 50%, #f0fdf4 100%)',
+  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+}
+
+const cardTitleStyle = { fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }
+const cardSubStyle = { color: '#64748b', fontSize: '0.875rem', margin: '0 0 18px' }
+
+const labelStyle = {
+  display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: 6,
+}
+
+const baseInput = {
+  width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0',
+  fontSize: '0.9rem', color: '#0f172a', background: 'white', outline: 'none',
+  boxSizing: 'border-box', fontFamily: 'inherit',
+}
+
+const fullInputStyle = { ...baseInput }
+const selectStyle = { ...baseInput }
+
+const charCount = { textAlign: 'right', fontSize: '0.75rem', marginTop: 4, color: '#94a3b8' }
+
+const primaryBtnStyle = {
+  display: 'block', width: '100%', padding: '12px', borderRadius: 12, border: 'none',
+  color: 'white', fontWeight: 700, fontSize: '0.9375rem', cursor: 'pointer', textAlign: 'center',
+}
+
+const backBtnStyle = {
+  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #e2e8f0',
+  background: 'white', color: '#475569', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+}
+
+const linkStyle = { color: '#2563eb', textDecoration: 'none', fontWeight: 600, fontSize: '0.8125rem' }

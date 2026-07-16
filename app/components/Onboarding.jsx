@@ -56,18 +56,12 @@ const ONBOARDING_STEPS = {
       position: 'top'
     }
   ],
-  'program-kerja': [
+  'laporan': [
     {
       target: '.toolbar',
-      title: 'Program Kerja',
-      content: 'Kelola program kerja dan anggaran per unit.',
+      title: 'Laporan',
+      content: 'Filter laporan berdasarkan periode, triwulan, atau rentang tanggal.',
       position: 'bottom'
-    },
-    {
-      target: '.program-list',
-      title: 'Daftar Program',
-      content: 'Klik pada program untuk melihat detail dan mengelola variabel anggaran.',
-      position: 'top'
     }
   ]
 }

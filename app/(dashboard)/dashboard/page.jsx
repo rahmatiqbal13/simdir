@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { useAgenda, useProgramKerja } from '@/lib/hooks/useSupabase';
+import { useAgenda } from '@/lib/hooks/useSupabase';
 import { OnboardingFlow, useOnboarding, RestartOnboardingButton } from '@/app/components/Onboarding';
 import { SkeletonDashboard } from '@/app/components/Skeleton';
-import { formatRupiahShort } from '@/lib/utils/format';
 
-const MONTHS = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const MONTHS     = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const MONTH_FULL = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
 const getStatus = (mulai, selesai) => {
   const now = new Date(), s = new Date(mulai), e = new Date(selesai);
@@ -18,147 +18,60 @@ const getStatus = (mulai, selesai) => {
 
 const fmtTime = (t) => t ? t.slice(0, 5) : '--:--';
 
-function StatCard({ label, value, sub, trend, trendUp, color, icon }) {
-  const colorMap = {
-    primary: { bg: 'var(--primary-50)', fg: 'var(--primary)' },
-    success: { bg: 'var(--success-50)', fg: 'var(--success)' },
-    warning: { bg: 'var(--warning-50)', fg: 'var(--warning)' },
-    accent:  { bg: 'var(--accent-soft)', fg: '#8a6500' }
-  };
-  const c = colorMap[color] || colorMap.primary;
-  return (
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>
-          {icon}
-        </div>
-        {trend && (
-          <span className={'stat-trend ' + (trendUp ? 'up' : 'down')}>
-            {trendUp ? '↑' : '↓'} {trend}
-          </span>
-        )}
-      </div>
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-      {sub && <div className="stat-sub">{sub}</div>}
-    </div>
-  );
-}
-
-function AgendaRow({ a }) {
-  const status = getStatus(a.tanggal_mulai, a.tanggal_selesai);
-  const statusInfo = {
-    upcoming: { label: 'Akan Datang', tone: 'primary' },
-    upcoming_soon: { label: 'Segera', tone: 'accent' },
-    ongoing: { label: 'Berlangsung', tone: 'success' },
-    completed: { label: 'Selesai', tone: 'neutral' }
-  }[status] || { label: 'Akan Datang', tone: 'primary' };
-  const d = new Date(a.tanggal_mulai);
-  return (
-    <div className="agenda-row">
-      <div className="agenda-date">
-        <div className="agenda-date-month">{MONTHS[d.getMonth()]}</div>
-        <div className="agenda-date-day">{d.getDate()}</div>
-        <div className="agenda-date-time">{fmtTime(a.waktu_mulai)}</div>
-      </div>
-      <div className="agenda-body">
-        <div className="agenda-title truncate">{a.judul}</div>
-        <div className="agenda-meta">
-          <span className="agenda-meta-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            {a.lokasi || '-'}
-          </span>
-        </div>
-      </div>
-      <span className={'badge badge-' + statusInfo.tone}>{statusInfo.label}</span>
-    </div>
-  );
-}
-
-function PencairanRow({ p }) {
-  const pct = p.pagu_anggaran > 0 ? Math.round((p.dana_terpakai / p.pagu_anggaran) * 100) : 0;
-  const tone = pct >= 80 ? 'success' : pct >= 50 ? 'warning' : 'accent';
-  return (
-    <div className="agenda-row">
-      <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: 'var(--primary-50)', color: 'var(--primary)', display: 'grid', placeItems: 'center' }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
-          <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
-        </svg>
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="agenda-title truncate" style={{ fontSize: '0.875rem' }}>{p.nama}</div>
-        <div className="agenda-meta">
-          <span className="muted">{p.id_rka || '-'}</span>
-        </div>
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <div className="num" style={{ fontWeight: 700, fontSize: '0.875rem' }}>{formatRupiahShort(p.dana_terpakai)}</div>
-        <span className={'badge badge-' + tone} style={{ marginTop: 4 }}>{pct}%</span>
-      </div>
-    </div>
-  );
-}
-
-function BarChart({ programs }) {
-  const data = programs.slice(0, 8).map(p => ({
-    unit: (p.unit_kerja_id || p.unit || 'Unit').slice(0, 6),
-    pagu: Math.round((p.pagu_anggaran || 0) / 1e6),
-    real: Math.round((p.dana_terpakai || 0) / 1e6)
-  }));
-  if (!data.length) return <div className="muted" style={{ textAlign: 'center', padding: 32 }}>Belum ada data</div>;
-  const W = 720, H = 220, P = 32;
-  const max = Math.max(...data.map(d => d.pagu), 1);
-  const bandW = (W - P * 2) / data.length;
-  const barW = bandW * 0.32;
-  return (
-    <div style={{ overflowX: 'auto' }}>
-      <svg viewBox={`0 0 ${W} ${H + 40}`} width="100%" preserveAspectRatio="xMidYMid meet" style={{ minWidth: 480 }}>
-        {[0, 0.25, 0.5, 0.75, 1].map(t => {
-          const y = P + (H - P) * (1 - t);
-          return (
-            <g key={t}>
-              <line x1={P} x2={W - P} y1={y} y2={y} stroke="#e4e7ee" strokeDasharray="3 4" />
-              <text x={P - 8} y={y + 4} fontSize="10" fill="#94a3b8" textAnchor="end">{Math.round(max * t)}M</text>
-            </g>
-          );
-        })}
-        {data.map((d, i) => {
-          const x = P + i * bandW + bandW / 2;
-          const paguH = ((H - P) * d.pagu) / max;
-          const realH = ((H - P) * d.real) / max;
-          return (
-            <g key={d.unit + i}>
-              <rect x={x - barW - 2} y={H - paguH} width={barW} height={paguH} rx="3" fill="var(--primary-100)" opacity="0.7" />
-              <rect x={x + 2} y={H - realH} width={barW} height={realH} rx="3" fill="var(--primary)" />
-              <text x={x} y={H + 18} fontSize="11" fill="#64748b" textAnchor="middle" fontWeight="500">{d.unit}</text>
-            </g>
-          );
-        })}
-        <g transform={`translate(${P}, ${H + 32})`}>
-          <rect x={0} y={0} width={10} height={10} rx="2" fill="var(--primary-100)" />
-          <text x={16} y={9} fontSize="11" fill="#64748b">Pagu (jutaan)</text>
-          <rect x={120} y={0} width={10} height={10} rx="2" fill="var(--primary)" />
-          <text x={136} y={9} fontSize="11" fill="#64748b">Realisasi SPJ</text>
-        </g>
-      </svg>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const [userName, setUserName] = useState('Admin');
+  const [userRole, setUserRole] = useState('');
+  const [saranStats, setSaranStats]         = useState({ total: 0, baru: 0, kritik: 0, saran: 0, permohonan: 0 });
+  const [penilaianStats, setPenilaianStats] = useState({ total: 0, avgRating: 0 });
+  const [statsLoading, setStatsLoading]     = useState(true);
+
   const { showOnboarding, completeOnboarding, skipOnboarding, resetOnboarding } = useOnboarding('dashboard');
   const { data: agendaData, loading: agendaLoading } = useAgenda();
-  const { data: programData, loading: programLoading } = useProgramKerja();
 
   useEffect(() => {
     try {
       const s = localStorage.getItem('simdir_session');
-      if (s) {
-        const d = JSON.parse(atob(s));
-        if (d.username) setUserName(d.username);
-      }
+      if (s) { const d = JSON.parse(atob(s)); setUserName(d.username || 'Admin'); setUserRole(d.role || ''); }
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    async function loadStats() {
+      setStatsLoading(true);
+      try {
+        const session = localStorage.getItem('simdir_session');
+        if (!session) return;
+        const decoded = JSON.parse(atob(session));
+        const headers = { 'Content-Type': 'application/json', authorization: `Bearer ${decoded.token || decoded.role || 'session'}` };
+
+        const [saranRes, penilaianRes] = await Promise.allSettled([
+          fetch('/api/saran', { headers }),
+          fetch('/api/kritik-saran', { headers }),
+        ]);
+
+        if (saranRes.status === 'fulfilled' && saranRes.value.ok) {
+          const data = await saranRes.value.json();
+          setSaranStats({
+            total:      data.length,
+            baru:       data.filter(d => d.status === 'baru').length,
+            kritik:     data.filter(d => d.jenis === 'kritik').length,
+            saran:      data.filter(d => d.jenis === 'saran').length,
+            permohonan: data.filter(d => d.jenis === 'permohonan_kelas' || d.jenis === 'permohonan_kegiatan').length,
+          });
+        }
+
+        if (penilaianRes.status === 'fulfilled' && penilaianRes.value.ok) {
+          const data = await penilaianRes.value.json();
+          const withRating = data.filter(d => d.overall_rating);
+          const avg = withRating.length > 0
+            ? (withRating.reduce((s, d) => s + d.overall_rating, 0) / withRating.length).toFixed(1)
+            : 0;
+          setPenilaianStats({ total: data.length, avgRating: parseFloat(avg) });
+        }
+      } catch {}
+      finally { setStatsLoading(false); }
+    }
+    loadStats();
   }, []);
 
   const greeting = (() => {
@@ -169,36 +82,29 @@ export default function DashboardPage() {
     return 'Selamat Pagi';
   })();
 
-  const todayStr = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const now = new Date();
+  const todayStr = `${now.getDate()} ${MONTH_FULL[now.getMonth()]} ${now.getFullYear()}`;
+  const dayStr   = now.toLocaleDateString('id-ID', { weekday: 'long' });
 
-  const stats = useMemo(() => {
-    const active = agendaData.filter(a => {
-      const s = getStatus(a.tanggal_mulai, a.tanggal_selesai);
-      return s !== 'completed';
-    });
-    const totalPagu = programData.reduce((s, p) => s + (p.pagu_anggaran || 0), 0);
-    const totalSPJ = programData.reduce((s, p) => s + (p.dana_terpakai || 0), 0);
-    const pct = totalPagu > 0 ? Math.round((totalSPJ / totalPagu) * 100) : 0;
-    return { active: active.length, total: agendaData.length, totalPagu, totalSPJ, pct, sisa: totalPagu - totalSPJ };
-  }, [agendaData, programData]);
+  const agendaStats = useMemo(() => {
+    const ongoing      = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing');
+    const upcoming     = agendaData.filter(a => ['upcoming','upcoming_soon'].includes(getStatus(a.tanggal_mulai, a.tanggal_selesai)));
+    const upcomingSoon = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) === 'upcoming_soon');
+    return { ongoing: ongoing.length, upcoming: upcoming.length, upcomingSoon: upcomingSoon.length, total: agendaData.length };
+  }, [agendaData]);
 
-  const upcomingAgenda = useMemo(() =>
+  const upcomingList = useMemo(() =>
     agendaData
       .filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')
       .sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
-      .slice(0, 5),
+      .slice(0, 6),
     [agendaData]
   );
 
-  const topPrograms = useMemo(() =>
-    [...programData].sort((a, b) => (b.dana_terpakai || 0) - (a.dana_terpakai || 0)).slice(0, 4),
-    [programData]
-  );
-
-  if (agendaLoading || programLoading) return <SkeletonDashboard />;
+  if (agendaLoading) return <SkeletonDashboard />;
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <OnboardingFlow pageKey="dashboard" isOpen={showOnboarding} onComplete={completeOnboarding} onSkip={skipOnboarding} />
       {!showOnboarding && (
         <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 20 }}>
@@ -206,179 +112,307 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Page header */}
-      <div className="page-header">
-        <div className="page-title-wrap">
-          <div className="eyebrow" style={{ marginBottom: 6 }}>{todayStr}</div>
-          <h1 className="page-title">{greeting}, {userName} 👋</h1>
-          <p className="page-subtitle">Ringkasan kegiatan &amp; anggaran Direktorat USC hari ini.</p>
-        </div>
-        <div className="page-actions">
-          <a href="/kelola-agenda" className="btn btn-primary">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Tambah Agenda
-          </a>
-        </div>
-      </div>
+      {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
+      <div style={{
+        borderRadius: 'var(--r-xl)',
+        background: 'linear-gradient(135deg, var(--usc-blue) 0%, #1d4ed8 55%, #2563eb 100%)',
+        padding: '28px 32px',
+        color: 'white',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 24,
+        flexWrap: 'wrap',
+        overflow: 'hidden',
+        position: 'relative',
+      }}>
+        <div style={{ position: 'absolute', top: -40, right: 180, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 20, right: 60, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <StatCard
-          label="Agenda Aktif"
-          value={stats.active}
-          sub={`${stats.total} agenda terdaftar`}
-          color="primary"
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>}
-        />
-        <StatCard
-          label="Total Pagu 2026"
-          value={formatRupiahShort(stats.totalPagu)}
-          sub={`${programData.length} program aktif`}
-          color="accent"
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>}
-        />
-        <StatCard
-          label="Realisasi SPJ"
-          value={formatRupiahShort(stats.totalSPJ)}
-          sub={`Serapan ${stats.pct}% dari pagu`}
-          trend={stats.pct + '%'}
-          trendUp
-          color="success"
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
-        />
-        <StatCard
-          label="Sisa Anggaran"
-          value={formatRupiahShort(stats.sisa)}
-          sub="Belum dicairkan"
-          trend={(100 - stats.pct) + '%'}
-          trendUp={false}
-          color="warning"
-          icon={<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>}
-        />
-      </div>
-
-      {/* Main grid */}
-      <div className="dashboard-grid">
-        {/* Left column */}
-        <div className="col-flex" style={{ gap: 20, minWidth: 0 }}>
-          {/* Bar chart */}
-          <div className="card">
-            <div className="card-header">
-              <div>
-                <div className="card-title">Realisasi Anggaran per Program</div>
-                <div className="muted" style={{ fontSize: '0.8125rem', marginTop: 2 }}>Tahun anggaran 2026</div>
-              </div>
-            </div>
-            <div className="card-body">
-              <BarChart programs={programData} />
-            </div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <div style={{ fontSize: '0.8125rem', fontWeight: 600, opacity: 0.7, marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {dayStr}, {todayStr}
           </div>
-
-          {/* Top programs */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Program Kerja Prioritas</div>
-              <a href="/program-kerja" className="btn btn-ghost btn-sm">
-                Lihat Semua
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
-              </a>
-            </div>
-            <div className="card-body" style={{ padding: 16 }}>
-              <div className="col-flex" style={{ gap: 10 }}>
-                {topPrograms.length === 0 ? (
-                  <div className="muted" style={{ textAlign: 'center', padding: 24 }}>Belum ada data program</div>
-                ) : topPrograms.map((p, idx) => {
-                  const pct = p.pagu_anggaran > 0 ? Math.round((p.dana_terpakai / p.pagu_anggaran) * 100) : 0;
-                  const tone = pct >= 80 ? 'success' : pct >= 50 ? 'warning' : 'danger';
-                  return (
-                    <div key={p.id} className="program-card">
-                      <div className="program-card-head">
-                        <div className="row-flex" style={{ gap: 10, minWidth: 0, flex: 1 }}>
-                          <span style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, background: idx === 0 ? 'var(--accent)' : 'var(--primary-50)', color: idx === 0 ? '#1a1a1a' : 'var(--primary)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: '0.8125rem' }}>
-                            {idx + 1}
-                          </span>
-                          <div style={{ minWidth: 0 }}>
-                            <div className="program-card-title truncate">{p.nama}</div>
-                            <div className="program-card-unit">{p.id_rka || '-'} • {p.unit_kerja_id || p.unit || 'Unit'}</div>
-                          </div>
-                        </div>
-                        <span className={'badge badge-' + tone}>{pct}%</span>
-                      </div>
-                      <div className={'progress ' + tone}>
-                        <div className="progress-bar" style={{ width: pct + '%' }}></div>
-                      </div>
-                      <div className="program-card-amounts">
-                        <span className="muted">Terealisasi</span>
-                        <div className="row-flex" style={{ gap: 6 }}>
-                          <strong className="num">{formatRupiahShort(p.dana_terpakai)}</strong>
-                          <span className="muted">/ {formatRupiahShort(p.pagu_anggaran)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <h1 style={{ fontSize: '1.625rem', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+            {greeting}, {userName} 👋
+          </h1>
+          <p style={{ opacity: 0.75, fontSize: '0.9375rem', margin: 0 }}>
+            {agendaStats.ongoing > 0
+              ? `${agendaStats.ongoing} agenda sedang berlangsung · ${agendaStats.upcoming} mendatang`
+              : agendaStats.upcoming > 0
+              ? `${agendaStats.upcoming} agenda mendatang · ${agendaStats.total} total terdaftar`
+              : 'Tidak ada agenda aktif — semua tenang hari ini'}
+          </p>
         </div>
 
-        {/* Right column */}
-        <div className="col-flex" style={{ gap: 20, minWidth: 0 }}>
-          {/* Upcoming agenda */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Agenda Mendatang</div>
-              <a href="/kelola-agenda" className="btn btn-ghost btn-sm">
-                Semua
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
-              </a>
-            </div>
-            <div>
-              {upcomingAgenda.length === 0 ? (
-                <div className="muted" style={{ textAlign: 'center', padding: 32 }}>Belum ada agenda mendatang</div>
-              ) : upcomingAgenda.map(a => <AgendaRow key={a.id} a={a} />)}
-            </div>
-          </div>
-
-          {/* Recent pencairan = top spending programs */}
-          <div className="card">
-            <div className="card-header">
-              <div className="card-title">Pencairan Terbaru</div>
-              <a href="/pencairan" className="btn btn-ghost btn-sm">
-                Semua
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M7 17L17 7"/><path d="M7 7h10v10"/></svg>
-              </a>
-            </div>
-            <div>
-              {topPrograms.length === 0 ? (
-                <div className="muted" style={{ textAlign: 'center', padding: 32 }}>Belum ada data</div>
-              ) : topPrograms.map(p => <PencairanRow key={p.id} p={p} />)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile quick actions */}
-      <div className="hide-desktop" style={{ marginTop: 8 }}>
-        <div className="eyebrow mb-3">Akses Cepat</div>
-        <div className="qa-grid">
+        <div style={{ display: 'flex', gap: 12, position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
           {[
-            { href: '/kelola-agenda', label: 'Agenda', color: 'primary', bg: 'var(--primary-50)', fg: 'var(--primary)', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-            { href: '/program-kerja', label: 'Program', color: 'success', bg: 'var(--success-50)', fg: 'var(--success)', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg> },
-            { href: '/pencairan', label: 'Pencairan', color: 'warning', bg: 'var(--warning-50)', fg: 'var(--warning)', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/></svg> },
-            { href: '/laporan', label: 'Laporan', color: 'accent', bg: 'var(--accent-soft)', fg: '#8a6500', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
-            { href: '/surat', label: 'Surat', color: 'primary', bg: 'var(--primary-50)', fg: 'var(--primary)', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,6 12,13 2,6"/></svg> },
-            { href: '/pengaturan/users', label: 'Pengguna', color: 'success', bg: 'var(--success-50)', fg: 'var(--success)', icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> },
-          ].map(qa => (
-            <a key={qa.href} href={qa.href} className="qa-card" style={{ textDecoration: 'none' }}>
-              <div className="qa-icon" style={{ background: qa.bg, color: qa.fg }}>
-                <svg style={{ width: 20, height: 20 }}>{qa.icon.props.children}</svg>
-              </div>
-              <span>{qa.label}</span>
-            </a>
+            { label: 'Agenda Aktif',    value: agendaStats.ongoing + agendaStats.upcoming, icon: '📅' },
+            { label: 'Kritik & Saran',  value: saranStats.baru > 0 ? `${saranStats.baru} baru` : saranStats.total, icon: '💬' },
+            { label: 'Rata-rata Rating', value: penilaianStats.avgRating > 0 ? `${penilaianStats.avgRating}⭐` : '—', icon: '⭐' },
+          ].map(item => (
+            <div key={item.label} style={{
+              background: 'rgba(255,255,255,0.12)', backdropFilter: 'blur(8px)',
+              borderRadius: 14, padding: '12px 18px', minWidth: 110, textAlign: 'center',
+              border: '1px solid rgba(255,255,255,0.18)',
+            }}>
+              <div style={{ fontSize: 22, marginBottom: 4 }}>{item.icon}</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: 800, lineHeight: 1 }}>{item.value}</div>
+              <div style={{ fontSize: '0.6875rem', opacity: 0.75, marginTop: 4, fontWeight: 500 }}>{item.label}</div>
+            </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── KPI CARDS ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }} className="kpi-grid">
+        <KpiCard
+          label="Total Agenda"
+          value={agendaStats.total}
+          sub={agendaStats.ongoing > 0 ? `${agendaStats.ongoing} sedang berlangsung` : `${agendaStats.upcoming} mendatang`}
+          icon={<IconCalendar />}
+          accent="#2563eb" accentBg="#eff6ff"
+          href="/kelola-agenda"
+          badge={agendaStats.upcomingSoon > 0 ? agendaStats.upcomingSoon : null}
+          badgeTitle="Segera"
+        />
+        <KpiCard
+          label="Kritik & Saran"
+          value={saranStats.total}
+          sub={saranStats.baru > 0 ? `${saranStats.baru} belum ditinjau` : 'Semua sudah ditinjau'}
+          icon={<IconMessage />}
+          accent={saranStats.baru > 0 ? '#dc2626' : '#047857'}
+          accentBg={saranStats.baru > 0 ? '#fef2f2' : '#ecfdf5'}
+          href="/kelola-saran"
+          badge={saranStats.baru > 0 ? saranStats.baru : null}
+        />
+        <KpiCard
+          label="Penilaian Fasilitas"
+          value={penilaianStats.total}
+          sub={penilaianStats.avgRating > 0 ? `Rata-rata ⭐ ${penilaianStats.avgRating}/5` : 'Belum ada penilaian'}
+          icon={<IconStar />}
+          accent="#b45309" accentBg="#fffbeb"
+          href="/kelola-penilaian"
+        />
+        <KpiCard
+          label="Permohonan"
+          value={saranStats.permohonan}
+          sub={`${saranStats.kritik} kritik · ${saranStats.saran} saran`}
+          icon={<IconClipboard />}
+          accent="#7c3aed" accentBg="#f5f3ff"
+          href="/kelola-saran"
+        />
+      </div>
+
+      {/* ── MAIN GRID ───────────────────────────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="db-main-grid">
+
+        {/* LEFT — Agenda */}
+        <SectionCard
+          title="Agenda Mendatang"
+          subtitle={`${upcomingList.length} kegiatan aktif & mendatang`}
+          action={{ label: 'Lihat Semua', href: '/kelola-agenda' }}
+          icon={<IconCalendar />}
+          accentColor="#2563eb"
+        >
+          {upcomingList.length === 0
+            ? <EmptyState icon="📅" text="Tidak ada agenda mendatang" />
+            : upcomingList.map(a => <AgendaRow key={a.id} a={a} />)
+          }
+        </SectionCard>
+
+        {/* RIGHT — Saran breakdown + quick links */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+
+          {/* Saran breakdown */}
+          <SectionCard
+            title="Ringkasan Masukan"
+            subtitle="Kritik, saran & permohonan dari pengguna"
+            action={{ label: 'Kelola', href: '/kelola-saran' }}
+            icon={<IconMessage />}
+            accentColor="#2563eb"
+          >
+            <SaranBreakdown stats={saranStats} loading={statsLoading} />
+          </SectionCard>
+
+          {/* Quick links */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {[
+              { href: '/kelola-agenda',   label: 'Kelola Agenda',    desc: `${agendaStats.total} agenda`,           icon: <IconCalendar />,   accent: '#2563eb', bg: '#eff6ff' },
+              { href: '/kelola-penilaian',label: 'Penilaian',        desc: `${penilaianStats.total} penilaian`,     icon: <IconStar />,       accent: '#b45309', bg: '#fffbeb' },
+              { href: '/kelola-saran',    label: 'Kritik & Saran',   desc: saranStats.baru > 0 ? `${saranStats.baru} perlu ditinjau` : `${saranStats.total} masuk`, icon: <IconMessage />, accent: saranStats.baru > 0 ? '#dc2626' : '#047857', bg: saranStats.baru > 0 ? '#fef2f2' : '#ecfdf5', badge: saranStats.baru || null },
+              { href: '/laporan',         label: 'Laporan',          desc: 'Analisis & narasi',                     icon: <IconChart />,      accent: '#047857', bg: '#ecfdf5' },
+            ].map(item => (
+              <a key={item.href} href={item.href} style={{
+                display: 'flex', flexDirection: 'column', gap: 10, padding: '16px',
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                borderRadius: 'var(--r-md)', textDecoration: 'none',
+                transition: 'box-shadow .15s, transform .15s, border-color .15s',
+                position: 'relative',
+              }}
+                onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = item.accent + '60'; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--border)'; }}
+              >
+                {item.badge && (
+                  <span style={{ position: 'absolute', top: 12, right: 12, width: 20, height: 20, borderRadius: '50%', background: item.accent, color: 'white', fontSize: '0.6875rem', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {item.badge}
+                  </span>
+                )}
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: item.bg, color: item.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ width: 18, height: 18 }}>{item.icon}</span>
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem' }}>{item.label}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 2 }}>{item.desc}</div>
+                </div>
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+// ─── Saran Breakdown ─────────────────────────────────────────────────────────
+function SaranBreakdown({ stats, loading }) {
+  if (loading) return (
+    <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {[1,2,3,4].map(i => <div key={i} style={{ height: 36, borderRadius: 8, background: 'var(--surface-3)', animation: 'pulse 1.5s infinite' }} />)}
+    </div>
+  );
+
+  const rows = [
+    { label: 'Kritik',               value: stats.kritik,     color: '#dc2626', bg: '#fef2f2', icon: '⚠️' },
+    { label: 'Saran',                value: stats.saran,      color: '#d97706', bg: '#fffbeb', icon: '💡' },
+    { label: 'Permohonan Kelas',     value: stats.permohonan, color: '#2563eb', bg: '#eff6ff', icon: '📚' },
+    { label: 'Belum Ditinjau',       value: stats.baru,       color: stats.baru > 0 ? '#dc2626' : '#6b7280', bg: stats.baru > 0 ? '#fef2f2' : '#f8fafc', icon: '🔴' },
+  ];
+
+  const max = Math.max(...rows.map(r => r.value), 1);
+
+  return (
+    <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {rows.map(row => (
+        <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 14, width: 22, textAlign: 'center', flexShrink: 0 }}>{row.icon}</span>
+          <span style={{ fontSize: '0.8125rem', color: 'var(--text-2)', width: 140, flexShrink: 0 }}>{row.label}</span>
+          <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--surface-3)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${(row.value / max) * 100}%`, background: row.color, borderRadius: 3, transition: 'width 0.6s var(--ease-out)', minWidth: row.value > 0 ? 4 : 0 }} />
+          </div>
+          <span style={{ fontSize: '0.875rem', fontWeight: 800, color: row.color, width: 28, textAlign: 'right', flexShrink: 0 }}>{row.value}</span>
+        </div>
+      ))}
+      <div style={{ marginTop: 4, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+        <span style={{ color: 'var(--text-3)' }}>Total masuk</span>
+        <span style={{ fontWeight: 800, color: 'var(--text)' }}>{stats.total}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Section Card ─────────────────────────────────────────────────────────────
+function SectionCard({ title, subtitle, action, icon, accentColor, children }) {
+  return (
+    <div className="card" style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: accentColor + '18', color: accentColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ width: 16, height: 16 }}>{icon}</span>
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)' }}>{title}</div>
+            {subtitle && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 1 }}>{subtitle}</div>}
+          </div>
+        </div>
+        {action && (
+          <a href={action.href} style={{ fontSize: '0.8125rem', fontWeight: 600, color: accentColor, padding: '5px 10px', borderRadius: 'var(--r-sm)', background: accentColor + '12', textDecoration: 'none', whiteSpace: 'nowrap' }}
+            onMouseEnter={e => e.currentTarget.style.background = accentColor + '22'}
+            onMouseLeave={e => e.currentTarget.style.background = accentColor + '12'}
+          >{action.label} →</a>
+        )}
+      </div>
+      <div style={{ flex: 1, minHeight: 0 }}>{children}</div>
+    </div>
+  );
+}
+
+// ─── KPI Card ────────────────────────────────────────────────────────────────
+function KpiCard({ label, value, sub, icon, accent, accentBg, href, badge }) {
+  return (
+    <a href={href} style={{ textDecoration: 'none' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, transition: 'box-shadow .15s, transform .15s, border-color .15s', cursor: 'pointer', position: 'relative' }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = accent + '50'; }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--border)'; }}
+      >
+        {badge && (
+          <span style={{ position: 'absolute', top: 14, right: 14, background: accent, color: 'white', borderRadius: 99, padding: '1px 7px', fontSize: '0.6875rem', fontWeight: 800 }}>
+            {badge}
+          </span>
+        )}
+        <div style={{ width: 38, height: 38, borderRadius: 10, background: accentBg, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ width: 19, height: 19 }}>{icon}</span>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{label}</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em', lineHeight: 1.1 }}>{value}</div>
+          <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', marginTop: 5 }}>{sub}</div>
+        </div>
+      </div>
+    </a>
+  );
+}
+
+// ─── Agenda Row ───────────────────────────────────────────────────────────────
+function AgendaRow({ a }) {
+  const status = getStatus(a.tanggal_mulai, a.tanggal_selesai);
+  const cfg = {
+    upcoming:      { label: 'Mendatang',   color: '#2563eb', bg: '#eff6ff' },
+    upcoming_soon: { label: 'Segera',      color: '#d97706', bg: '#fffbeb' },
+    ongoing:       { label: 'Berlangsung', color: '#047857', bg: '#ecfdf5' },
+    completed:     { label: 'Selesai',     color: '#6b7280', bg: '#f8fafc' },
+  }[status] || { label: 'Mendatang', color: '#2563eb', bg: '#eff6ff' };
+
+  const d = new Date(a.tanggal_mulai);
+  const isOngoing = status === 'ongoing';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? '#f0fdf4' : 'transparent' }}
+      onMouseEnter={e => e.currentTarget.style.background = isOngoing ? '#ecfdf5' : 'var(--surface-2)'}
+      onMouseLeave={e => e.currentTarget.style.background = isOngoing ? '#f0fdf4' : 'transparent'}
+    >
+      <div style={{ width: 44, flexShrink: 0, textAlign: 'center', background: isOngoing ? '#047857' : 'var(--surface-3)', borderRadius: 10, padding: '6px 4px' }}>
+        <div style={{ fontSize: '0.625rem', fontWeight: 700, color: isOngoing ? 'rgba(255,255,255,0.8)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{MONTHS[d.getMonth()]}</div>
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: isOngoing ? 'white' : 'var(--text)', lineHeight: 1.1 }}>{d.getDate()}</div>
+        <div style={{ fontSize: '0.625rem', fontWeight: 600, color: isOngoing ? 'rgba(255,255,255,0.7)' : 'var(--text-3)' }}>{fmtTime(a.waktu_mulai)}</div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.judul}</div>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 11, height: 11, flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.lokasi || 'Lokasi tidak dicantumkan'}</span>
+        </div>
+      </div>
+      <span style={{ padding: '3px 9px', borderRadius: 99, fontSize: '0.6875rem', fontWeight: 700, background: cfg.bg, color: cfg.color, flexShrink: 0, border: `1px solid ${cfg.color}22` }}>
+        {cfg.label}
+      </span>
+    </div>
+  );
+}
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+function EmptyState({ icon, text }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '36px 20px', gap: 10 }}>
+      <span style={{ fontSize: 36 }}>{icon}</span>
+      <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>{text}</p>
+    </div>
+  );
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const IconCalendar  = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '100%', height: '100%' }}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+const IconChart     = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '100%', height: '100%' }}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+const IconMessage   = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '100%', height: '100%' }}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>;
+const IconStar      = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '100%', height: '100%' }}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const IconClipboard = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '100%', height: '100%' }}><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>;

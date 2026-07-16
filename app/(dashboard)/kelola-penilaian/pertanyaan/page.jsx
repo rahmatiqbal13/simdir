@@ -242,7 +242,7 @@ export default function PertanyaanKritikSaranPage() {
     <div style={{ padding: '1.5rem', maxWidth: '900px', margin: '0 auto' }}>
       {/* Breadcrumb */}
       <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
-        <Link href="/kelola-kritik-saran" style={{ color: '#3b82f6', textDecoration: 'none' }}>Kritik & Saran</Link>
+        <Link href="/kelola-penilaian" style={{ color: '#3b82f6', textDecoration: 'none' }}>Penilaian Fasilitas</Link>
         <span style={{ color: '#9ca3af' }}>/</span>
         <span style={{ color: '#64748b', fontWeight: 600 }}>Pertanyaan</span>
       </div>

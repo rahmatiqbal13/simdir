@@ -1,8 +1,5 @@
 import './globals.css'
 import { AgendaProvider } from '@/context/AgendaContext'
-import { ProgramKerjaProvider } from '@/context/ProgramKerjaContext'
-import { PencairanProvider } from '@/context/PencairanContext'
-import { SuratProvider } from '@/context/SuratContext'
 import { ToastProvider } from './components/Toast'
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
@@ -92,13 +89,7 @@ export default function RootLayout({ children }) {
       <body>
         <ToastProvider>
           <AgendaProvider>
-            <ProgramKerjaProvider>
-              <PencairanProvider>
-                <SuratProvider>
-                  {children}
-                </SuratProvider>
-              </PencairanProvider>
-            </ProgramKerjaProvider>
+            {children}
           </AgendaProvider>
         </ToastProvider>
         

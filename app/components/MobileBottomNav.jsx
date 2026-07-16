@@ -72,14 +72,12 @@ const navItems = {
   super_admin: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', shortLabel: 'Home' },
     { href: '/kelola-agenda', label: 'Agenda', icon: 'calendar', shortLabel: 'Agenda' },
-    { href: '/program-kerja', label: 'Program', icon: 'briefcase', shortLabel: 'Proker' },
-    { href: '/pencairan', label: 'Dana', icon: 'wallet', shortLabel: 'Dana' },
+    { href: '/laporan', label: 'Laporan', icon: 'chart', shortLabel: 'Laporan' },
     { href: null, label: 'Menu', icon: 'menu', shortLabel: 'Menu', isMenu: true },
   ],
   admin_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', shortLabel: 'Home' },
-    { href: '/program-kerja', label: 'Program', icon: 'briefcase', shortLabel: 'Proker' },
-    { href: '/pencairan', label: 'Dana', icon: 'wallet', shortLabel: 'Dana' },
+    { href: '/laporan', label: 'Laporan', icon: 'chart', shortLabel: 'Laporan' },
     { href: null, label: 'Menu', icon: 'menu', shortLabel: 'Menu', isMenu: true },
   ],
   admin: [
@@ -91,8 +89,8 @@ const navItems = {
   pimpinan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', shortLabel: 'Home' },
     { href: '/kelola-agenda', label: 'Agenda', icon: 'calendar', shortLabel: 'Agenda' },
-    { href: '/surat', label: 'Surat', icon: 'mail', shortLabel: 'Surat' },
-    { href: '/pencairan', label: 'Dana', icon: 'wallet', shortLabel: 'Dana' },
+    { href: '/kelola-saran', label: 'Kritik & Saran', icon: 'message', shortLabel: 'Saran' },
+    { href: '/laporan', label: 'Laporan', icon: 'chart', shortLabel: 'Laporan' },
     { href: null, label: 'Menu', icon: 'menu', shortLabel: 'Menu', isMenu: true },
   ],
 }

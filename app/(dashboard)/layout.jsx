@@ -13,11 +13,9 @@ const navItems = {
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv' },
-    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
-    { href: '/kelola-kritik-saran/pertanyaan', label: 'Pertanyaan', icon: 'help' },
-    { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
-    { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
-    { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
+    { href: '/kelola-penilaian', label: 'Penilaian Fasilitas', icon: 'star' },
+    { href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', icon: 'help' },
+    { href: '/kelola-saran', label: 'Kritik & Saran', icon: 'message' },
     { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice' },
     { href: '/laporan', label: 'Laporan', icon: 'chart' },
     { href: '/pengaturan/users', label: 'Pengaturan', icon: 'settings' },
@@ -25,23 +23,22 @@ const navItems = {
   ],
   admin_keuangan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
-    { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
-    { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
+    { href: '/laporan', label: 'Laporan', icon: 'chart' },
   ],
   admin: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
     { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv' },
-    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
-    { href: '/kelola-kritik-saran/pertanyaan', label: 'Pertanyaan', icon: 'help' },
+    { href: '/kelola-penilaian', label: 'Penilaian Fasilitas', icon: 'star' },
+    { href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', icon: 'help' },
+    { href: '/kelola-saran', label: 'Kritik & Saran', icon: 'message' },
   ],
   pimpinan: [
     { href: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
     { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar' },
-    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message' },
-    { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail' },
-    { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase' },
-    { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet' },
+    { href: '/kelola-penilaian', label: 'Penilaian Fasilitas', icon: 'star' },
+    { href: '/kelola-saran', label: 'Kritik & Saran', icon: 'message' },
+    { href: '/laporan', label: 'Laporan', icon: 'chart' },
   ],
 }
 
@@ -161,6 +158,11 @@ const icons = {
       <line x1="12" y1="17" x2="12.01" y2="17"/>
     </svg>
   ),
+  star: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+  ),
 }
 
 // ===================== COMMAND PALETTE =====================
@@ -168,12 +170,10 @@ const ALL_NAV = [
   { href: '/dashboard', label: 'Dashboard', icon: 'dashboard', roles: ['super_admin','admin_keuangan','admin','pimpinan'] },
   { href: '/kelola-agenda', label: 'Kelola Agenda', icon: 'calendar', roles: ['super_admin','admin','pimpinan'] },
   { href: '/tv-pamflet', label: 'TV Pamflet', icon: 'tv', roles: ['super_admin','admin'] },
-    { href: '/kelola-kritik-saran', label: 'Kritik & Saran', icon: 'message', roles: ['super_admin','admin','pimpinan'] },
-    { href: '/surat', label: 'Surat Masuk & Keluar', icon: 'mail', roles: ['super_admin','pimpinan'] },
-  { href: '/program-kerja', label: 'Program Kerja', icon: 'briefcase', roles: ['super_admin','admin_keuangan','pimpinan'] },
-  { href: '/pencairan', label: 'Pencairan Dana', icon: 'wallet', roles: ['super_admin','admin_keuangan','pimpinan'] },
+  { href: '/kelola-penilaian', label: 'Penilaian Fasilitas', icon: 'star', roles: ['super_admin','admin','pimpinan'] },
+  { href: '/kelola-saran', label: 'Kritik & Saran', icon: 'message', roles: ['super_admin','admin','pimpinan'] },
   { href: '/e-invoice', label: 'E-Invoice', icon: 'invoice', roles: ['super_admin'] },
-  { href: '/laporan', label: 'Laporan', icon: 'chart', roles: ['super_admin'] },
+  { href: '/laporan', label: 'Laporan', icon: 'chart', roles: ['super_admin','admin_keuangan','pimpinan'] },
   { href: '/pengaturan/users', label: 'Pengaturan Pengguna', icon: 'settings', roles: ['super_admin'] },
   { href: '/pengaturan/unit-kerja', label: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
 ]
