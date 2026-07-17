@@ -104,6 +104,13 @@ export const NAV_ICONS = {
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
     </svg>
   ),
+  image: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <circle cx="8.5" cy="8.5" r="1.5"/>
+      <path d="M21 15l-5-5L5 21"/>
+    </svg>
+  ),
 }
 
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.
@@ -118,11 +125,12 @@ export const ALL_NAV_ITEMS = [
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'] },
   { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
+  { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'] },
 ]
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'e-invoice', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'e-invoice', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
   admin_keuangan: ['dashboard', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'laporan'],

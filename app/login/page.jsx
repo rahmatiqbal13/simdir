@@ -1,19 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 
-// USC Logo Component - Using official logo file
-const USCLogo = () => (
-  <img 
-    src="/images/logo USC.png" 
-    alt="USC Logo" 
-    style={{ 
-      width: '100%', 
-      height: '100%', 
+// Logo instansi — diambil dari pengaturan (fallback ke logo default)
+const InstansiLogo = ({ logoUrl }) => (
+  <img
+    src={logoUrl}
+    alt="Logo"
+    style={{
+      height: '100%',
+      width: 'auto',
+      maxWidth: '100%',
       objectFit: 'contain',
       filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'
-    }} 
+    }}
   />
 )
 
@@ -25,6 +26,18 @@ export default function LoginPage() {
     identifier: '',
     password: ''
   })
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
+
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -35,7 +48,7 @@ export default function LoginPage() {
       const identifier = formData.identifier.trim()
 
       if (!identifier || !formData.password) {
-        throw new Error('Username/email dan password harus diisi')
+        throw new Error('Email dan password harus diisi')
       }
 
       // Verifikasi kredensial dilakukan sepenuhnya di server (rate-limited,
@@ -48,7 +61,7 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        throw new Error(data.error || 'Username/email atau password salah')
+        throw new Error(data.error || 'Email atau password salah')
       }
 
       // Best-effort: kalau user ini juga terdaftar di Supabase Auth, buat
@@ -82,17 +95,10 @@ export default function LoginPage() {
         <div className="login-aside-content">
           {/* Brand mark + name */}
           <div className="row-flex" style={{ gap: 14 }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: 14,
-              background: 'white', padding: 6,
-              display: 'grid', placeItems: 'center'
-            }}>
-              <USCLogo />
+            <div style={{ height: 48, display: 'flex', alignItems: 'center' }}>
+              <InstansiLogo logoUrl={logoUrl} />
             </div>
-            <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '0.06em' }}>SIMDIR</div>
-              <div style={{ fontSize: '0.75rem', opacity: 0.7, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Unesa Science Center</div>
-            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 260 }}>{brandName}</div>
           </div>
 
           {/* Headline */}
@@ -142,17 +148,10 @@ export default function LoginPage() {
         <div className="login-form">
           {/* Mobile-only brand header */}
           <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 12,
-              background: 'var(--primary)', padding: 4,
-              display: 'grid', placeItems: 'center'
-            }}>
-              <USCLogo />
+            <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
+              <InstansiLogo logoUrl={logoUrl} />
             </div>
-            <div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 800, letterSpacing: '0.04em' }}>SIMDIR</div>
-              <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Unesa Science Center</div>
-            </div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 220 }}>{brandName}</div>
           </div>
 
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 6 }}>Selamat datang kembali</h2>
@@ -191,22 +190,22 @@ export default function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate>
             <div className="field mb-4">
-              <label className="field-label" htmlFor="identifier">Username atau Email</label>
+              <label className="field-label" htmlFor="identifier">Email</label>
               <div className="input-group">
                 <svg className="input-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                  <circle cx="12" cy="7" r="4"/>
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
                 </svg>
                 <input
-                  type="text"
+                  type="email"
                   id="identifier"
                   name="identifier"
                   className="input"
-                  placeholder="nama.pengguna atau email@usc.ac.id"
+                  placeholder="email@usc.ac.id"
                   value={formData.identifier}
                   onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   spellCheck={false}
                   inputMode="email"
                   disabled={loading}

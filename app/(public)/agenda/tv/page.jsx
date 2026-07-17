@@ -467,6 +467,18 @@ export default function AgendaTVPage() {
     }
   }, [])
 
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
+
   const [agenda,      setAgenda]      = useState([])
   const [loading,     setLoading]     = useState(true)
   const [error,       setError]       = useState(null)
@@ -603,14 +615,9 @@ export default function AgendaTVPage() {
             {/* Main row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw' }}>
               {/* Brand */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1vw', flexShrink: 0 }}>
-                <div style={{ width: '3.5vw', height: '3.5vw', background: isDark ? '#ffffff' : '#1e3a8a', borderRadius: '0.8vw', padding: '0.3vw', flexShrink: 0 }}>
-                  <img src="/images/logo USC.png" alt="USC" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                </div>
-                <div>
-                  <div style={{ fontSize: '1.8vw', fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1, color: t.text }}>SIMDIR · USC</div>
-                  <div style={{ fontSize: '0.85vw', color: t.text2, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginTop: '0.3vh' }}>Unesa Science Center</div>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.9vw', flexShrink: 0 }}>
+                <img src={logoUrl} alt={brandName} style={{ height: '3vw', width: 'auto', maxWidth: '9vw', objectFit: 'contain', flexShrink: 0 }} />
+                <div style={{ fontSize: '1.3vw', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.15, color: t.text, maxWidth: '16vw' }}>{brandName}</div>
               </div>
 
               {/* Title */}
@@ -706,16 +713,23 @@ export default function AgendaTVPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2vw', minHeight: 0 }}>
               <AgendaTvTable agenda={filtered} t={t} scale={scale} maxRows={4} />
 
-              <div style={{ flex: 1, minHeight: 0, background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '0.8vw', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1vh', padding: '1.5vh' }}>
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + '/kritik-saran' : 'https://managementusc.vercel.app/kritik-saran')}`}
-                  alt="QR Kritik Saran"
-                  style={{ width: '9vw', height: '9vw', borderRadius: '0.4vw', display: 'block', background: '#fff', padding: '0.4vw', outline: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, outlineOffset: '-1px' }}
-                />
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1.1vw', fontWeight: 800, color: t.text, letterSpacing: '0.02em' }}>Kritik & Saran</div>
-                  <div style={{ fontSize: '0.85vw', color: t.text2, marginTop: '0.3vh' }}>Scan dengan HP untuk memberi masukan</div>
-                </div>
+              <div style={{ flex: 1, minHeight: 0, background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '0.8vw', display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', padding: '1.5vh' }}>
+                {[
+                  { path: '/kritik-saran', label: 'Kritik & Saran', hint: 'Scan dengan HP untuk memberi masukan' },
+                  { path: '/penilaian', label: 'Penilaian Fasilitas', hint: 'Scan dengan HP untuk memberi penilaian' },
+                ].map(({ path, label, hint }) => (
+                  <div key={path} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1vh' }}>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + path : 'https://managementusc.vercel.app' + path)}`}
+                      alt={`QR ${label}`}
+                      style={{ width: '7.5vw', height: '7.5vw', borderRadius: '0.4vw', display: 'block', background: '#fff', padding: '0.4vw', outline: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, outlineOffset: '-1px' }}
+                    />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '1vw', fontWeight: 800, color: t.text, letterSpacing: '0.02em' }}>{label}</div>
+                      <div style={{ fontSize: '0.75vw', color: t.text2, marginTop: '0.3vh', maxWidth: '10vw' }}>{hint}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -739,20 +753,20 @@ export default function AgendaTVPage() {
           </main>
 
           {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '1.2vw', alignItems: 'center', padding: '1.2vh 2vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.7vh 1.2vw', borderRadius: 999, flexShrink: 0 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '1vw', height: '1vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '0.8vw', alignItems: 'center', padding: '0.6vh 1.4vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4vw', fontSize: '0.75vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.35vh 0.8vw', borderRadius: 999, flexShrink: 0 }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '0.75vw', height: '0.75vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
               PENGUMUMAN
             </div>
             <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: '1.15vw', fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
+              <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: '0.9vw', fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
                 {marqueeText}
               </span>
             </div>
-            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.9vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
+            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
               SIMDIR v2.0 · TV
             </div>
-            <div style={{ fontSize: '0.8vw', color: t.text3, flexShrink: 0, padding: '0.5vh 1vw', background: t.card, borderRadius: '0.5vw' }}>
+            <div style={{ fontSize: '0.65vw', color: t.text3, flexShrink: 0, padding: '0.3vh 0.7vw', background: t.card, borderRadius: '0.5vw' }}>
               Made by <strong style={{ color: t.accent }}>Rahmat Iqbal</strong>
             </div>
           </footer>

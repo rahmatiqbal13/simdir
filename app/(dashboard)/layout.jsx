@@ -102,9 +102,21 @@ export default function DashboardLayout({ children }) {
   const [loading, setLoading] = useState(true)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
   const pathname = usePathname()
   const sidebarRef = useRef(null)
   const userMenuRef = useRef(null)
+
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
 
   // Track mobile viewport
   useEffect(() => {
@@ -179,8 +191,8 @@ export default function DashboardLayout({ children }) {
               setProfile({
                 id: sessionData.id,
                 username: sessionData.username,
-                full_name: sessionData.username,
-                nama: sessionData.username,
+                full_name: sessionData.full_name || sessionData.username,
+                nama: sessionData.full_name || sessionData.username,
                 role: sessionData.role
               })
             } catch (e) {
@@ -254,14 +266,10 @@ export default function DashboardLayout({ children }) {
         {/* Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-brand-mark">
-            <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="40" height="40" rx="10" fill="#1e3a8a"/>
-              <text x="20" y="28" textAnchor="middle" fill="#f5b915" fontSize="20" fontWeight="800">S</text>
-            </svg>
+            <img src={logoUrl} alt={brandName} />
           </div>
           <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">SIMDIR</span>
-            <span className="sidebar-brand-sub">Unesa Science Center</span>
+            <span className="sidebar-brand-name">{brandName}</span>
           </div>
         </div>
 
@@ -395,10 +403,10 @@ export default function DashboardLayout({ children }) {
           </button>
           <div className="mobile-header-brand">
             <div className="mobile-header-brand-mark">
-              <img src="/images/logo USC.png" alt="USC" />
+              <img src={logoUrl} alt={brandName} />
             </div>
-            <div>
-              <div className="mobile-header-title">SIMDIR</div>
+            <div style={{ minWidth: 0 }}>
+              <div className="mobile-header-title">{brandName}</div>
               <div className="mobile-header-sub">{items.find(item => item.href === pathname)?.label || 'USC'}</div>
             </div>
           </div>

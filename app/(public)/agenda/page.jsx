@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import ThemeToggle from '@/app/components/ThemeToggle'
 
 // Helper functions
 const formatDate = (date) => {
@@ -232,7 +233,7 @@ function AgendaCard({ item }) {
 
   return (
     <div className="agenda-public-card" style={{
-      background: 'white',
+      background: 'var(--surface)',
       borderRadius: '16px',
       border: '1px solid var(--border)',
       overflow: 'hidden',
@@ -475,6 +476,18 @@ function ProgressBar({ progress }) {
 
 // ============ HALAMAN UTAMA ============
 export default function AgendaPage() {
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
+
   const [agenda, setAgenda] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -667,7 +680,7 @@ export default function AgendaPage() {
     >
       {/* Header */}
       <header className="agenda-public-header" style={{
-        background: 'white',
+        background: 'var(--surface)',
         borderBottom: '1px solid var(--border)',
         padding: '1.5rem'
       }}>
@@ -680,27 +693,12 @@ export default function AgendaPage() {
             gap: '1rem'
           }}>
             {/* Brand */}
-            <div className="brand-section" style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
-              <div className="brand-logo" style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)',
-                display: 'grid',
-                placeItems: 'center',
-                color: 'var(--text)',
-                fontWeight: 800,
-                fontSize: '1.5rem'
-              }}>
-                S
-              </div>
+            <div className="brand-section" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <img src={logoUrl} alt={brandName} className="brand-logo" style={{ height: '40px', width: 'auto', maxWidth: '140px', objectFit: 'contain', flexShrink: 0 }} />
               <div className="brand-text">
-                <strong style={{ display: 'block', fontSize: '1.25rem', color: 'var(--text)' }}>
-                  SIMDIR
+                <strong style={{ display: 'block', fontSize: '1.0625rem', color: 'var(--text)', lineHeight: 1.25, maxWidth: '260px' }}>
+                  {brandName}
                 </strong>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
-                  Unesa Science Center
-                </span>
               </div>
             </div>
 
@@ -715,7 +713,8 @@ export default function AgendaPage() {
             </div>
 
             {/* TV Mode & Login Buttons */}
-            <div className="header-buttons" style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="header-buttons" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              <ThemeToggle />
               <a
                 href="/agenda/tv"
                 style={{
@@ -723,7 +722,7 @@ export default function AgendaPage() {
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.625rem 1.25rem',
-                  background: 'var(--text)',
+                  background: '#0f172a',
                   color: 'white',
                   borderRadius: '8px',
                   fontSize: '0.875rem',
@@ -820,7 +819,7 @@ export default function AgendaPage() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 padding: '0.625rem 1.25rem',
-                background: showCompleted ? 'var(--surface-3)' : 'white',
+                background: showCompleted ? 'var(--surface-3)' : 'var(--surface)',
                 border: '1px solid var(--border)',
                 borderRadius: '9999px',
                 fontSize: '0.8125rem',
@@ -856,7 +855,7 @@ export default function AgendaPage() {
             {/* Agenda Count */}
             <div className="control-badge" style={{
               padding: '0.625rem 1.25rem',
-              background: 'white',
+              background: 'var(--surface)',
               border: '1px solid var(--border)',
               borderRadius: '9999px',
               fontSize: '0.8125rem',
@@ -883,7 +882,7 @@ export default function AgendaPage() {
               {/* Navigation */}
               {totalPages > 1 && (
                 <div className="agenda-navigation" style={{
-                  background: 'white',
+                  background: 'var(--surface)',
                   padding: '1.5rem',
                   borderRadius: '16px',
                   border: '1px solid var(--border)',
@@ -1014,7 +1013,7 @@ export default function AgendaPage() {
             <div style={{
               textAlign: 'center',
               padding: '4rem 2rem',
-              background: 'white',
+              background: 'var(--surface)',
               borderRadius: '16px',
               border: '1px solid var(--border)'
             }}>
@@ -1037,7 +1036,7 @@ export default function AgendaPage() {
 
       {/* Footer */}
       <footer style={{
-        background: 'white',
+        background: 'var(--surface)',
         borderTop: '1px solid var(--border)',
         padding: '1.5rem',
         textAlign: 'center'

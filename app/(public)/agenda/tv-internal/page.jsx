@@ -33,6 +33,18 @@ export default function AgendaTVInternalPage() {
     }
   }, [])
 
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
+
   const [agenda, setAgenda]   = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
@@ -132,13 +144,11 @@ export default function AgendaTVInternalPage() {
           gap: '1vh'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1vw', flexShrink: 0 }}>
-              <div style={{ width: '3.5vw', height: '3.5vw', background: isDark ? '#ffffff' : '#1e3a8a', borderRadius: '0.8vw', padding: '0.3vw', flexShrink: 0 }}>
-                <img src="/images/logo USC.png" alt="USC" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.9vw', flexShrink: 0 }}>
+              <img src={logoUrl} alt={brandName} style={{ height: '3vw', width: 'auto', maxWidth: '9vw', objectFit: 'contain', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '1.8vw', fontWeight: 900, letterSpacing: '0.06em', lineHeight: 1, color: t.text }}>SIMDIR · USC</div>
-                <div style={{ fontSize: '0.85vw', color: t.text2, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginTop: '0.3vh' }}>Internal</div>
+                <div style={{ fontSize: '1.3vw', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.15, color: t.text, maxWidth: '16vw' }}>{brandName}</div>
+                <div style={{ fontSize: '0.75vw', color: t.text2, letterSpacing: '0.16em', textTransform: 'uppercase', fontWeight: 600, marginTop: '0.2vh' }}>Internal</div>
               </div>
             </div>
 

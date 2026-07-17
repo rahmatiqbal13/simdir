@@ -18,6 +18,10 @@ const ROLE_RULES = [
 // punya pengecekan auth sendiri — harus ikut aturan role halaman /tv-pamflet.
 const TV_PAMFLET_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/tv-pamflet').roles
 
+// Endpoint yang mengubah nama instansi/logo lewat service-role key — ikut
+// aturan role halaman /pengaturan (super_admin saja).
+const APP_SETTINGS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+
 function isPublicPath(pathname, method) {
   if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
     return true
@@ -29,6 +33,8 @@ function isPublicPath(pathname, method) {
   if (pathname.startsWith('/api/auth/')) return true
   // Dipakai oleh tampilan TV publik (/agenda/tv) — hanya method baca yang publik.
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
+  // Nama instansi/logo ditampilkan di halaman publik (TV, agenda) — baca publik.
+  if (pathname === '/api/app-settings' && method === 'GET') return true
   // Public feedback submission endpoint
   if (pathname === '/api/kritik-saran' && method === 'POST') return true
   // Public questions endpoint (for feedback form)
@@ -150,6 +156,10 @@ export async function middleware(request) {
   }
 
   if (pathname.startsWith('/api/tv-pamflets') && !TV_PAMFLET_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/app-settings') && !APP_SETTINGS_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 

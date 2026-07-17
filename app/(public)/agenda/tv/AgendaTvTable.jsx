@@ -28,7 +28,7 @@ function AgendaTableRow({ item, num, t, rowH }) {
   return (
     <div className="agenda-tv-row" style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 3fr 13fr 5fr',
+      gridTemplateColumns: '1fr 3fr 13fr',
       gap: '1cqw',
       padding: `${Math.round(rowH * 0.1)}px 1.5cqw`,
       alignItems: 'center',
@@ -65,23 +65,17 @@ function AgendaTableRow({ item, num, t, rowH }) {
         }}>
           {item.judul}
         </span>
-        {item.penyelenggara && (
+        {item.lokasi && (
           <span style={{
-            fontSize: `${rowH * 0.15}px`, fontWeight: 700,
-            color: unitColor.text,
-            background: unitColor.bg,
-            border: `1px solid ${unitColor.border}`,
-            padding: '0.15em 0.6em', borderRadius: 999,
+            display: 'flex', alignItems: 'center', gap: '0.4em',
+            fontSize: `${rowH * 0.15}px`,
+            color: t.text2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
-            display: 'inline-block',
           }}>
-            {item.penyelenggara}
+            <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: '1em', height: '1em', flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            {item.lokasi}
           </span>
         )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5cqw', overflow: 'hidden', minWidth: 0 }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: `${rowH * 0.2}px`, height: `${rowH * 0.2}px`, flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-        <span style={{ fontSize: `${rowH * 0.2}px`, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.lokasi || '—'}</span>
       </div>
     </div>
   )
@@ -166,7 +160,7 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
       {/* Table head */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 3fr 13fr 5fr',
+        gridTemplateColumns: '1fr 3fr 13fr',
         gap: '1cqw',
         padding: '1.2vh 1.5cqw',
         background: t.theadBg,
@@ -178,7 +172,7 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
         color: t.text2,
         flexShrink: 0
       }}>
-        {['No', 'Tanggal', 'Judul Kegiatan', 'Lokasi'].map(col => (
+        {['No', 'Tanggal', 'Judul Kegiatan'].map(col => (
           <div key={col}>{col}</div>
         ))}
       </div>

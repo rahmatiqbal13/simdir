@@ -31,7 +31,7 @@ export default function DashboardPage() {
   useEffect(() => {
     try {
       const s = localStorage.getItem('simdir_session');
-      if (s) { const d = JSON.parse(atob(s)); setUserName(d.username || 'Admin'); setUserRole(d.role || ''); }
+      if (s) { const d = JSON.parse(atob(s)); setUserName(d.full_name || d.username || 'Admin'); setUserRole(d.role || ''); }
     } catch {}
   }, []);
 

@@ -109,6 +109,7 @@ export async function POST(request) {
     const sessionPayload = {
       id: userData.id,
       username: userData.username,
+      full_name: userData.full_name,
       email: userData.email,
       role: userData.role,
     }
