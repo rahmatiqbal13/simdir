@@ -139,7 +139,7 @@ export default function PenilaianPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const err = validate()
-    if (err) { setError(err); return }
+    if (err) { setError(err); scrollToWizard(); return }
     setLoading(true)
     setError('')
     try {
@@ -158,6 +158,7 @@ export default function PenilaianPage() {
       setSubmitted(true)
     } catch (err) {
       setError(err.message || 'Terjadi kesalahan. Silakan coba lagi.')
+      scrollToWizard()
     } finally {
       setLoading(false)
     }
@@ -179,7 +180,7 @@ export default function PenilaianPage() {
         <PublicHeader />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
           <div style={{
-            maxWidth: 480, width: '100%', background: 'white', borderRadius: 24,
+            maxWidth: 480, width: '100%', background: 'var(--surface)', borderRadius: 24,
             padding: '48px 32px', textAlign: 'center',
             boxShadow: '0 8px 32px rgba(30,58,138,0.12)',
           }}>
@@ -188,13 +189,13 @@ export default function PenilaianPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 24px', fontSize: 36,
             }}>✓</div>
-            <h2 style={{ margin: '0 0 12px', color: '#0f172a', fontSize: '1.5rem', fontWeight: 700 }}>
+            <h2 style={{ margin: '0 0 12px', color: 'var(--text)', fontSize: '1.5rem', fontWeight: 700 }}>
               Terima Kasih!
             </h2>
-            <p style={{ margin: '0 0 8px', color: '#475569', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 8px', color: 'var(--text-2)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
               Penilaian Anda untuk <strong>{selectedNames.length}</strong> fasilitas ({items.length} pertanyaan) telah berhasil dikirim.
             </p>
-            <p style={{ margin: '0 0 32px', color: '#94a3b8', fontSize: '0.875rem' }}>
+            <p style={{ margin: '0 0 32px', color: 'var(--text-3)', fontSize: '0.875rem' }}>
               Kami sangat menghargai masukan Anda untuk peningkatan layanan USC.
             </p>
             <button
@@ -227,16 +228,16 @@ export default function PenilaianPage() {
               width: 56, height: 56, background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)',
               borderRadius: 16, fontSize: 24, marginBottom: 14,
             }}>⭐</div>
-            <h1 style={{ margin: '0 0 6px', color: '#0f172a', fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <h1 style={{ margin: '0 0 6px', color: 'var(--text)', fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Penilaian Fasilitas
             </h1>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9375rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-3)', fontSize: '0.9375rem' }}>
               Bantu kami meningkatkan kualitas fasilitas Unesa Science Center
             </p>
           </div>
 
           {/* Main Card */}
-          <div style={{ background: 'white', borderRadius: 20, boxShadow: '0 4px 24px rgba(30,58,138,0.08)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 20, boxShadow: '0 4px 24px rgba(30,58,138,0.08)', overflow: 'hidden' }}>
             <form onSubmit={handleSubmit}>
 
               {/* Profile Section */}
@@ -251,22 +252,19 @@ export default function PenilaianPage() {
                     style={{ width: 18, height: 18, accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }}
                   />
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0f172a' }}>Kirim secara anonim</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: 2 }}>Nama dan kontak tidak akan disimpan</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)' }}>Kirim secara anonim</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 2 }}>Nama dan kontak tidak akan disimpan</div>
                   </div>
                 </label>
 
                 {!profile.is_anonim && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginTop: 10 }}>
                     <input type="text" placeholder="Nama (opsional)" value={profile.nama}
                       onChange={e => setProfile(p => ({ ...p, nama: e.target.value }))} style={inputStyle} />
-                    <input type="text" placeholder="Email / WhatsApp (opsional)"
-                      value={profile.email || profile.telepon}
-                      onChange={e => {
-                        const v = e.target.value
-                        if (v.includes('@')) setProfile(p => ({ ...p, email: v, telepon: '' }))
-                        else setProfile(p => ({ ...p, telepon: v, email: '' }))
-                      }} style={inputStyle} />
+                    <input type="tel" placeholder="No. WhatsApp (opsional)" value={profile.telepon}
+                      onChange={e => setProfile(p => ({ ...p, telepon: e.target.value }))} style={inputStyle} />
+                    <input type="email" placeholder="Email (opsional)" value={profile.email}
+                      onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
                   </div>
                 )}
 
@@ -283,10 +281,10 @@ export default function PenilaianPage() {
                         onClick={() => setProfile(p => ({ ...p, jenis_kelamin: jk }))}
                         style={{
                           flex: 1, padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-                          border: `2px solid ${profile.jenis_kelamin === jk ? '#3b82f6' : '#e2e8f0'}`,
-                          background: profile.jenis_kelamin === jk ? '#eff6ff' : 'white',
+                          border: `2px solid ${profile.jenis_kelamin === jk ? '#3b82f6' : 'var(--border)'}`,
+                          background: profile.jenis_kelamin === jk ? '#eff6ff' : 'var(--surface)',
                           fontWeight: 600, fontSize: '0.875rem',
-                          color: profile.jenis_kelamin === jk ? '#1e3a8a' : '#64748b',
+                          color: profile.jenis_kelamin === jk ? '#1e3a8a' : 'var(--text-3)',
                           transition: 'all 0.15s',
                         }}>
                         {jk === 'Laki-laki' ? '👨 ' : '👩 '}{jk}
@@ -296,14 +294,14 @@ export default function PenilaianPage() {
                 </div>
               </div>
 
-              <div style={{ height: 1, background: '#f1f5f9', margin: '20px 0' }} />
+              <div style={{ height: 1, background: 'var(--surface-3)', margin: '20px 0' }} />
 
               {/* Facility Picker */}
               {availableFacilities.length > 0 && (
                 <div style={{ padding: '0 24px' }}>
                   <SectionLabel>Pilih Fasilitas <span style={{ color: '#dc2626', fontWeight: 400 }}>*</span></SectionLabel>
                   {questionsLoading ? (
-                    <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8', fontSize: '0.875rem' }}>
+                    <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text-3)', fontSize: '0.875rem' }}>
                       Memuat fasilitas...
                     </div>
                   ) : (
@@ -316,14 +314,14 @@ export default function PenilaianPage() {
                             disabled={!hasCQ}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                              borderRadius: 12, border: `1.5px solid ${hasCQ ? '#e2e8f0' : '#f1f5f9'}`,
-                              background: hasCQ ? 'white' : '#fafafa',
+                              borderRadius: 12, border: `1.5px solid ${hasCQ ? 'var(--border)' : 'var(--surface-3)'}`,
+                              background: hasCQ ? 'var(--surface)' : '#fafafa',
                               cursor: hasCQ ? 'pointer' : 'not-allowed',
                               textAlign: 'left', transition: 'all 0.15s',
                               opacity: hasCQ ? 1 : 0.5,
                             }}
                             onMouseEnter={e => hasCQ && (e.currentTarget.style.borderColor = '#3b82f6', e.currentTarget.style.background = '#f8faff')}
-                            onMouseLeave={e => hasCQ && (e.currentTarget.style.borderColor = '#e2e8f0', e.currentTarget.style.background = 'white')}
+                            onMouseLeave={e => hasCQ && (e.currentTarget.style.borderColor = 'var(--border)', e.currentTarget.style.background = 'var(--surface)')}
                           >
                             <div style={{
                               width: 38, height: 38, borderRadius: 10, background: f.color,
@@ -331,13 +329,13 @@ export default function PenilaianPage() {
                               justifyContent: 'center', fontSize: 18, flexShrink: 0,
                             }}>{f.icon}</div>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#0f172a', lineHeight: 1.3 }}>{f.name}</div>
-                              <div style={{ fontSize: '0.6875rem', color: hasCQ ? '#64748b' : '#94a3b8', marginTop: 2 }}>
+                              <div style={{ fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text)', lineHeight: 1.3 }}>{f.name}</div>
+                              <div style={{ fontSize: '0.6875rem', color: hasCQ ? 'var(--text-3)' : 'var(--text-3)', marginTop: 2 }}>
                                 {hasCQ ? `${qCount} pertanyaan` : 'Belum tersedia'}
                               </div>
                             </div>
                             {hasCQ && (
-                              <span style={{ color: '#94a3b8', fontSize: 18, flexShrink: 0 }}>+</span>
+                              <span style={{ color: 'var(--text-3)', fontSize: 18, flexShrink: 0 }}>+</span>
                             )}
                           </button>
                         )
@@ -350,13 +348,13 @@ export default function PenilaianPage() {
               {/* Selected facilities summary */}
               {selectedNames.length > 0 && (
                 <div style={{ padding: '0 24px' }}>
-                  {availableFacilities.length > 0 && <div style={{ height: 1, background: '#f1f5f9', margin: '16px 0' }} />}
+                  {availableFacilities.length > 0 && <div style={{ height: 1, background: 'var(--surface-3)', margin: '16px 0' }} />}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <SectionLabel style={{ margin: 0 }}>Fasilitas Dipilih</SectionLabel>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{answeredItems}/{items.length} dijawab</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{answeredItems}/{items.length} dijawab</span>
                   </div>
                   {/* Progress bar */}
-                  <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
+                  <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 3, overflow: 'hidden', marginBottom: 12 }}>
                     <div style={{
                       height: '100%', width: `${items.length > 0 ? (answeredItems / items.length) * 100 : 0}%`,
                       background: isComplete ? '#10b981' : '#3b82f6', borderRadius: 3, transition: 'width 0.3s',
@@ -368,8 +366,8 @@ export default function PenilaianPage() {
                       return (
                         <span key={name} style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px',
-                          background: f?.color || '#f1f5f9', color: f?.textColor || '#475569',
-                          border: `1px solid ${f?.border || '#e2e8f0'}`,
+                          background: f?.color || 'var(--surface-3)', color: f?.textColor || 'var(--text-2)',
+                          border: `1px solid ${f?.border || 'var(--border)'}`,
                           borderRadius: 99, fontSize: '0.8125rem', fontWeight: 600,
                         }}>
                           {f?.icon} {name}
@@ -390,11 +388,11 @@ export default function PenilaianPage() {
               {/* Wizard Questions */}
               {items.length > 0 && (
                 <div ref={wizardRef} style={{ padding: '16px 24px 0' }}>
-                  <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
+                  <div style={{ height: 1, background: 'var(--surface-3)', marginBottom: 16 }} />
                   <SectionLabel>Pertanyaan {currentStep + 1} dari {items.length}</SectionLabel>
 
                   {/* Step progress */}
-                  <div style={{ height: 4, background: '#f1f5f9', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
+                  <div style={{ height: 4, background: 'var(--surface-3)', borderRadius: 2, overflow: 'hidden', marginBottom: 16 }}>
                     <div style={{
                       height: '100%',
                       width: `${((currentStep + 1) / items.length) * 100}%`,
@@ -408,16 +406,16 @@ export default function PenilaianPage() {
                     const isLast = currentStep === items.length - 1
                     return (
                       <div style={{
-                        background: '#f8fafc', borderRadius: 16, padding: 20,
-                        border: '1.5px solid #e2e8f0',
+                        background: 'var(--surface-2)', borderRadius: 16, padding: 20,
+                        border: '1.5px solid var(--border)',
                       }}>
                         {/* Facility badge */}
                         <div style={{
                           display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 14,
                           padding: '5px 12px', borderRadius: 99,
-                          background: facility?.color || '#f1f5f9',
-                          border: `1px solid ${facility?.border || '#e2e8f0'}`,
-                          color: facility?.textColor || '#475569',
+                          background: facility?.color || 'var(--surface-3)',
+                          border: `1px solid ${facility?.border || 'var(--border)'}`,
+                          color: facility?.textColor || 'var(--text-2)',
                           fontSize: '0.8125rem', fontWeight: 600,
                         }}>
                           {facility?.icon} {item.fasilitas}
@@ -460,7 +458,7 @@ export default function PenilaianPage() {
               )}
 
               {items.length === 0 && (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.875rem' }}>
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)', fontSize: '0.875rem' }}>
                   Pilih minimal satu fasilitas di atas untuk mulai memberikan penilaian.
                 </div>
               )}
@@ -469,7 +467,7 @@ export default function PenilaianPage() {
           </div>
 
           {/* Footer note */}
-          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem', marginTop: 20, lineHeight: 1.6 }}>
+          <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem', marginTop: 20, lineHeight: 1.6 }}>
             Penilaian Anda bersifat rahasia dan hanya dilihat oleh tim pimpinan USC.
           </p>
           <p style={{ textAlign: 'center', marginTop: 8 }}>
@@ -499,13 +497,13 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
           <label key={idx} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
             borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
-            background: item.jawaban_pilihan === opsi ? '#eff6ff' : 'white',
-            border: `2px solid ${item.jawaban_pilihan === opsi ? '#3b82f6' : '#e2e8f0'}`,
+            background: item.jawaban_pilihan === opsi ? '#eff6ff' : 'var(--surface)',
+            border: `2px solid ${item.jawaban_pilihan === opsi ? '#3b82f6' : 'var(--border)'}`,
           }}>
             <input type="radio" name={`pg-${item.id}`} checked={item.jawaban_pilihan === opsi}
               onChange={() => updateItem(item.id, 'jawaban_pilihan', opsi)}
               style={{ width: 18, height: 18, accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }} />
-            <span style={{ fontSize: '0.9rem', fontWeight: item.jawaban_pilihan === opsi ? 600 : 400, color: '#0f172a' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: item.jawaban_pilihan === opsi ? 600 : 400, color: 'var(--text)' }}>
               {String.fromCharCode(65 + idx)}. {opsi}
             </span>
           </label>
@@ -524,8 +522,8 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
             <label key={idx} style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
               borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
-              background: checked ? '#eff6ff' : 'white',
-              border: `2px solid ${checked ? '#3b82f6' : '#e2e8f0'}`,
+              background: checked ? '#eff6ff' : 'var(--surface)',
+              border: `2px solid ${checked ? '#3b82f6' : 'var(--border)'}`,
             }}>
               <input type="checkbox" checked={checked}
                 onChange={() => {
@@ -533,7 +531,7 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
                   updateItem(item.id, 'jawaban_pilihan', JSON.stringify(next))
                 }}
                 style={{ width: 18, height: 18, accentColor: '#1e3a8a', cursor: 'pointer', flexShrink: 0 }} />
-              <span style={{ fontSize: '0.9rem', fontWeight: checked ? 600 : 400, color: '#0f172a' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: checked ? 600 : 400, color: 'var(--text)' }}>
                 {String.fromCharCode(65 + idx)}. {opsi}
               </span>
             </label>
@@ -579,8 +577,8 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
           )}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0 4px' }}>
-          <span style={{ color: '#ef4444', fontWeight: 600 }}>Buruk</span>
-          <span style={{ color: '#10b981', fontWeight: 600 }}>Sangat Baik</span>
+          <span style={{ color: '#b91c1c', fontWeight: 600 }}>Buruk</span>
+          <span style={{ color: '#047857', fontWeight: 600 }}>Sangat Baik</span>
         </div>
       </div>
       <textarea value={item.penjelasan}
@@ -595,15 +593,15 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
 function PublicHeader() {
   return (
     <header style={{
-      background: 'white', borderBottom: '1px solid #e2e8f0',
+      background: 'var(--surface)', borderBottom: '1px solid var(--border)',
       padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100,
     }}>
       <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src="/images/logo USC.png" alt="USC" style={{ width: 36, height: 36, objectFit: 'contain' }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0f172a', lineHeight: 1.2 }}>Unesa Science Center</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Sistem Informasi Direktorat</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>Unesa Science Center</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>
         <a href="/kritik-saran" style={{
@@ -620,8 +618,8 @@ function PublicHeader() {
 
 function PublicFooter() {
   return (
-    <footer style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '16px 20px', textAlign: 'center' }}>
-      <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+    <footer style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--border)', padding: '16px 20px', textAlign: 'center' }}>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
         © 2026 Direktorat Unesa Science Center · Respons akan ditinjau oleh tim pimpinan
       </p>
     </footer>
@@ -643,8 +641,8 @@ const pageStyle = {
 }
 
 const inputStyle = {
-  padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10,
-  fontSize: '0.9rem', color: '#0f172a', background: 'white', outline: 'none',
+  padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 10,
+  fontSize: '0.9rem', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
   fontFamily: 'inherit',
 }
 
@@ -654,7 +652,7 @@ const labelStyle = {
 
 const anonLabelStyle = {
   display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-  background: '#f8fafc', borderRadius: 10, border: '1.5px solid #e2e8f0', cursor: 'pointer',
+  background: 'var(--surface-2)', borderRadius: 10, border: '1.5px solid var(--border)', cursor: 'pointer',
 }
 
 const primaryBtnStyle = {
@@ -664,8 +662,8 @@ const primaryBtnStyle = {
 }
 
 const backBtnStyle = {
-  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #e2e8f0',
-  background: 'white', color: '#475569', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid var(--border)',
+  background: 'var(--surface)', color: 'var(--text-2)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
 }
 
 const linkStyle = {

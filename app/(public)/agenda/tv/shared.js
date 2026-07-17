@@ -50,7 +50,7 @@ export const DARK = {
 export const LIGHT = {
   bg: '#f5f7fb', bg2: '#ffffff', card: '#ffffff', card2: '#f8fafc',
   border: '#e4e7ee', accent: '#c98800', primary: '#1e3a8a',
-  text: '#0f172a', text2: '#475569', text3: '#94a3b8',
+  text: '#0f172a', text2: '#475569', text3: '#64748b',
   success: '#047857',
   stageBg: 'radial-gradient(ellipse 1920px 600px at 20% 0%, rgba(30,58,138,0.08), transparent 60%), radial-gradient(ellipse 800px 600px at 100% 100%, rgba(245,185,21,0.10), transparent 65%), linear-gradient(180deg, #f5f7fb 0%, #ffffff 100%)',
   rowOngoing: 'linear-gradient(90deg, rgba(4,120,87,0.10), rgba(4,120,87,0.02))',

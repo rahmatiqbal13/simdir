@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useAgenda } from '@/context/AgendaContext'
 import { useToast } from '@/app/components/Toast'
 import { useFocusTrap } from '@/app/components/useFocusTrap'
+import ConfirmModal from '@/app/components/ConfirmModal'
 import { SearchInput } from '@/app/components/Search'
 import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
 
@@ -485,20 +486,22 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
               {canEdit && (
                 <td className="text-center">
                   <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                    <button 
-                      className="ghost icon-only" 
+                    <button
+                      className="ghost icon-only"
                       onClick={() => onEdit(item)}
                       title="Edit"
+                      aria-label="Edit agenda"
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                       </svg>
                     </button>
-                    <button 
-                      className="ghost icon-only" 
+                    <button
+                      className="ghost icon-only"
                       onClick={() => onDelete(item.id)}
                       title="Hapus"
+                      aria-label="Hapus agenda"
                       style={{ color: 'var(--danger)' }}
                     >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
@@ -517,7 +520,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
 }
 
 // ============ KOMPONEN MODAL ============
-function AgendaModal({ item, onSave, onClose }) {
+function AgendaModal({ item, onSave, onClose, isSaving }) {
   const modalRef = useFocusTrap(true, onClose)
   const [jenis, setJenis] = useState(item?.jenis || 'internal')
   const [showManualPic, setShowManualPic] = useState(false)
@@ -841,8 +844,8 @@ function AgendaModal({ item, onSave, onClose }) {
 
           <div className="card-form-footer">
             <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary">
-              {item?.id ? 'Perbarui' : 'Simpan'}
+            <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              {isSaving ? 'Menyimpan...' : (item?.id ? 'Perbarui' : 'Simpan')}
             </button>
           </div>
         </form>
@@ -868,6 +871,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
+          aria-label="Halaman sebelumnya"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="15 18 9 12 15 6" />
@@ -880,13 +884,15 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
               key={page}
               onClick={() => onPageChange(page)}
               className="btn icon-only"
-              style={{ 
+              style={{
                 minWidth: '2.25rem',
                 minHeight: '2.25rem',
                 background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
                 color: currentPage === page ? 'white' : 'var(--text)',
                 border: currentPage === page ? 'none' : '1px solid var(--border)'
               }}
+              aria-label={`Halaman ${page}`}
+              aria-current={currentPage === page ? 'page' : undefined}
             >
               {page}
             </button>
@@ -898,6 +904,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
+          aria-label="Halaman berikutnya"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
             <polyline points="9 18 15 12 9 6" />
@@ -1000,6 +1007,8 @@ export default function AgendaManagePage() {
   const handleDelete = (id) => {
     setConfirmDeleteId(id)
   }
+
+  const deletingAgendaItem = confirmDeleteId ? agenda.find(a => a.id === confirmDeleteId) : null
 
   const confirmDeleteAction = async () => {
     if (!confirmDeleteId) return
@@ -1299,37 +1308,22 @@ export default function AgendaManagePage() {
       )}
 
       {showModal && (
-        <AgendaModal item={editingItem} onSave={handleSave} onClose={() => { setShowModal(false); setEditingItem(null) }} />
+        <AgendaModal item={editingItem} onSave={handleSave} onClose={() => { setShowModal(false); setEditingItem(null) }} isSaving={operationLoading} />
       )}
 
-      {confirmDeleteId && (
-        <div className="modal-overlay" onClick={() => setConfirmDeleteId(null)}>
-          <div className="modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>Konfirmasi Hapus</h3>
-              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setConfirmDeleteId(null)} aria-label="Tutup">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--danger-50)', color: 'var(--danger)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 20, height: 20 }}>
-                    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                  </svg>
-                </div>
-                <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>Agenda ini akan dihapus permanen. Lanjutkan?</p>
-              </div>
-            </div>
-            <div className="modal-foot">
-              <button className="btn btn-secondary" onClick={() => setConfirmDeleteId(null)}>Batal</button>
-              <button className="btn btn-danger" onClick={confirmDeleteAction} disabled={operationLoading}>
-                {operationLoading ? 'Menghapus...' : 'Ya, Hapus'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!confirmDeleteId}
+        title="Hapus Agenda"
+        message={
+          deletingAgendaItem
+            ? <>Agenda <strong>{deletingAgendaItem.judul}</strong> akan dihapus permanen. Lanjutkan?</>
+            : 'Agenda ini akan dihapus permanen. Lanjutkan?'
+        }
+        confirmLabel="Ya, Hapus"
+        onConfirm={confirmDeleteAction}
+        onCancel={() => setConfirmDeleteId(null)}
+        busy={operationLoading}
+      />
     </div>
   )
 }

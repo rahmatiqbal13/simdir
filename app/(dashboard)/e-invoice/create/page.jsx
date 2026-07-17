@@ -6,19 +6,9 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import useAutosave from '@/app/components/useAutosave';
 import { safeLocalStorage } from '@/lib/localStorage';
-
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
-
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
-};
+import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { formatRupiah, formatDate } from '@/lib/utils/format';
 
 const generateCustomerCode = () => {
   const prefix = 'CUST';
@@ -33,7 +23,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
   const total = (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0);
 
   return (
-    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
       <td style={{ padding: '0.75rem', textAlign: 'center', width: '50px' }}>
         {index + 1}
       </td>
@@ -43,7 +33,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           placeholder="Deskripsi item"
           value={item.deskripsi}
           onChange={(e) => onUpdate(index, 'deskripsi', e.target.value)}
-          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+          style={{ width: '100%', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
         />
       </td>
       <td style={{ padding: '0.75rem', width: '140px' }}>
@@ -53,7 +43,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
             placeholder="Qty"
             value={item.quantity}
             onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
-            style={{ width: '55%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+            style={{ width: '55%', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
             min="0"
             step="0.01"
           />
@@ -62,7 +52,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
             placeholder="Satuan"
             value={item.satuan || ''}
             onChange={(e) => onUpdate(index, 'satuan', e.target.value)}
-            style={{ width: '45%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', fontSize: '0.8125rem' }}
+            style={{ width: '45%', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', fontSize: '0.8125rem' }}
           />
         </div>
       </td>
@@ -72,7 +62,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           placeholder="Harga"
           value={item.harga_satuan}
           onChange={(e) => onUpdate(index, 'harga_satuan', e.target.value)}
-          style={{ width: '100%', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+          style={{ width: '100%', textAlign: 'right', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
           min="0"
         />
       </td>
@@ -82,14 +72,12 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
       <td style={{ padding: '0.75rem', width: '50px', textAlign: 'center' }}>
         <button
           type="button"
+          className="btn btn-ghost btn-sm btn-icon"
           onClick={() => onRemove(index)}
           disabled={!canRemove}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: canRemove ? '#dc2626' : '#94a3b8', 
-            cursor: canRemove ? 'pointer' : 'not-allowed',
-            padding: '0.25rem'
+          aria-label="Hapus item"
+          style={{
+            color: canRemove ? '#dc2626' : 'var(--text-3)',
           }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
@@ -119,6 +107,8 @@ function Checkbox({ checked, onChange, label }) {
 // ============ HALAMAN UTAMA ============
 export default function CreateInvoicePage() {
   const router = useRouter();
+  const { error } = useToast();
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingCustomers, setFetchingCustomers] = useState(true);
@@ -393,24 +383,24 @@ export default function CreateInvoicePage() {
     
     // Validasi pelanggan
     if (customerMode === 'select' && !selectedCustomerId) {
-      alert('Silakan pilih pelanggan terlebih dahulu.');
+      error('Silakan pilih pelanggan terlebih dahulu.');
       return;
     }
-    
+
     if (customerMode === 'new') {
       if (!newCustomer.nama_pelanggan) {
-        alert('Nama pelanggan wajib diisi.');
+        error('Nama pelanggan wajib diisi.');
         return;
       }
     }
-    
+
     if (items.some(item => !item.deskripsi)) {
-      alert('Semua item harus memiliki deskripsi.');
+      error('Semua item harus memiliki deskripsi.');
       return;
     }
-    
+
     if (!formData.tanggal_invoice || !formData.tanggal_jatuh_tempo) {
-      alert('Tanggal invoice dan jatuh tempo harus diisi.');
+      error('Tanggal invoice dan jatuh tempo harus diisi.');
       return;
     }
     
@@ -571,19 +561,18 @@ export default function CreateInvoicePage() {
         if (err.hint) console.error('Error hint:', err.hint);
       }
       
-      alert('Gagal membuat invoice: ' + errorMessage);
+      error('Gagal membuat invoice: ' + errorMessage);
       setLoading(false);
     }
   };
 
   // Handle reset
   const handleReset = () => {
-    if (confirm('Apakah Anda yakin ingin mengreset form?')) {
-      resetForm();
-    }
+    setConfirmResetOpen(true);
   };
 
   return (
+    <>
     <div>
       {/* Header */}
       <div className="page-header">
@@ -634,10 +623,10 @@ export default function CreateInvoicePage() {
               type="button" 
               className="btn btn-sm" 
               onClick={clearDraftAndReset}
-              style={{ 
-                backgroundColor: 'white', 
-                color: '#475569', 
-                border: '1px solid #cbd5e1',
+              style={{
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text-2)',
+                border: '1px solid var(--border-strong)',
                 padding: '0.375rem 0.75rem',
                 borderRadius: '4px',
                 cursor: 'pointer',
@@ -696,7 +685,7 @@ export default function CreateInvoicePage() {
                       autoComplete="off"
                       value={formData.tanggal_invoice}
                       onChange={(e) => setFormData({ ...formData, tanggal_invoice: e.target.value })}
-                      style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+                      style={{ width: '150px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
                       required
                     />
                   </div>
@@ -707,7 +696,7 @@ export default function CreateInvoicePage() {
                       autoComplete="off"
                       value={formData.tanggal_jatuh_tempo}
                       onChange={(e) => setFormData({ ...formData, tanggal_jatuh_tempo: e.target.value })}
-                      style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+                      style={{ width: '150px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
                       required
                     />
                   </div>
@@ -726,7 +715,7 @@ export default function CreateInvoicePage() {
                   className="btn btn-sm"
                   onClick={() => setCustomerMode('select')}
                   style={{
-                    backgroundColor: customerMode === 'select' ? 'var(--primary)' : 'white',
+                    backgroundColor: customerMode === 'select' ? 'var(--primary)' : 'var(--surface)',
                     color: customerMode === 'select' ? 'white' : 'var(--text-2)',
                     border: '1px solid var(--border)',
                   }}
@@ -738,7 +727,7 @@ export default function CreateInvoicePage() {
                   className="btn btn-sm"
                   onClick={() => setCustomerMode('new')}
                   style={{
-                    backgroundColor: customerMode === 'new' ? 'var(--primary)' : 'white',
+                    backgroundColor: customerMode === 'new' ? 'var(--primary)' : 'var(--surface)',
                     color: customerMode === 'new' ? 'white' : 'var(--text-2)',
                     border: '1px solid var(--border)',
                   }}
@@ -766,7 +755,7 @@ export default function CreateInvoicePage() {
                         <select
                           value={selectedCustomerId}
                           onChange={(e) => setSelectedCustomerId(e.target.value)}
-                          style={{ width: '100%', maxWidth: '400px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                          style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                           required
                         >
                           <option value="">-- Pilih Pelanggan --</option>
@@ -814,7 +803,7 @@ export default function CreateInvoicePage() {
                       value={newCustomer.nama_pelanggan}
                       onChange={(e) => setNewCustomer({ ...newCustomer, nama_pelanggan: e.target.value })}
                       placeholder="Nama lengkap pelanggan"
-                      style={{ width: '100%', maxWidth: '400px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                      style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                       required
                     />
                   </div>
@@ -825,7 +814,7 @@ export default function CreateInvoicePage() {
                       onChange={(e) => setNewCustomer({ ...newCustomer, alamat: e.target.value })}
                       placeholder="Alamat lengkap pelanggan..."
                       rows={3}
-                      style={{ width: '100%', maxWidth: '400px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                      style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxWidth: '400px' }}>
@@ -839,7 +828,7 @@ export default function CreateInvoicePage() {
                         value={newCustomer.telepon}
                         onChange={(e) => setNewCustomer({ ...newCustomer, telepon: e.target.value })}
                         placeholder="0812-3456-7890"
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                        style={{ width: '100%', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                       />
                     </div>
                     <div>
@@ -852,7 +841,7 @@ export default function CreateInvoicePage() {
                         value={newCustomer.email}
                         onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
                         placeholder="email@example.com"
-                        style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                        style={{ width: '100%', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                       />
                     </div>
                   </div>
@@ -863,35 +852,39 @@ export default function CreateInvoicePage() {
 
           {/* Items Table */}
           <div className="card">
-            <div className="card-header" style={{ backgroundColor: '#64748b', color: 'white' }}>
+            <div className="card-header" style={{ backgroundColor: 'var(--text-3)', color: 'white' }}>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Item Invoice</h3>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9' }}>
-                    <th style={{ padding: '0.75rem', textAlign: 'center', width: '50px', fontSize: '0.875rem', fontWeight: 600 }}>No</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Deskripsi *</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'center', width: '100px', fontSize: '0.875rem', fontWeight: 600 }}>Jumlah</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Harga Satuan</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Total</th>
-                    <th style={{ padding: '0.75rem', width: '50px' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <InvoiceItemRow
-                      key={index}
-                      item={item}
-                      index={index}
-                      onUpdate={updateItem}
-                      onRemove={removeItem}
-                      canRemove={items.length > 1}
-                    />
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0' }}>
+              <div className="table-wrap">
+                <div className="table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--surface-3)' }}>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', width: '50px', fontSize: '0.875rem', fontWeight: 600 }}>No</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Deskripsi *</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', width: '100px', fontSize: '0.875rem', fontWeight: 600 }}>Jumlah</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Harga Satuan</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Total</th>
+                        <th style={{ padding: '0.75rem', width: '50px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <InvoiceItemRow
+                          key={index}
+                          item={item}
+                          index={index}
+                          onUpdate={updateItem}
+                          onRemove={removeItem}
+                          canRemove={items.length > 1}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -924,13 +917,13 @@ export default function CreateInvoicePage() {
 
                 {/* Right - Summary */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: '0.875rem' }}>Sub Total</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatRupiah(subtotal)}</span>
                   </div>
                   
                   {/* Pajak */}
-                  <div style={{ padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
@@ -982,7 +975,7 @@ export default function CreateInvoicePage() {
                               style={{ 
                                 width: '80px', 
                                 textAlign: 'right',
-                                border: '1px solid #cbd5e1',
+                                border: '1px solid var(--border-strong)',
                                 borderRadius: '4px',
                                 padding: '0.5rem',
                                 fontFamily: 'monospace'
@@ -1004,7 +997,7 @@ export default function CreateInvoicePage() {
                             style={{ 
                               width: '150px', 
                               textAlign: 'right',
-                              border: '1px solid #cbd5e1',
+                              border: '1px solid var(--border-strong)',
                               borderRadius: '4px',
                               padding: '0.5rem',
                               fontFamily: 'monospace'
@@ -1016,7 +1009,7 @@ export default function CreateInvoicePage() {
                   </div>
                   
                   {/* Diskon */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input
                         type="checkbox"
@@ -1034,17 +1027,17 @@ export default function CreateInvoicePage() {
                       style={{ 
                         width: '150px', 
                         textAlign: 'right',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
                         fontFamily: 'monospace',
-                        backgroundColor: diskon.aktif ? 'white' : 'var(--surface-2)'
+                        backgroundColor: diskon.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
                   </div>
                   
                   {/* Biaya Pengiriman */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input
                         type="checkbox"
@@ -1062,11 +1055,11 @@ export default function CreateInvoicePage() {
                       style={{ 
                         width: '150px', 
                         textAlign: 'right',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
                         fontFamily: 'monospace',
-                        backgroundColor: biayaPengiriman.aktif ? 'white' : 'var(--surface-2)'
+                        backgroundColor: biayaPengiriman.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
                   </div>
@@ -1077,7 +1070,7 @@ export default function CreateInvoicePage() {
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     padding: '1rem 0',
-                    backgroundColor: '#e2e8f0',
+                    backgroundColor: 'var(--border)',
                     marginTop: '0.5rem',
                     paddingLeft: '1rem',
                     paddingRight: '1rem',
@@ -1175,5 +1168,14 @@ export default function CreateInvoicePage() {
         </div>
       </form>
     </div>
+    <ConfirmModal
+      open={confirmResetOpen}
+      title="Reset Form"
+      message="Apakah Anda yakin ingin mereset form? Semua data yang sudah diisi akan hilang."
+      confirmLabel="Ya, Reset"
+      onConfirm={() => { setConfirmResetOpen(false); resetForm(); }}
+      onCancel={() => setConfirmResetOpen(false)}
+    />
+    </>
   );
 }

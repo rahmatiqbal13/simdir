@@ -3,12 +3,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
+import ConfirmModal from '@/app/components/ConfirmModal'
 
-// Must match the FACILITIES array in public page
+// Must match the FACILITIES array in the public page (app/(public)/penilaian/page.jsx)
 const FACILITIES = [
   { id: 'achilles-gym', name: 'Achilles Gym Hub', icon: '🏋️', color: '#dbeafe', textColor: '#1e3a8a' },
   { id: 'kolam-renang', name: 'Kolam Renang Unesa', icon: '🏊', color: '#dcfce7', textColor: '#047857' },
   { id: 'driving-golf', name: 'Driving Golf Unesa', icon: '⛳', color: '#fef3c7', textColor: '#b45309' },
+  { id: 'ssfc', name: 'SSFC', icon: '🏟️', color: '#fce7f3', textColor: '#9d174d' },
+  { id: 'puipt-dic', name: 'PUIPT DIC', icon: '💡', color: '#fffbeb', textColor: '#b45309' },
+  { id: 'puipt-serc', name: 'PUIPT SERC', icon: '🔬', color: '#ede9fe', textColor: '#5b21b6' },
+  { id: 'pui-disabilitas', name: 'PUI Disabilitas', icon: '♿', color: '#ecfdf5', textColor: '#065f46' },
+  { id: 'ulabk', name: 'ULABK', icon: '📖', color: '#fff7ed', textColor: '#c2410c' },
+  { id: 'pui-seni', name: 'PUI Seni', icon: '🎨', color: '#fdf4ff', textColor: '#7c3aed' },
+  { id: 'pui-olahraga', name: 'PUI Olahraga', icon: '🏅', color: '#fff1f2', textColor: '#be123c' },
+  { id: 'usc-umum', name: 'USC (Umum)', icon: '🏛️', color: '#f0f9ff', textColor: '#0369a1' },
 ]
 
 export default function PertanyaanKritikSaranPage() {
@@ -26,6 +35,7 @@ export default function PertanyaanKritikSaranPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const getAuthHeaders = useCallback(() => {
     const session = typeof window !== 'undefined' && localStorage.getItem('simdir_session')
@@ -185,7 +195,6 @@ export default function PertanyaanKritikSaranPage() {
   }
 
   const handleDelete = async (id) => {
-    if (!confirm('Yakin ingin menghapus pertanyaan ini?')) return
     setSaving(true)
     setError('')
     try {
@@ -229,7 +238,8 @@ export default function PertanyaanKritikSaranPage() {
       }
       await fetchQuestions()
     } catch (err) {
-      setError(err.message)
+      setError(err.message + ' — sebagian urutan mungkin sudah berubah, memuat ulang data terbaru.')
+      await fetchQuestions()
     } finally {
       setSaving(false)
     }
@@ -244,15 +254,15 @@ export default function PertanyaanKritikSaranPage() {
       <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
         <Link href="/kelola-penilaian" style={{ color: '#3b82f6', textDecoration: 'none' }}>Penilaian Fasilitas</Link>
         <span style={{ color: '#9ca3af' }}>/</span>
-        <span style={{ color: '#64748b', fontWeight: 600 }}>Pertanyaan</span>
+        <span style={{ color: 'var(--text-3)', fontWeight: 600 }}>Pertanyaan</span>
       </div>
 
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>
           Pertanyaan Kritik & Saran
         </h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+        <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>
           Atur pertanyaan khusus untuk setiap unit usaha/fasilitas
         </p>
       </div>
@@ -284,9 +294,9 @@ export default function PertanyaanKritikSaranPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px',
                 borderRadius: '10px', border: '2px solid',
-                borderColor: selectedFacility === f.name ? '#3b82f6' : '#e2e8f0',
-                background: selectedFacility === f.name ? '#eff6ff' : 'white',
-                color: selectedFacility === f.name ? '#1e3a8a' : '#64748b',
+                borderColor: selectedFacility === f.name ? '#3b82f6' : 'var(--border)',
+                background: selectedFacility === f.name ? '#eff6ff' : 'var(--surface)',
+                color: selectedFacility === f.name ? '#1e3a8a' : 'var(--text-3)',
                 fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
@@ -301,17 +311,17 @@ export default function PertanyaanKritikSaranPage() {
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem',
       }}>
-        <StatCard label="Total Pertanyaan" value={totalCount} bg="#f8fafc" color="#0f172a" />
+        <StatCard label="Total Pertanyaan" value={totalCount} bg="var(--surface-2)" color="var(--text)" />
         <StatCard label="Aktif" value={activeCount} bg="#f0fdf4" color="#047857" />
         <StatCard label="Nonaktif" value={totalCount - activeCount} bg="#fef2f2" color="#dc2626" />
       </div>
 
       {/* Add New Question */}
       <div style={{
-        background: 'white', borderRadius: '12px', padding: '1rem', border: '1px solid #e2e8f0',
+        background: 'var(--surface)', borderRadius: '12px', padding: '1rem', border: '1px solid var(--border)',
         marginBottom: '1.5rem',
       }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: '0 0 0.75rem' }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: '0 0 0.75rem' }}>
           + Tambah Pertanyaan Baru untuk {selectedFacility}
         </h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -321,15 +331,15 @@ export default function PertanyaanKritikSaranPage() {
             onChange={(e) => setNewQuestion(e.target.value)}
             placeholder="Contoh: Bagaimana kebersihan lantai gym?"
             style={{
-              width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0',
-              borderRadius: '8px', fontSize: '14px', color: '#0f172a', outline: 'none',
+              width: '100%', padding: '10px 12px', border: '1.5px solid var(--border)',
+              borderRadius: '8px', fontSize: '14px', color: 'var(--text)', outline: 'none',
               fontFamily: "'Segoe UI', system-ui, sans-serif", boxSizing: 'border-box',
             }}
             onKeyDown={(e) => { if (e.key === 'Enter') handleAdd() }}
           />
           {/* Tipe selector */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '13px', color: '#475569', fontWeight: 500 }}>Tipe:</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-2)', fontWeight: 500 }}>Tipe:</span>
             {[
               { value: 'rating', label: '⭐ Rating 1-5' },
               { value: 'teks', label: '📝 Teks' },
@@ -342,9 +352,9 @@ export default function PertanyaanKritikSaranPage() {
                 onClick={() => setNewTipe(opt.value)}
                 style={{
                   padding: '5px 10px', borderRadius: '6px', border: '1.5px solid',
-                  borderColor: newTipe === opt.value ? '#3b82f6' : '#e2e8f0',
-                  background: newTipe === opt.value ? '#eff6ff' : 'white',
-                  color: newTipe === opt.value ? '#1e3a8a' : '#64748b',
+                  borderColor: newTipe === opt.value ? '#3b82f6' : 'var(--border)',
+                  background: newTipe === opt.value ? '#eff6ff' : 'var(--surface)',
+                  color: newTipe === opt.value ? '#1e3a8a' : 'var(--text-3)',
                   fontSize: '12px', fontWeight: newTipe === opt.value ? '600' : '400',
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
@@ -356,10 +366,10 @@ export default function PertanyaanKritikSaranPage() {
           {/* Opsi pilihan ganda / checkbox */}
           {(newTipe === 'pilihan_ganda' || newTipe === 'checkbox') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#475569', fontWeight: 500 }}>Opsi Pilihan:</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: 500 }}>Opsi Pilihan:</span>
               {newOpsi.map((opsi, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', width: '22px', fontWeight: 600 }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-3)', width: '22px', fontWeight: 600 }}>
                     {String.fromCharCode(65 + idx)}.
                   </span>
                   <input
@@ -372,8 +382,8 @@ export default function PertanyaanKritikSaranPage() {
                     }}
                     placeholder={`Opsi ${String.fromCharCode(65 + idx)}`}
                     style={{
-                      flex: 1, padding: '7px 10px', border: '1.5px solid #e2e8f0',
-                      borderRadius: '6px', fontSize: '13px', color: '#0f172a', outline: 'none',
+                      flex: 1, padding: '7px 10px', border: '1.5px solid var(--border)',
+                      borderRadius: '6px', fontSize: '13px', color: 'var(--text)', outline: 'none',
                       fontFamily: "'Segoe UI', system-ui, sans-serif",
                     }}
                   />
@@ -397,7 +407,7 @@ export default function PertanyaanKritikSaranPage() {
                 onClick={() => setNewOpsi(prev => [...prev, ''])}
                 style={{
                   padding: '5px 10px', borderRadius: '6px', border: '1.5px dashed #3b82f6',
-                  background: 'white', color: '#3b82f6', fontSize: '11px', fontWeight: '600',
+                  background: 'var(--surface)', color: '#3b82f6', fontSize: '11px', fontWeight: '600',
                   cursor: 'pointer', alignSelf: 'flex-start',
                 }}
               >
@@ -408,7 +418,7 @@ export default function PertanyaanKritikSaranPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px',
-              background: '#f8fafc', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151',
+              background: 'var(--surface-2)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151',
               whiteSpace: 'nowrap',
             }}>
               <input
@@ -433,18 +443,18 @@ export default function PertanyaanKritikSaranPage() {
             </button>
           </div>
         </div>
-        <p style={{ margin: '10px 0 0', fontSize: '12px', color: '#94a3b8' }}>
+        <p style={{ margin: '10px 0 0', fontSize: '12px', color: 'var(--text-3)' }}>
           Pengguna akan melihat pertanyaan ini saat memilih fasilitas {selectedFacility} di form publik.
         </p>
       </div>
 
       {/* Questions List */}
-      <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <div style={{ padding: '1rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: 0 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: 0 }}>
             Daftar Pertanyaan — {selectedFacility}
           </h3>
-          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>
             {facilityQuestions.length} pertanyaan
           </span>
         </div>
@@ -454,10 +464,10 @@ export default function PertanyaanKritikSaranPage() {
         ) : facilityQuestions.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center' }}>
             <div style={{ fontSize: '32px', marginBottom: '8px' }}>📝</div>
-            <div style={{ color: '#64748b', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
+            <div style={{ color: 'var(--text-3)', fontSize: '14px', fontWeight: 500, marginBottom: '4px' }}>
               Belum ada pertanyaan
             </div>
-            <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+            <div style={{ color: 'var(--text-3)', fontSize: '13px' }}>
               Tambah pertanyaan di atas agar muncul di form publik
             </div>
           </div>
@@ -467,17 +477,17 @@ export default function PertanyaanKritikSaranPage() {
               <div
                 key={q.id}
                 style={{
-                  padding: '14px 16px', borderBottom: '1px solid #f1f5f9',
+                  padding: '14px 16px', borderBottom: '1px solid var(--surface-3)',
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  background: q.is_active ? 'white' : '#f8fafc',
+                  background: q.is_active ? 'var(--surface)' : 'var(--surface-2)',
                   opacity: q.is_active ? 1 : 0.7,
                 }}
               >
                 {/* Order number / drag handle */}
                 <div style={{
-                  width: '28px', height: '28px', borderRadius: '6px', background: '#f1f5f9',
+                  width: '28px', height: '28px', borderRadius: '6px', background: 'var(--surface-3)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '12px', fontWeight: 700, color: '#64748b', flexShrink: 0,
+                  fontSize: '12px', fontWeight: 700, color: 'var(--text-3)', flexShrink: 0,
                 }}>
                   {index + 1}
                 </div>
@@ -493,7 +503,7 @@ export default function PertanyaanKritikSaranPage() {
                           onChange={(e) => setEditText(e.target.value)}
                           style={{
                             flex: 1, padding: '8px 10px', border: '1.5px solid #3b82f6',
-                            borderRadius: '6px', fontSize: '14px', color: '#0f172a', outline: 'none',
+                            borderRadius: '6px', fontSize: '14px', color: 'var(--text)', outline: 'none',
                             fontFamily: "'Segoe UI', system-ui, sans-serif",
                           }}
                           onKeyDown={(e) => {
@@ -507,7 +517,7 @@ export default function PertanyaanKritikSaranPage() {
                           onChange={(e) => setEditTipe(e.target.value)}
                           style={{
                             padding: '8px 10px', border: '1.5px solid #3b82f6',
-                            borderRadius: '6px', fontSize: '14px', color: '#0f172a', outline: 'none',
+                            borderRadius: '6px', fontSize: '14px', color: 'var(--text)', outline: 'none',
                           }}
                         >
                           <option value="rating">Rating</option>
@@ -529,7 +539,7 @@ export default function PertanyaanKritikSaranPage() {
                       <button
                         onClick={() => { setEditingId(null); setEditText('') }}
                         style={{
-                          padding: '6px 12px', background: '#f1f5f9', color: '#64748b',
+                          padding: '6px 12px', background: 'var(--surface-3)', color: 'var(--text-3)',
                           border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
                           cursor: 'pointer',
                         }}
@@ -539,7 +549,7 @@ export default function PertanyaanKritikSaranPage() {
                       </div>
                       {(editTipe === 'pilihan_ganda' || editTipe === 'checkbox') && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600 }}>Opsi Pilihan:</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: 600 }}>Opsi Pilihan:</div>
                           {editOpsi.map((op, idx) => (
                             <div key={idx} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                               <input
@@ -552,8 +562,8 @@ export default function PertanyaanKritikSaranPage() {
                                   setEditOpsi(next)
                                 }}
                                 style={{
-                                  flex: 1, padding: '6px 8px', border: '1px solid #cbd5e1',
-                                  borderRadius: '4px', fontSize: '13px', color: '#0f172a', outline: 'none',
+                                  flex: 1, padding: '6px 8px', border: '1px solid var(--border-strong)',
+                                  borderRadius: '4px', fontSize: '13px', color: 'var(--text)', outline: 'none',
                                 }}
                               />
                               {editOpsi.length > 2 && (
@@ -572,7 +582,7 @@ export default function PertanyaanKritikSaranPage() {
                           <button
                             onClick={() => setEditOpsi(prev => [...prev, ''])}
                             style={{
-                              padding: '6px 10px', background: '#f1f5f9', color: '#3b82f6',
+                              padding: '6px 10px', background: 'var(--surface-3)', color: '#3b82f6',
                               border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: 600,
                               cursor: 'pointer', alignSelf: 'flex-start',
                             }}
@@ -583,7 +593,7 @@ export default function PertanyaanKritikSaranPage() {
                       )}
                     </div>
                   ) : (
-                    <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 500, wordBreak: 'break-word' }}>
+                    <div style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 500, wordBreak: 'break-word' }}>
                       {q.pertanyaan}
                     </div>
                   )}
@@ -595,7 +605,7 @@ export default function PertanyaanKritikSaranPage() {
                     }}>
                       {q.is_active ? 'Aktif' : 'Nonaktif'}
                     </span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>
                       {q.tipe === 'rating' ? '⭐ Rating 1-5' : q.tipe === 'pilihan_ganda' ? '🔘 Pilihan Ganda' : q.tipe === 'checkbox' ? '☑️ Checkbox' : '📝 Teks'}
                     </span>
                   </div>
@@ -608,9 +618,10 @@ export default function PertanyaanKritikSaranPage() {
                     onClick={() => handleMove(index, -1)}
                     disabled={index === 0 || saving}
                     title="Naikkan urutan"
+                    aria-label="Naikkan urutan"
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
-                      background: 'transparent', color: index === 0 ? '#cbd5e1' : '#64748b',
+                      background: 'transparent', color: index === 0 ? 'var(--border-strong)' : 'var(--text-3)',
                       fontSize: '14px', cursor: index === 0 ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -622,9 +633,10 @@ export default function PertanyaanKritikSaranPage() {
                     onClick={() => handleMove(index, 1)}
                     disabled={index === facilityQuestions.length - 1 || saving}
                     title="Turunkan urutan"
+                    aria-label="Turunkan urutan"
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
-                      background: 'transparent', color: index === facilityQuestions.length - 1 ? '#cbd5e1' : '#64748b',
+                      background: 'transparent', color: index === facilityQuestions.length - 1 ? 'var(--border-strong)' : 'var(--text-3)',
                       fontSize: '14px', cursor: index === facilityQuestions.length - 1 ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}
@@ -636,6 +648,7 @@ export default function PertanyaanKritikSaranPage() {
                     onClick={() => handleToggleActive(q)}
                     disabled={saving}
                     title={q.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                    aria-label={q.is_active ? 'Sembunyikan pertanyaan' : 'Tampilkan pertanyaan'}
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
                       background: q.is_active ? '#fef2f2' : '#dcfce7',
@@ -660,6 +673,7 @@ export default function PertanyaanKritikSaranPage() {
                     }}
                     disabled={saving || editingId === q.id}
                     title="Edit"
+                    aria-label="Edit pertanyaan"
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
                       background: '#eff6ff', color: '#3b82f6',
@@ -674,6 +688,7 @@ export default function PertanyaanKritikSaranPage() {
                     onClick={() => handleDuplicate(q)}
                     disabled={saving}
                     title="Duplikat"
+                    aria-label="Duplikat pertanyaan"
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
                       background: '#fef3c7', color: '#b45309',
@@ -685,9 +700,10 @@ export default function PertanyaanKritikSaranPage() {
                   </button>
                   {/* Delete */}
                   <button
-                    onClick={() => handleDelete(q.id)}
+                    onClick={() => setDeleteTarget(q)}
                     disabled={saving}
                     title="Hapus"
+                    aria-label="Hapus pertanyaan"
                     style={{
                       width: '28px', height: '28px', borderRadius: '6px', border: 'none',
                       background: '#fee2e2', color: '#dc2626',
@@ -718,17 +734,31 @@ export default function PertanyaanKritikSaranPage() {
           <li>Tipe pertanyaan: Rating ⭐1-5, Teks 📝, Pilihan Ganda 🔘, atau Checkbox ☑️ (pilihan multiple).</li>
         </ul>
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Hapus Pertanyaan"
+        message={deleteTarget ? <>Yakin ingin menghapus pertanyaan <strong>&ldquo;{deleteTarget.pertanyaan}&rdquo;</strong>? Tindakan ini tidak dapat dibatalkan.</> : ''}
+        confirmLabel="Ya, Hapus"
+        cancelLabel="Batal"
+        busy={saving}
+        onConfirm={async () => {
+          await handleDelete(deleteTarget.id)
+          setDeleteTarget(null)
+        }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
 
 function StatCard({ label, value, bg, color }) {
   return (
-    <div style={{ background: bg, borderRadius: '10px', padding: '1rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+    <div style={{ background: bg, borderRadius: '10px', padding: '1rem', border: '1px solid var(--border)', textAlign: 'center' }}>
       <div style={{ fontSize: '1.5rem', fontWeight: 800, color }}>
         {value}
       </div>
-      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', fontWeight: 600 }}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.25rem', fontWeight: 600 }}>
         {label}
       </div>
     </div>

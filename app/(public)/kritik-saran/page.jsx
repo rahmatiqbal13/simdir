@@ -118,7 +118,7 @@ export default function KritikSaranPage() {
         <PublicHeader />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
           <div style={{
-            maxWidth: 460, width: '100%', background: 'white', borderRadius: 24,
+            maxWidth: 460, width: '100%', background: 'var(--surface)', borderRadius: 24,
             padding: '48px 32px', textAlign: 'center',
             boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
           }}>
@@ -127,10 +127,10 @@ export default function KritikSaranPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 20px', fontSize: 32,
             }}>{selected?.icon || '✅'}</div>
-            <h1 style={{ margin: '0 0 10px', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>
+            <h1 style={{ margin: '0 0 10px', color: 'var(--text)', fontSize: '1.5rem', fontWeight: 800 }}>
               Terima Kasih!
             </h1>
-            <p style={{ margin: '0 0 28px', color: '#475569', fontSize: '0.9375rem', lineHeight: 1.6 }}>
+            <p style={{ margin: '0 0 28px', color: 'var(--text-2)', fontSize: '0.9375rem', lineHeight: 1.6 }}>
               {isPermohonan
                 ? 'Permohonan Anda telah diterima. Tim kami akan meninjau dan menghubungi Anda secepatnya.'
                 : 'Masukan Anda telah berhasil dikirim. Kami sangat menghargai setiap pendapat yang membantu kami berkembang.'}
@@ -170,10 +170,10 @@ export default function KritikSaranPage() {
             }}>
               {selected?.icon || '💬'}
             </div>
-            <h1 style={{ margin: '0 0 6px', color: '#0f172a', fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
+            <h1 style={{ margin: '0 0 6px', color: 'var(--text)', fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Kritik &amp; Saran
             </h1>
-            <p style={{ margin: 0, color: '#64748b', fontSize: '0.9375rem' }}>
+            <p style={{ margin: 0, color: 'var(--text-3)', fontSize: '0.9375rem' }}>
               Sampaikan pendapat, masukan, atau permohonan Anda
             </p>
           </div>
@@ -187,18 +187,18 @@ export default function KritikSaranPage() {
                     width: 30, height: 30, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontWeight: 700, fontSize: '0.8125rem',
-                    background: i < step ? '#0f172a' : i === step ? (selected?.accent || '#2563eb') : '#e2e8f0',
-                    color: i <= step ? 'white' : '#94a3b8',
+                    background: i < step ? '#0f172a' : i === step ? (selected?.accent || '#2563eb') : 'var(--border)',
+                    color: i <= step ? 'white' : 'var(--text-3)',
                     transition: 'all 0.3s',
                   }}>
                     {i < step ? '✓' : i + 1}
                   </div>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: i === step ? '#0f172a' : '#94a3b8' }}>{label}</span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: i === step ? 'var(--text)' : 'var(--text-3)' }}>{label}</span>
                 </div>
                 {i < STEPS.length - 1 && (
                   <div style={{
                     width: 56, height: 2, margin: '0 4px 18px',
-                    background: i < step ? '#0f172a' : '#e2e8f0', transition: 'background 0.3s',
+                    background: i < step ? 'var(--text)' : 'var(--border)', transition: 'background 0.3s',
                   }} />
                 )}
               </div>
@@ -206,7 +206,7 @@ export default function KritikSaranPage() {
           </div>
 
           {/* Card */}
-          <div style={{ background: 'white', borderRadius: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 20, boxShadow: '0 4px 24px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
 
             {/* ---- STEP 0: Jenis ---- */}
             {step === 0 && (
@@ -218,8 +218,8 @@ export default function KritikSaranPage() {
                     <button key={j.value} type="button" onClick={() => set('jenis', j.value)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-                        border: `2px solid ${form.jenis === j.value ? j.accent : '#e2e8f0'}`,
-                        borderRadius: 14, background: form.jenis === j.value ? j.color : 'white',
+                        border: `2px solid ${form.jenis === j.value ? j.accent : 'var(--border)'}`,
+                        borderRadius: 14, background: form.jenis === j.value ? j.color : 'var(--surface)',
                         cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                       }}>
                       <span style={{
@@ -228,11 +228,11 @@ export default function KritikSaranPage() {
                         justifyContent: 'center', fontSize: 22, flexShrink: 0,
                       }}>{j.icon}</span>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.9375rem' }}>{j.label}</div>
-                        <div style={{ color: '#64748b', fontSize: '0.8125rem', marginTop: 3 }}>{j.desc}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.9375rem' }}>{j.label}</div>
+                        <div style={{ color: 'var(--text-3)', fontSize: '0.8125rem', marginTop: 3 }}>{j.desc}</div>
                       </div>
                       <div style={{
-                        width: 22, height: 22, borderRadius: '50%', border: `2px solid ${form.jenis === j.value ? j.accent : '#e2e8f0'}`,
+                        width: 22, height: 22, borderRadius: '50%', border: `2px solid ${form.jenis === j.value ? j.accent : 'var(--border)'}`,
                         background: form.jenis === j.value ? j.accent : 'transparent', flexShrink: 0, transition: 'all 0.15s',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
@@ -328,7 +328,7 @@ export default function KritikSaranPage() {
                           }
                           rows={5} maxLength={2000}
                           style={{ ...fullInputStyle, resize: 'vertical' }} />
-                        <div style={{ ...charCount, color: form.isi.length < 20 && form.isi.length > 0 ? '#dc2626' : '#94a3b8' }}>
+                        <div style={{ ...charCount, color: form.isi.length < 20 && form.isi.length > 0 ? '#dc2626' : 'var(--text-3)' }}>
                           {form.isi.length}/2000
                           {form.isi.length > 0 && form.isi.length < 20 && ' · minimal 20 karakter'}
                         </div>
@@ -360,15 +360,15 @@ export default function KritikSaranPage() {
                   {/* Anonim Toggle */}
                   <label style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-                    background: '#f8fafc', borderRadius: 12, border: '1.5px solid #e2e8f0',
+                    background: 'var(--surface-2)', borderRadius: 12, border: '1.5px solid var(--border)',
                     cursor: 'pointer', marginBottom: 16,
                   }}>
                     <input type="checkbox" checked={form.is_anonim}
                       onChange={e => set('is_anonim', e.target.checked)}
                       style={{ width: 18, height: 18, cursor: 'pointer', accentColor: '#2563eb', flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.875rem' }}>Kirim sebagai Anonim</div>
-                      <div style={{ color: '#64748b', fontSize: '0.75rem', marginTop: 2 }}>Nama dan kontak tidak akan disimpan</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.875rem' }}>Kirim sebagai Anonim</div>
+                      <div style={{ color: 'var(--text-3)', fontSize: '0.75rem', marginTop: 2 }}>Nama dan kontak tidak akan disimpan</div>
                     </div>
                   </label>
 
@@ -381,10 +381,10 @@ export default function KritikSaranPage() {
                           <button key={jk} type="button" onClick={() => set('jenis_kelamin', jk)}
                             style={{
                               flex: 1, padding: '10px', borderRadius: 10, cursor: 'pointer',
-                              border: `2px solid ${form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : '#e2e8f0'}`,
-                              background: form.jenis_kelamin === jk ? (selected?.color || '#eff6ff') : 'white',
+                              border: `2px solid ${form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : 'var(--border)'}`,
+                              background: form.jenis_kelamin === jk ? (selected?.color || '#eff6ff') : 'var(--surface)',
                               fontWeight: 600, fontSize: '0.875rem',
-                              color: form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : '#475569',
+                              color: form.jenis_kelamin === jk ? (selected?.accent || '#2563eb') : 'var(--text-2)',
                               transition: 'all 0.15s',
                             }}>
                             {jk}
@@ -445,7 +445,7 @@ export default function KritikSaranPage() {
           </div>
 
           {/* Cross-link */}
-          <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.8125rem', marginTop: 20 }}>
+          <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: '0.8125rem', marginTop: 20 }}>
             Ingin menilai fasilitas USC?{' '}
             <a href="/penilaian" style={linkStyle}>Buka halaman Penilaian Fasilitas →</a>
           </p>
@@ -466,15 +466,15 @@ export default function KritikSaranPage() {
 function PublicHeader() {
   return (
     <header style={{
-      background: 'white', borderBottom: '1px solid #e2e8f0',
+      background: 'var(--surface)', borderBottom: '1px solid var(--border)',
       padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100,
     }}>
       <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <img src="/images/logo USC.png" alt="USC" style={{ width: 36, height: 36, objectFit: 'contain' }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#0f172a', lineHeight: 1.2 }}>Unesa Science Center</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>Sistem Informasi Direktorat</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>Unesa Science Center</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>
         <a href="/penilaian" style={{
@@ -491,8 +491,8 @@ function PublicHeader() {
 
 function PublicFooter() {
   return (
-    <footer style={{ background: '#f8fafc', borderTop: '1px solid #e2e8f0', padding: '16px 20px', textAlign: 'center' }}>
-      <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>
+    <footer style={{ background: 'var(--surface-2)', borderTop: '1px solid var(--border)', padding: '16px 20px', textAlign: 'center' }}>
+      <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-3)' }}>
         © 2026 Direktorat Unesa Science Center · Masukan Anda bersifat rahasia
       </p>
     </footer>
@@ -521,23 +521,23 @@ const pageStyle = {
   fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
 }
 
-const cardTitleStyle = { fontSize: '1.0625rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }
-const cardSubStyle = { color: '#64748b', fontSize: '0.875rem', margin: '0 0 18px' }
+const cardTitleStyle = { fontSize: '1.0625rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }
+const cardSubStyle = { color: 'var(--text-3)', fontSize: '0.875rem', margin: '0 0 18px' }
 
 const labelStyle = {
   display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: 6,
 }
 
 const baseInput = {
-  width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e2e8f0',
-  fontSize: '0.9rem', color: '#0f172a', background: 'white', outline: 'none',
+  width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border)',
+  fontSize: '0.9rem', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
   boxSizing: 'border-box', fontFamily: 'inherit',
 }
 
 const fullInputStyle = { ...baseInput }
 const selectStyle = { ...baseInput }
 
-const charCount = { textAlign: 'right', fontSize: '0.75rem', marginTop: 4, color: '#94a3b8' }
+const charCount = { textAlign: 'right', fontSize: '0.75rem', marginTop: 4, color: 'var(--text-3)' }
 
 const primaryBtnStyle = {
   display: 'block', width: '100%', padding: '12px', borderRadius: 12, border: 'none',
@@ -545,8 +545,8 @@ const primaryBtnStyle = {
 }
 
 const backBtnStyle = {
-  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid #e2e8f0',
-  background: 'white', color: '#475569', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid var(--border)',
+  background: 'var(--surface)', color: 'var(--text-2)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
 }
 
 const linkStyle = { color: '#2563eb', textDecoration: 'none', fontWeight: 600, fontSize: '0.8125rem' }

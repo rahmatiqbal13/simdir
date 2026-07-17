@@ -5,72 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
-
-// ============ KONSTANTA ============
-const STATUS_CONFIG = {
-  dibuat: { 
-    label: 'Dibuat', 
-    color: '#64748b', 
-    bgColor: '#f1f5f9',
-    borderColor: '#cbd5e1',
-    stamp: null 
-  },
-  dikirim: { 
-    label: 'Dikirim', 
-    color: '#3b82f6', 
-    bgColor: '#dbeafe',
-    borderColor: '#93c5fd',
-    stamp: 'dikirim' 
-  },
-  disetujui: { 
-    label: 'Disetujui', 
-    color: '#8b5cf6', 
-    bgColor: '#ede9fe',
-    borderColor: '#c4b5fd',
-    stamp: 'disetujui' 
-  },
-  segera: { 
-    label: 'Segera', 
-    color: '#f59e0b', 
-    bgColor: '#fef3c7',
-    borderColor: '#fcd34d',
-    stamp: 'segera' 
-  },
-  jatuh_tempo: { 
-    label: 'Jatuh Tempo', 
-    color: '#dc2626', 
-    bgColor: '#fee2e2',
-    borderColor: '#fca5a5',
-    stamp: 'jatuh_tempo' 
-  },
-  lunas: { 
-    label: 'Lunas', 
-    color: '#059669', 
-    bgColor: '#d1fae5',
-    borderColor: '#6ee7b7',
-    stamp: 'lunas' 
-  },
-};
-
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
-
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
-};
-
-const formatDateShort = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  });
-};
+import { formatRupiah, formatDate, formatDateShort } from '@/lib/utils/format';
+import { INVOICE_STATUS as STATUS_CONFIG } from '@/lib/invoiceStatus';
 
 // ============ KOMPONEN STAMP/STAMPEL ============
 function InvoiceStamp({ status, size = 'normal' }) {

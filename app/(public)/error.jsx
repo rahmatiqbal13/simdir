@@ -33,10 +33,10 @@ export default function PublicError({ error, reset }) {
           <line x1="12" y1="16" x2="12.01" y2="16"/>
         </svg>
       </div>
-      <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: '#0f172a', marginBottom: '0.5rem' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: '700', color: 'var(--text)', marginBottom: '0.5rem' }}>
         Terjadi Kesalahan
       </h2>
-      <p style={{ color: '#475569', maxWidth: '400px', marginBottom: '1.5rem', lineHeight: '1.6' }}>
+      <p style={{ color: 'var(--text-2)', maxWidth: '400px', marginBottom: '1.5rem', lineHeight: '1.6' }}>
         Maaf, halaman ini mengalami gangguan. Silakan coba memuat ulang.
       </p>
       <button

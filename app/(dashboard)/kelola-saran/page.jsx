@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useToast } from '@/app/components/Toast'
 
 const JENIS_META = {
   kritik:              { label: 'Kritik',              icon: '⚠️', bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
@@ -11,13 +12,14 @@ const JENIS_META = {
 
 const STATUS_META = {
   baru:      { label: 'Baru',      bg: '#fef2f2', color: '#dc2626' },
-  dibaca:    { label: 'Dibaca',    bg: '#fefce8', color: '#ca8a04' },
+  dibaca:    { label: 'Dibaca',    bg: '#fefce8', color: '#b45309' },
   diproses:  { label: 'Diproses', bg: '#eff6ff', color: '#2563eb' },
   selesai:   { label: 'Selesai',   bg: '#f0fdf4', color: '#16a34a' },
   ditolak:   { label: 'Ditolak',   bg: '#f8fafc', color: '#64748b' },
 }
 
 export default function KelolaSaranPage() {
+  const { success: toastSuccess, error: toastError } = useToast()
   const [items, setItems]                 = useState([])
   const [loading, setLoading]             = useState(true)
   const [filterStatus, setFilterStatus]   = useState('')
@@ -85,7 +87,7 @@ export default function KelolaSaranPage() {
       if (!res.ok) throw new Error((await res.json()).error)
       await fetchData()
       if (selectedItem?.id === id) setSelectedItem(prev => ({ ...prev, status }))
-    } catch (err) { alert('Gagal: ' + err.message) }
+    } catch (err) { toastError('Gagal: ' + err.message) }
     finally { setUpdateLoading(false) }
   }
 
@@ -100,7 +102,7 @@ export default function KelolaSaranPage() {
       if (!res.ok) throw new Error((await res.json()).error)
       await fetchData()
       setSelectedItem(prev => ({ ...prev, tanggapan, status: 'selesai' }))
-    } catch (err) { alert('Gagal: ' + err.message) }
+    } catch (err) { toastError('Gagal: ' + err.message) }
     finally { setUpdateLoading(false) }
   }
 
@@ -113,7 +115,7 @@ export default function KelolaSaranPage() {
       await fetchData()
       if (selectedItem?.id === deleteItem.id) setSelectedItem(null)
       setDeleteItem(null); setDeleteStep(0)
-    } catch (err) { alert('Gagal: ' + err.message) }
+    } catch (err) { toastError('Gagal: ' + err.message) }
     finally { setDeleteLoading(false) }
   }
 
@@ -124,8 +126,8 @@ export default function KelolaSaranPage() {
     <div style={{ padding: '1.5rem', maxWidth: 1200, margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 4px' }}>Kelola Kritik & Saran</h1>
-        <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>Kelola Kritik & Saran</h1>
+        <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>
           Tinjau dan tindaklanjuti kritik, saran, serta permohonan dari pengguna
         </p>
       </div>
@@ -138,9 +140,9 @@ export default function KelolaSaranPage() {
           { label: 'Permohonan',    value: stats.permohonan, bg: '#f0fdf4', color: '#16a34a' },
           { label: 'Selesai',       value: stats.selesai,    bg: '#fefce8', color: '#b45309' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'white', borderRadius: 12, padding: '1.25rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+          <div key={s.label} style={{ background: 'var(--surface)', borderRadius: 12, padding: '1.25rem', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, marginTop: 4 }}>{s.label}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', fontWeight: 600, marginTop: 4 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -157,18 +159,18 @@ export default function KelolaSaranPage() {
         </select>
         <button
           onClick={() => { setFilterJenis(''); setFilterStatus('') }}
-          style={{ ...selectStyle, cursor: 'pointer', background: 'white' }}
+          style={{ ...selectStyle, cursor: 'pointer', background: 'var(--surface)' }}
         >Reset</button>
       </div>
 
       {/* Table */}
-      <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
                 {['Tanggal', 'Jenis', 'Fasilitas', 'Pengirim', 'Judul / Nama', 'Status', 'Aksi'].map(h => (
-                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -182,20 +184,20 @@ export default function KelolaSaranPage() {
                 const sm = STATUS_META[item.status] || STATUS_META.baru
                 const isPermohonan = item.jenis === 'permohonan_kelas' || item.jenis === 'permohonan_kegiatan'
                 return (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: '#475569', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{fmtDate(item.created_at)}</td>
+                  <tr key={item.id} style={{ borderBottom: '1px solid var(--surface-3)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text-2)', whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{fmtDate(item.created_at)}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
                       <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: '0.75rem', fontWeight: 700, background: jm.bg, color: jm.color, border: `1px solid ${jm.border}`, whiteSpace: 'nowrap' }}>
                         {jm.icon} {jm.label}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#0f172a' }}>{item.fasilitas || '-'}</td>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text)' }}>{item.fasilitas || '-'}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>{item.is_anonim ? 'Anonim' : (item.nama || '-')}</div>
-                      {item.unit_kerja && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.unit_kerja}</div>}
+                      <div style={{ fontWeight: 500, color: 'var(--text)' }}>{item.is_anonim ? 'Anonim' : (item.nama || '-')}</div>
+                      {item.unit_kerja && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{item.unit_kerja}</div>}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', maxWidth: 200 }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#0f172a' }}>
+                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text)' }}>
                         {isPermohonan ? item.nama_kelas_kegiatan : item.judul}
                       </div>
                     </td>
@@ -216,7 +218,7 @@ export default function KelolaSaranPage() {
                             } catch {}
                           }
                         }}
-                        style={{ padding: '0.375rem 0.875rem', borderRadius: 6, border: '1px solid #3b82f6', background: 'white', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '0.375rem 0.875rem', borderRadius: 6, border: '1px solid #3b82f6', background: 'var(--surface)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
                       >Detail</button>
                     </td>
                   </tr>
@@ -234,29 +236,29 @@ export default function KelolaSaranPage() {
         return (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: '1rem' }}
             onClick={() => setSelectedItem(null)}>
-            <div style={{ background: 'white', borderRadius: 16, maxWidth: 580, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}
+            <div style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 580, width: '100%', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}
               onClick={e => e.stopPropagation()}>
 
               {/* Modal Header */}
-              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                     <span style={{ padding: '3px 12px', borderRadius: 99, fontSize: '0.8125rem', fontWeight: 700, background: jm.bg, color: jm.color, border: `1px solid ${jm.border}` }}>
                       {jm.icon} {jm.label}
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>{fmtDate(selectedItem.created_at)}</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>{fmtDate(selectedItem.created_at)}</p>
                 </div>
-                <button onClick={() => setSelectedItem(null)} style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f1f5f9', color: '#64748b', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                <button onClick={() => setSelectedItem(null)} aria-label="Tutup" style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: 'var(--surface-3)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
               </div>
 
               <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 {/* Pengirim */}
                 <div>
                   <h3 style={sectionTitle}>Pengirim</h3>
-                  <div style={{ background: '#f8fafc', borderRadius: 8, padding: '0.75rem' }}>
-                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{selectedItem.is_anonim ? 'Anonim' : (selectedItem.nama || '-')}</div>
-                    <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
+                  <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '0.75rem' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedItem.is_anonim ? 'Anonim' : (selectedItem.nama || '-')}</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-3)', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '6px 16px' }}>
                       {selectedItem.jenis_kelamin && <span>{selectedItem.jenis_kelamin}</span>}
                       {selectedItem.unit_kerja && <span>🏢 {selectedItem.unit_kerja}</span>}
                       {selectedItem.telepon && <span>📱 {selectedItem.telepon}</span>}
@@ -268,32 +270,32 @@ export default function KelolaSaranPage() {
                 {/* Fasilitas */}
                 <div>
                   <h3 style={sectionTitle}>Fasilitas / Layanan</h3>
-                  <span style={{ padding: '4px 12px', borderRadius: 8, background: '#f1f5f9', color: '#0f172a', fontWeight: 600, fontSize: '0.875rem' }}>{selectedItem.fasilitas}</span>
+                  <span style={{ padding: '4px 12px', borderRadius: 8, background: 'var(--surface-3)', color: 'var(--text)', fontWeight: 600, fontSize: '0.875rem' }}>{selectedItem.fasilitas}</span>
                 </div>
 
                 {/* Konten */}
                 {isPermohonan ? (
                   <div>
                     <h3 style={sectionTitle}>Detail Permohonan</h3>
-                    <div style={{ background: '#f8fafc', borderRadius: 10, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ background: 'var(--surface-2)', borderRadius: 10, padding: '1rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={detailRow}>
                         <span style={detailLabel}>Nama {selectedItem.jenis === 'permohonan_kelas' ? 'Kelas' : 'Kegiatan'}</span>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedItem.nama_kelas_kegiatan}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedItem.nama_kelas_kegiatan}</span>
                       </div>
                       <div style={detailRow}>
                         <span style={detailLabel}>Tanggal Diinginkan</span>
-                        <span style={{ fontWeight: 600, color: '#0f172a' }}>{fmtDateOnly(selectedItem.tanggal_diinginkan)}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{fmtDateOnly(selectedItem.tanggal_diinginkan)}</span>
                       </div>
                       {selectedItem.estimasi_peserta && (
                         <div style={detailRow}>
                           <span style={detailLabel}>Estimasi Peserta</span>
-                          <span style={{ fontWeight: 600, color: '#0f172a' }}>{selectedItem.estimasi_peserta} orang</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{selectedItem.estimasi_peserta} orang</span>
                         </div>
                       )}
                       {selectedItem.catatan && (
-                        <div style={{ paddingTop: 8, borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ paddingTop: 8, borderTop: '1px solid var(--border)' }}>
                           <div style={detailLabel}>Keterangan</div>
-                          <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: '#0f172a', lineHeight: 1.6 }}>{selectedItem.catatan}</p>
+                          <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--text)', lineHeight: 1.6 }}>{selectedItem.catatan}</p>
                         </div>
                       )}
                     </div>
@@ -301,7 +303,7 @@ export default function KelolaSaranPage() {
                 ) : (
                   <div>
                     <h3 style={sectionTitle}>{selectedItem.judul}</h3>
-                    <p style={{ margin: 0, fontSize: '0.9375rem', color: '#0f172a', lineHeight: 1.7, background: '#f8fafc', borderRadius: 10, padding: '1rem' }}>
+                    <p style={{ margin: 0, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.7, background: 'var(--surface-2)', borderRadius: 10, padding: '1rem' }}>
                       {selectedItem.isi}
                     </p>
                   </div>
@@ -311,7 +313,7 @@ export default function KelolaSaranPage() {
                 {selectedItem.tanggapan && selectedItem.status !== 'selesai' && (
                   <div>
                     <h3 style={sectionTitle}>Tanggapan Sebelumnya</h3>
-                    <p style={{ margin: 0, fontSize: '0.875rem', color: '#0f172a', background: '#f0fdf4', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selectedItem.tanggapan}</p>
+                    <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text)', background: '#f0fdf4', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selectedItem.tanggapan}</p>
                   </div>
                 )}
 
@@ -324,9 +326,9 @@ export default function KelolaSaranPage() {
                         disabled={updateLoading || selectedItem.status === s}
                         style={{
                           padding: '0.5rem 1rem', borderRadius: 8, border: '1.5px solid',
-                          borderColor: selectedItem.status === s ? m.color : '#e2e8f0',
-                          background: selectedItem.status === s ? m.bg : 'white',
-                          color: selectedItem.status === s ? m.color : '#64748b',
+                          borderColor: selectedItem.status === s ? m.color : 'var(--border)',
+                          background: selectedItem.status === s ? m.bg : 'var(--surface)',
+                          color: selectedItem.status === s ? m.color : 'var(--text-3)',
                           fontSize: '0.875rem', fontWeight: 600,
                           cursor: selectedItem.status === s ? 'default' : 'pointer',
                           opacity: selectedItem.status === s ? 1 : 0.75,
@@ -343,7 +345,7 @@ export default function KelolaSaranPage() {
                     onChange={e => setTanggapan(e.target.value)}
                     placeholder={isPermohonan ? 'Tulis keputusan atau tindak lanjut permohonan ini...' : 'Tulis tanggapan atau tindak lanjut...'}
                     rows={4}
-                    style={{ width: '100%', padding: '0.75rem', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: '0.875rem', color: '#0f172a', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '0.75rem', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: '0.875rem', color: 'var(--text)', resize: 'vertical', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
                   />
                   <button onClick={saveTanggapan} disabled={updateLoading}
                     style={{ marginTop: 8, padding: '0.625rem 1.25rem', background: '#0f172a', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer', width: '100%' }}>
@@ -353,7 +355,7 @@ export default function KelolaSaranPage() {
 
                 {/* Hapus */}
                 {isSuperAdmin && (
-                  <div style={{ paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border)' }}>
                     <button onClick={() => { setDeleteItem(selectedItem); setDeleteStep(1) }}
                       style={{ width: '100%', padding: '0.625rem', background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }}>
                       🗑️ Hapus
@@ -370,12 +372,12 @@ export default function KelolaSaranPage() {
       {deleteStep > 0 && deleteItem && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 60, padding: '1rem' }}
           onClick={() => { setDeleteItem(null); setDeleteStep(0) }}>
-          <div style={{ background: 'white', borderRadius: 16, maxWidth: 480, width: '100%', padding: '1.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}
+          <div style={{ background: 'var(--surface)', borderRadius: 16, maxWidth: 480, width: '100%', padding: '1.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)' }}
             onClick={e => e.stopPropagation()}>
             {deleteStep === 1 && (
               <>
                 <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 12px' }}>⚠️ Konfirmasi Hapus</h2>
-                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 20px' }}>
                   Hapus data dari <strong>{deleteItem.is_anonim ? 'Anonim' : (deleteItem.nama || '-')}</strong>?{' '}
                   <span style={{ color: '#dc2626', fontWeight: 600 }}>Tindakan ini tidak dapat dibatalkan.</span>
                 </p>
@@ -388,7 +390,7 @@ export default function KelolaSaranPage() {
             {deleteStep === 2 && (
               <>
                 <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 12px' }}>⚠️ Konfirmasi Final</h2>
-                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: 1.6, margin: '0 0 20px' }}>Apakah Anda benar-benar yakin?</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-2)', lineHeight: 1.6, margin: '0 0 20px' }}>Apakah Anda benar-benar yakin?</p>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={() => setDeleteStep(1)} style={cancelBtnStyle}>← Kembali</button>
                   <button onClick={handleDelete} disabled={deleteLoading} style={dangerBtnStyle}>
@@ -404,9 +406,9 @@ export default function KelolaSaranPage() {
   )
 }
 
-const sectionTitle = { fontSize: '0.8125rem', fontWeight: 700, color: '#475569', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }
+const sectionTitle = { fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-2)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.05em' }
 const detailRow    = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }
-const detailLabel  = { fontSize: '0.8125rem', color: '#64748b', flexShrink: 0 }
-const selectStyle  = { padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: '0.875rem', outline: 'none' }
-const cancelBtnStyle = { flex: 1, padding: '0.625rem', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }
+const detailLabel  = { fontSize: '0.8125rem', color: 'var(--text-3)', flexShrink: 0 }
+const selectStyle  = { padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid var(--border)', fontSize: '0.875rem', outline: 'none' }
+const cancelBtnStyle = { flex: 1, padding: '0.625rem', background: 'var(--surface-3)', color: 'var(--text-2)', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }
 const dangerBtnStyle = { flex: 1, padding: '0.625rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer' }

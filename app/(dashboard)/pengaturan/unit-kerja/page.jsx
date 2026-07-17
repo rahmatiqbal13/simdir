@@ -2,6 +2,8 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { useUnitKerja } from '@/context/UnitKerjaContext';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { useToast } from '@/app/components/Toast';
 
 const ITEMS_PER_PAGE = 8;
 
@@ -188,113 +190,115 @@ function UnitCard({ unit, index, canEdit, onEdit, onToggleStatus, onDelete }) {
 function UnitTable({ units, canEdit, onEdit, onToggleStatus, onDelete }) {
   return (
     <div className="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style={{ width: '50px' }}>No</th>
-            <th>Unit Kerja</th>
-            <th style={{ width: '120px' }}>Singkatan</th>
-            <th style={{ width: '150px' }}>Kategori</th>
-            <th style={{ width: '100px' }}>Status</th>
-            {canEdit && <th style={{ width: '120px' }} className="text-center">Aksi</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {units.map((unit, index) => {
-            const category = getCategory(unit.nama);
-            const config = UNIT_CATEGORIES[category] || UNIT_CATEGORIES.lainnya;
-            
-            return (
-              <tr key={unit.id}>
-                <td className="text-center">{index + 1}</td>
-                <td>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{ 
-                      width: '2rem', 
-                      height: '2rem', 
-                      borderRadius: 'var(--radius)',
-                      background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%)`,
-                      color: 'white',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontSize: '0.625rem',
-                      fontWeight: 700,
-                      flexShrink: 0
-                    }}>
-                      {(unit.kode || unit.singkatan)?.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase()}
-                    </div>
-                    <strong style={{ fontSize: '0.875rem' }}>{unit.nama}</strong>
-                  </div>
-                </td>
-                <td>
-                  <code style={{ 
-                    background: 'var(--surface-2)', 
-                    padding: '0.25rem 0.5rem', 
-                    borderRadius: 'var(--radius)',
-                    fontSize: '0.8125rem'
-                  }}>
-                    {unit.kode || unit.singkatan}
-                  </code>
-                </td>
-                <td>
-                  <CategoryBadge category={category} />
-                </td>
-                <td>
-                  <StatusBadge isActive={unit.is_active} />
-                </td>
-                {canEdit && (
-                  <td className="text-center">
-                    <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                      <button 
-                        className="ghost icon-only" 
-                        onClick={() => onEdit(unit)}
-                        title="Edit"
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button 
-                        className="ghost icon-only" 
-                        onClick={() => onToggleStatus(unit.id)}
-                        title={unit.is_active ? 'Nonaktifkan' : 'Aktifkan'}
-                        style={{ color: unit.is_active ? 'var(--warning)' : 'var(--success)' }}
-                      >
-                        {unit.is_active ? (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
-                          </svg>
-                        ) : (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                            <path d="M5 12h14" /><path d="M12 5v14" />
-                          </svg>
-                        )}
-                      </button>
-                      <button 
-                        className="ghost icon-only" 
-                        onClick={() => onDelete(unit.id)}
-                        title="Hapus"
-                        style={{ color: 'var(--danger)' }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style={{ width: '50px' }}>No</th>
+              <th>Unit Kerja</th>
+              <th style={{ width: '120px' }}>Singkatan</th>
+              <th style={{ width: '150px' }}>Kategori</th>
+              <th style={{ width: '100px' }}>Status</th>
+              {canEdit && <th style={{ width: '120px' }} className="text-center">Aksi</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {units.map((unit, index) => {
+              const category = getCategory(unit.nama);
+              const config = UNIT_CATEGORIES[category] || UNIT_CATEGORIES.lainnya;
+
+              return (
+                <tr key={unit.id}>
+                  <td className="text-center">{index + 1}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{
+                        width: '2rem',
+                        height: '2rem',
+                        borderRadius: 'var(--radius)',
+                        background: `linear-gradient(135deg, ${config.color} 0%, ${config.color}dd 100%)`,
+                        color: 'white',
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: '0.625rem',
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}>
+                        {(unit.kode || unit.singkatan)?.substring(0, 2).toUpperCase() || unit.nama.substring(0, 2).toUpperCase()}
+                      </div>
+                      <strong style={{ fontSize: '0.875rem' }}>{unit.nama}</strong>
                     </div>
                   </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  <td>
+                    <code style={{
+                      background: 'var(--surface-2)',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: 'var(--radius)',
+                      fontSize: '0.8125rem'
+                    }}>
+                      {unit.kode || unit.singkatan}
+                    </code>
+                  </td>
+                  <td>
+                    <CategoryBadge category={category} />
+                  </td>
+                  <td>
+                    <StatusBadge isActive={unit.is_active} />
+                  </td>
+                  {canEdit && (
+                    <td className="text-center">
+                      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                        <button
+                          className="ghost icon-only"
+                          onClick={() => onEdit(unit)}
+                          title="Edit"
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          className="ghost icon-only"
+                          onClick={() => onToggleStatus(unit.id)}
+                          title={unit.is_active ? 'Nonaktifkan' : 'Aktifkan'}
+                          style={{ color: unit.is_active ? 'var(--warning)' : 'var(--success)' }}
+                        >
+                          {unit.is_active ? (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                              <path d="M18.36 6.64a9 9 0 1 1-12.73 0" /><line x1="12" y1="2" x2="12" y2="12" />
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                              <path d="M5 12h14" /><path d="M12 5v14" />
+                            </svg>
+                          )}
+                        </button>
+                        <button
+                          className="ghost icon-only"
+                          onClick={() => onDelete(unit.id)}
+                          title="Hapus"
+                          style={{ color: 'var(--danger)' }}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 // ============ KOMPONEN MODAL ============
-function UnitModal({ unit, onSave, onClose }) {
+function UnitModal({ unit, onSave, onClose, actionLoading }) {
   const [form, setForm] = useState({
     nama: unit?.nama || '',
     singkatan: unit?.kode || unit?.singkatan || '',
@@ -394,9 +398,9 @@ function UnitModal({ unit, onSave, onClose }) {
             </div>
           </div>
           <div className="card-form-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary">
-              {unit?.id ? 'Simpan Perubahan' : 'Tambah Unit'}
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={actionLoading}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+              {actionLoading ? 'Menyimpan...' : (unit?.id ? 'Simpan Perubahan' : 'Tambah Unit')}
             </button>
           </div>
         </form>
@@ -469,6 +473,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 // ============ HALAMAN UTAMA ============
 export default function UnitKerjaPage() {
   const { units, loading, error, addUnit, updateUnit, deleteUnit, toggleUnitStatus, refreshUnits } = useUnitKerja();
+  const { error: toastError } = useToast();
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -479,8 +484,15 @@ export default function UnitKerjaPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const userRole = 'super_admin';
+  const [userRole, setUserRole] = useState('');
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('simdir_session');
+      if (s) setUserRole(JSON.parse(atob(s)).role || '');
+    } catch {}
+  }, []);
   const canEdit = userRole === 'super_admin';
 
   // Filter units
@@ -544,7 +556,7 @@ export default function UnitKerjaPage() {
       setShowModal(false);
       setEditingItem(null);
     } catch (err) {
-      alert('Gagal menyimpan unit kerja: ' + err.message);
+      toastError('Gagal menyimpan unit kerja: ' + err.message);
     } finally {
       setActionLoading(false);
     }
@@ -557,20 +569,24 @@ export default function UnitKerjaPage() {
         await toggleUnitStatus(id, unit.is_active);
       }
     } catch (err) {
-      alert('Gagal mengubah status: ' + err.message);
+      toastError('Gagal mengubah status: ' + err.message);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (confirm('Apakah Anda yakin ingin menghapus unit kerja ini?')) {
-      try {
-        setActionLoading(true);
-        await deleteUnit(id);
-      } catch (err) {
-        alert('Gagal menghapus unit kerja: ' + err.message);
-      } finally {
-        setActionLoading(false);
-      }
+  const handleDelete = (id) => {
+    setDeleteConfirm(id);
+  };
+
+  const confirmDeleteUnit = async () => {
+    if (!deleteConfirm) return;
+    try {
+      setActionLoading(true);
+      await deleteUnit(deleteConfirm);
+    } catch (err) {
+      toastError('Gagal menghapus unit kerja: ' + err.message);
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -847,14 +863,27 @@ export default function UnitKerjaPage() {
           unit={editingItem}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
+          actionLoading={actionLoading}
         />
       )}
+
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Hapus Unit Kerja"
+        message={<>Apakah Anda yakin ingin menghapus unit kerja <strong>{units.find(u => u.id === deleteConfirm)?.nama || 'ini'}</strong>? Tindakan ini tidak dapat dibatalkan.</>}
+        confirmLabel="Ya, Hapus"
+        busy={actionLoading}
+        onConfirm={confirmDeleteUnit}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }
 
 // ============ KOMPONEN LOGO UPLOAD ============
 function LogoUploadSection() {
+  const { error: toastError } = useToast();
   const [logo, setLogo] = useState(null);
   const [preview, setPreview] = useState(null);
   const fileInputRef = useRef(null);
@@ -868,11 +897,11 @@ function LogoUploadSection() {
     const file = e.target.files[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      alert('Hanya file gambar yang diizinkan (PNG, JPG, SVG)');
+      toastError('Hanya file gambar yang diizinkan (PNG, JPG, SVG)');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      alert('Ukuran file maksimal 2MB');
+      toastError('Ukuran file maksimal 2MB');
       return;
     }
     const reader = new FileReader();

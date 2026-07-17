@@ -4,31 +4,24 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import ConfirmModal from '@/app/components/ConfirmModal';
+import { useToast } from '@/app/components/Toast';
+import { formatRupiah, formatDate } from '@/lib/utils/format';
+import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
-
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
+const STAMP_LABELS = {
+  lunas: 'LUNAS',
+  segera: 'SEGERA',
+  jatuh_tempo: 'JATUH TEMPO',
+  dikirim: 'DIKIRIM',
+  disetujui: 'DISETUJUI',
 };
 
 // ============ KOMPONEN STAMP ============
 function InvoiceStamp({ status }) {
-  const stamps = {
-    lunas: { color: '#059669', label: 'LUNAS' },
-    segera: { color: '#f59e0b', label: 'SEGERA' },
-    jatuh_tempo: { color: '#dc2626', label: 'JATUH TEMPO' },
-    dikirim: { color: '#3b82f6', label: 'DIKIRIM' },
-    disetujui: { color: '#8b5cf6', label: 'DISETUJUI' },
-  };
-  
-  const stamp = stamps[status];
+  const stamp = INVOICE_STATUS[status] && STAMP_LABELS[status]
+    ? { color: INVOICE_STATUS[status].hex, label: STAMP_LABELS[status] }
+    : null;
   if (!stamp) return null;
   
   return (
@@ -58,11 +51,13 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const invoiceId = params?.id;
-  
+  const { error: toastError } = useToast();
+
   const [invoice, setInvoice] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {
@@ -132,25 +127,23 @@ export default function InvoiceDetailPage() {
       setInvoice({ ...invoice, status: newStatus });
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Gagal mengupdate status');
+      toastError('Gagal mengupdate status');
     }
   };
 
   // Handle delete
-  const handleDelete = async () => {
-    if (!confirm('Apakah Anda yakin ingin menghapus invoice ini?')) return;
-    
+  const actuallyDelete = async () => {
     try {
       const { error } = await supabase
         .from('invoices')
         .delete()
         .eq('id', invoiceId);
-      
+
       if (error) throw error;
       router.push('/e-invoice');
     } catch (err) {
       console.error('Error deleting invoice:', err);
-      alert('Gagal menghapus invoice');
+      toastError('Gagal menghapus invoice');
     }
   };
 
@@ -159,14 +152,9 @@ export default function InvoiceDetailPage() {
   // Cek apakah ada item dengan diskon
   const hasDiskon = items.some(item => (item.diskon_persen || 0) > 0);
 
-  const statusColors = {
-    dibuat: '#64748b',
-    dikirim: '#3b82f6',
-    disetujui: '#8b5cf6',
-    segera: '#f59e0b',
-    jatuh_tempo: '#dc2626',
-    lunas: '#059669',
-  };
+  const statusColors = Object.fromEntries(
+    Object.entries(INVOICE_STATUS).map(([key, v]) => [key, v.hex])
+  );
 
   if (loading) {
     return (
@@ -188,6 +176,7 @@ export default function InvoiceDetailPage() {
   }
 
   return (
+    <>
     <div>
       {/* Header */}
       <div className="page-header">
@@ -215,7 +204,7 @@ export default function InvoiceDetailPage() {
                 </svg>
                 Edit
               </Link>
-              <button className="btn btn-danger" onClick={handleDelete}>
+              <button className="btn btn-danger" onClick={() => setConfirmOpen(true)}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                   <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                 </svg>
@@ -413,5 +402,14 @@ export default function InvoiceDetailPage() {
         )}
       </div>
     </div>
+    <ConfirmModal
+      open={confirmOpen}
+      title="Hapus Invoice"
+      message={<>Yakin ingin menghapus invoice <strong>{invoice.nomor_invoice}</strong>? Tindakan ini tidak dapat dibatalkan.</>}
+      confirmLabel="Ya, Hapus"
+      onConfirm={async () => { setConfirmOpen(false); await actuallyDelete(); }}
+      onCancel={() => setConfirmOpen(false)}
+    />
+    </>
   );
 }

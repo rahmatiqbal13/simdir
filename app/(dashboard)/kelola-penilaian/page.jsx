@@ -2,11 +2,20 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useToast } from '@/app/components/Toast'
 
 const FACILITY_COLORS = {
   'Achilles Gym Hub': { bg: '#dbeafe', text: '#1e3a8a' },
   'Kolam Renang Unesa': { bg: '#dcfce7', text: '#047857' },
   'Driving Golf Unesa': { bg: '#fef3c7', text: '#b45309' },
+  'SSFC': { bg: '#fce7f3', text: '#9d174d' },
+  'PUIPT DIC': { bg: '#fffbeb', text: '#b45309' },
+  'PUIPT SERC': { bg: '#ede9fe', text: '#5b21b6' },
+  'PUI Disabilitas': { bg: '#ecfdf5', text: '#065f46' },
+  'ULABK': { bg: '#fff7ed', text: '#c2410c' },
+  'PUI Seni': { bg: '#fdf4ff', text: '#7c3aed' },
+  'PUI Olahraga': { bg: '#fff1f2', text: '#be123c' },
+  'USC (Umum)': { bg: '#f0f9ff', text: '#0369a1' },
 }
 
 const ASPEK_COLORS = {
@@ -20,11 +29,12 @@ const ASPEK_COLORS = {
 
 const STATUS_LABELS = {
   'baru': { text: 'Baru', bg: '#fef2f2', color: '#dc2626' },
-  'dibaca': { text: 'Dibaca', bg: '#fefce8', color: '#ca8a04' },
+  'dibaca': { text: 'Dibaca', bg: '#fefce8', color: '#b45309' },
   'ditanggapi': { text: 'Ditanggapi', bg: '#f0fdf4', color: '#16a34a' },
 }
 
 export default function KritikSaranAdminPage() {
+  const { success: toastSuccess, error: toastError } = useToast()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState('')
@@ -125,7 +135,7 @@ export default function KritikSaranAdminPage() {
         setSelectedItem(prev => ({ ...prev, status }))
       }
     } catch (err) {
-      alert('Gagal update status: ' + err.message)
+      toastError('Gagal update status: ' + err.message)
     } finally {
       setUpdateLoading(false)
     }
@@ -144,9 +154,9 @@ export default function KritikSaranAdminPage() {
       if (!res.ok) throw new Error(data.error || 'Gagal')
       await fetchData()
       setSelectedItem(prev => ({ ...prev, tanggapan, status: 'ditanggapi' }))
-      alert('Tanggapan berhasil disimpan')
+      toastSuccess('Tanggapan berhasil disimpan')
     } catch (err) {
-      alert('Gagal menyimpan tanggapan: ' + err.message)
+      toastError('Gagal menyimpan tanggapan: ' + err.message)
     } finally {
       setUpdateLoading(false)
     }
@@ -166,9 +176,9 @@ export default function KritikSaranAdminPage() {
       if (selectedItem?.id === deleteItem.id) setSelectedItem(null)
       setDeleteItem(null)
       setDeleteStep(0)
-      alert('Kritik & saran berhasil dihapus')
+      toastSuccess('Kritik & saran berhasil dihapus')
     } catch (err) {
-      alert('Gagal menghapus: ' + err.message)
+      toastError('Gagal menghapus: ' + err.message)
     } finally {
       setDeleteLoading(false)
     }
@@ -185,10 +195,10 @@ export default function KritikSaranAdminPage() {
       {/* Page Header */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>
             Kelola Penilaian Fasilitas
           </h1>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', margin: 0 }}>
+          <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>
             Lihat dan tanggapi penilaian bintang dari pengguna fasilitas USC
           </p>
         </div>
@@ -217,21 +227,21 @@ export default function KritikSaranAdminPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
         {Object.entries(statsByFasilitas).map(([name, stat]) => (
           <div key={name} style={{
-            background: 'white', borderRadius: '12px', padding: '1rem',
-            border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '0.75rem',
+            background: 'var(--surface)', borderRadius: '12px', padding: '1rem',
+            border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '0.75rem',
           }}>
             <div style={{
               width: '40px', height: '40px', borderRadius: '8px',
-              background: FACILITY_COLORS[name]?.bg || '#f1f5f9',
-              color: FACILITY_COLORS[name]?.text || '#64748b',
+              background: FACILITY_COLORS[name]?.bg || 'var(--surface-3)',
+              color: FACILITY_COLORS[name]?.text || 'var(--text-3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '18px', fontWeight: 700,
             }}>
               {name.charAt(0)}
             </div>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{name}</div>
-              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a' }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{name}</div>
+              <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
                 {stat.count} masukan · ⭐ {(stat.totalRating / stat.count).toFixed(1)}
               </div>
             </div>
@@ -244,7 +254,7 @@ export default function KritikSaranAdminPage() {
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem' }}
         >
           <option value="">Semua Status</option>
           <option value="baru">Baru</option>
@@ -254,17 +264,25 @@ export default function KritikSaranAdminPage() {
         <select
           value={filterFasilitas}
           onChange={(e) => setFilterFasilitas(e.target.value)}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem' }}
         >
           <option value="">Semua Fasilitas</option>
           <option value="Achilles Gym Hub">Achilles Gym Hub</option>
           <option value="Kolam Renang Unesa">Kolam Renang Unesa</option>
           <option value="Driving Golf Unesa">Driving Golf Unesa</option>
+          <option value="SSFC">SSFC</option>
+          <option value="PUIPT DIC">PUIPT DIC</option>
+          <option value="PUIPT SERC">PUIPT SERC</option>
+          <option value="PUI Disabilitas">PUI Disabilitas</option>
+          <option value="ULABK">ULABK</option>
+          <option value="PUI Seni">PUI Seni</option>
+          <option value="PUI Olahraga">PUI Olahraga</option>
+          <option value="USC (Umum)">USC (Umum)</option>
         </select>
         <select
           value={filterJenisKelamin}
           onChange={(e) => setFilterJenisKelamin(e.target.value)}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.875rem' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.875rem' }}
         >
           <option value="">Semua Jenis Kelamin</option>
           <option value="laki-laki">Laki-laki</option>
@@ -272,25 +290,25 @@ export default function KritikSaranAdminPage() {
         </select>
         <button
           onClick={() => { setFilterStatus(''); setFilterFasilitas(''); setFilterJenisKelamin('') }}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', background: 'white', fontSize: '0.875rem', cursor: 'pointer' }}
+          style={{ padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '0.875rem', cursor: 'pointer' }}
         >
           Reset Filter
         </button>
       </div>
 
       {/* Table */}
-      <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Tanggal</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Pengirim</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Jenis Kelamin</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Fasilitas</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Rating</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Status</th>
-                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Aksi</th>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border)' }}>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-2)' }}>Tanggal</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-2)' }}>Pengirim</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-2)' }}>Jenis Kelamin</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, color: 'var(--text-2)' }}>Fasilitas</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: 'var(--text-2)' }}>Rating</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: 'var(--text-2)' }}>Status</th>
+                <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, color: 'var(--text-2)' }}>Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -300,17 +318,17 @@ export default function KritikSaranAdminPage() {
                 <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>Tidak ada data</td></tr>
               ) : (
                 filteredItems.map(item => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.75rem 1rem', color: '#0f172a' }}>{formatDate(item.created_at)}</td>
+                  <tr key={item.id} style={{ borderBottom: '1px solid var(--surface-3)' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text)' }}>{formatDate(item.created_at)}</td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <div style={{ fontWeight: 500, color: '#0f172a' }}>
+                      <div style={{ fontWeight: 500, color: 'var(--text)' }}>
                         {item.is_anonim ? 'Anonim' : (item.nama || 'Tidak diketahui')}
                       </div>
                       {item.unit_kerja && (
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{item.unit_kerja}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>{item.unit_kerja}</div>
                       )}
                     </td>
-                    <td style={{ padding: '0.75rem 1rem', color: '#0f172a' }}>
+                    <td style={{ padding: '0.75rem 1rem', color: 'var(--text)' }}>
                       {item.jenis_kelamin === 'laki-laki' ? 'Laki-laki' : item.jenis_kelamin === 'perempuan' ? 'Perempuan' : '-'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
@@ -319,16 +337,16 @@ export default function KritikSaranAdminPage() {
                           <div key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <span style={{
                               padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem',
-                              background: FACILITY_COLORS[sub.fasilitas]?.bg || '#f1f5f9',
-                              color: FACILITY_COLORS[sub.fasilitas]?.text || '#64748b',
+                              background: FACILITY_COLORS[sub.fasilitas]?.bg || 'var(--surface-3)',
+                              color: FACILITY_COLORS[sub.fasilitas]?.text || 'var(--text-3)',
                               fontWeight: 600,
                             }}>
                               {sub.fasilitas}
                             </span>
                             <span style={{
                               padding: '1px 6px', borderRadius: '3px', fontSize: '0.7rem',
-                              background: ASPEK_COLORS[sub.aspek] + '20' || '#f1f5f9',
-                              color: ASPEK_COLORS[sub.aspek] || '#64748b',
+                              background: ASPEK_COLORS[sub.aspek] + '20' || 'var(--surface-3)',
+                              color: ASPEK_COLORS[sub.aspek] || 'var(--text-3)',
                               fontWeight: 500,
                             }}>
                               {sub.aspek || 'Lainnya'}
@@ -338,7 +356,7 @@ export default function KritikSaranAdminPage() {
                       </div>
                     </td>
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
-                      <div style={{ fontWeight: 700, color: '#0f172a', fontSize: '1rem' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '1rem' }}>
                         {item.overall_rating ? `⭐ ${item.overall_rating}` : '—'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
@@ -348,8 +366,8 @@ export default function KritikSaranAdminPage() {
                     <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
                       <span style={{
                         padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 600,
-                        background: STATUS_LABELS[item.status]?.bg || '#f1f5f9',
-                        color: STATUS_LABELS[item.status]?.color || '#64748b',
+                        background: STATUS_LABELS[item.status]?.bg || 'var(--surface-3)',
+                        color: STATUS_LABELS[item.status]?.color || 'var(--text-3)',
                       }}>
                         {STATUS_LABELS[item.status]?.text || item.status}
                       </span>
@@ -373,7 +391,7 @@ export default function KritikSaranAdminPage() {
                           }}
                           style={{
                             padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #3b82f6',
-                            background: 'white', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600,
+                            background: 'var(--surface)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600,
                             cursor: 'pointer',
                           }}
                         >
@@ -384,7 +402,7 @@ export default function KritikSaranAdminPage() {
                             onClick={() => { setDeleteItem(item); setDeleteStep(1) }}
                             style={{
                               padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #dc2626',
-                              background: 'white', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600,
+                              background: 'var(--surface)', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600,
                               cursor: 'pointer',
                             }}
                           >
@@ -410,27 +428,28 @@ export default function KritikSaranAdminPage() {
         }} onClick={() => setSelectedItem(null)}>
           <div
             style={{
-              background: 'white', borderRadius: '16px', maxWidth: '600px', width: '100%',
+              background: 'var(--surface)', borderRadius: '16px', maxWidth: '600px', width: '100%',
               maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
             }}
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#0f172a', margin: '0 0 0.25rem' }}>
+                  <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>
                     Detail Kritik & Saran
                   </h2>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: 0 }}>
                     {formatDate(selectedItem.created_at)}
                   </p>
                 </div>
                 <button
                   onClick={() => setSelectedItem(null)}
+                  aria-label="Tutup"
                   style={{
                     width: '32px', height: '32px', borderRadius: '50%',
-                    border: 'none', background: '#f1f5f9', color: '#64748b',
+                    border: 'none', background: 'var(--surface-3)', color: 'var(--text-3)',
                     fontSize: '18px', cursor: 'pointer', display: 'flex',
                     alignItems: 'center', justifyContent: 'center',
                   }}
@@ -442,50 +461,50 @@ export default function KritikSaranAdminPage() {
             <div style={{ padding: '1.5rem' }}>
               {/* Profile */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: '0 0 0.5rem' }}>Pengirim</h3>
-                <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '0.75rem' }}>
-                  <div style={{ fontWeight: 600, color: '#0f172a' }}>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: '0 0 0.5rem' }}>Pengirim</h3>
+                <div style={{ background: 'var(--surface-2)', borderRadius: '8px', padding: '0.75rem' }}>
+                  <div style={{ fontWeight: 600, color: 'var(--text)' }}>
                     {selectedItem.is_anonim ? 'Anonim' : (selectedItem.nama || 'Tidak diketahui')}
                   </div>
-                  {selectedItem.email && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📧 {selectedItem.email}</div>}
-                  {selectedItem.telepon && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>📱 {selectedItem.telepon}</div>}
-                  {selectedItem.unit_kerja && <div style={{ fontSize: '0.75rem', color: '#64748b' }}>🏢 {selectedItem.unit_kerja}</div>}
+                  {selectedItem.email && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>📧 {selectedItem.email}</div>}
+                  {selectedItem.telepon && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>📱 {selectedItem.telepon}</div>}
+                  {selectedItem.unit_kerja && <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>🏢 {selectedItem.unit_kerja}</div>}
                 </div>
               </div>
 
               {/* Items per Fasilitas */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: '0 0 0.5rem' }}>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: '0 0 0.5rem' }}>
                   Penilaian per Fasilitas ({selectedItem.items?.length || 0})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {selectedItem.items?.map(sub => (
                     <div key={sub.id} style={{
-                      background: '#f8fafc', borderRadius: '10px', padding: '0.875rem',
-                      border: '1px solid #e2e8f0',
+                      background: 'var(--surface-2)', borderRadius: '10px', padding: '0.875rem',
+                      border: '1px solid var(--border)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                         <span style={{
                           padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                          background: FACILITY_COLORS[sub.fasilitas]?.bg || '#f1f5f9',
-                          color: FACILITY_COLORS[sub.fasilitas]?.text || '#64748b',
+                          background: FACILITY_COLORS[sub.fasilitas]?.bg || 'var(--surface-3)',
+                          color: FACILITY_COLORS[sub.fasilitas]?.text || 'var(--text-3)',
                         }}>
                           {sub.fasilitas}
                         </span>
                         <span style={{
                           padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600,
-                          background: ASPEK_COLORS[sub.aspek] + '20' || '#f1f5f9',
-                          color: ASPEK_COLORS[sub.aspek] || '#64748b',
+                          background: ASPEK_COLORS[sub.aspek] + '20' || 'var(--surface-3)',
+                          color: ASPEK_COLORS[sub.aspek] || 'var(--text-3)',
                         }}>
                           {sub.aspek || 'Lainnya'}
                         </span>
                         {sub.rating > 0 && (
-                          <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.875rem', marginLeft: 'auto' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.875rem', marginLeft: 'auto' }}>
                             ⭐ {sub.rating}/5
                           </span>
                         )}
                       </div>
-                      <p style={{ margin: 0, fontSize: '0.875rem', color: '#0f172a', lineHeight: '1.5' }}>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text)', lineHeight: '1.5' }}>
                         {(() => {
                           if (sub.jawaban_pilihan) {
                             try {
@@ -512,7 +531,7 @@ export default function KritikSaranAdminPage() {
 
               {/* Status Actions */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: '0 0 0.5rem' }}>Status</h3>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: '0 0 0.5rem' }}>Status</h3>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {(['baru', 'dibaca', 'ditanggapi']).map(status => (
                     <button
@@ -521,9 +540,9 @@ export default function KritikSaranAdminPage() {
                       disabled={updateLoading || selectedItem.status === status}
                       style={{
                         padding: '0.5rem 1rem', borderRadius: '8px', border: '1.5px solid',
-                        borderColor: selectedItem.status === status ? STATUS_LABELS[status].color : '#e2e8f0',
-                        background: selectedItem.status === status ? STATUS_LABELS[status].bg : 'white',
-                        color: selectedItem.status === status ? STATUS_LABELS[status].color : '#64748b',
+                        borderColor: selectedItem.status === status ? STATUS_LABELS[status].color : 'var(--border)',
+                        background: selectedItem.status === status ? STATUS_LABELS[status].bg : 'var(--surface)',
+                        color: selectedItem.status === status ? STATUS_LABELS[status].color : 'var(--text-3)',
                         fontSize: '0.875rem', fontWeight: 600, cursor: selectedItem.status === status ? 'default' : 'pointer',
                         opacity: selectedItem.status === status ? 1 : 0.7,
                       }}
@@ -536,15 +555,15 @@ export default function KritikSaranAdminPage() {
 
               {/* Tanggapan */}
               <div>
-                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#475569', margin: '0 0 0.5rem' }}>Tanggapan</h3>
+                <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-2)', margin: '0 0 0.5rem' }}>Tanggapan</h3>
                 <textarea
                   value={tanggapan}
                   onChange={(e) => setTanggapan(e.target.value)}
                   placeholder="Tulis tanggapan atau tindak lanjut di sini..."
                   rows={4}
                   style={{
-                    width: '100%', padding: '0.75rem', border: '1.5px solid #e2e8f0',
-                    borderRadius: '8px', fontSize: '0.875rem', color: '#0f172a', resize: 'vertical',
+                    width: '100%', padding: '0.75rem', border: '1.5px solid var(--border)',
+                    borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text)', resize: 'vertical',
                     fontFamily: "'Segoe UI', system-ui, sans-serif", outline: 'none', boxSizing: 'border-box',
                   }}
                 />
@@ -562,7 +581,7 @@ export default function KritikSaranAdminPage() {
               </div>
 
               {isSuperAdmin && (
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
                   <button
                     onClick={() => { setDeleteItem(selectedItem); setDeleteStep(1) }}
                     style={{
@@ -589,7 +608,7 @@ export default function KritikSaranAdminPage() {
         }} onClick={() => { setDeleteItem(null); setDeleteStep(0) }}>
           <div
             style={{
-              background: 'white', borderRadius: '16px', maxWidth: '480px', width: '100%',
+              background: 'var(--surface)', borderRadius: '16px', maxWidth: '480px', width: '100%',
               padding: '1.5rem', boxShadow: '0 25px 50px rgba(0,0,0,0.25)',
             }}
             onClick={e => e.stopPropagation()}
@@ -599,7 +618,7 @@ export default function KritikSaranAdminPage() {
                 <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 0.75rem' }}>
                   ⚠️ Konfirmasi Hapus (1/2)
                 </h2>
-                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-2)', lineHeight: '1.6', marginBottom: '1.25rem' }}>
                   Anda akan menghapus kritik & saran dari <strong>{deleteItem.is_anonim ? 'Anonim' : (deleteItem.nama || 'Tidak diketahui')}</strong> untuk fasilitas <strong>{deleteItem.kategori || '-'}</strong> yang dikirim pada {formatDate(deleteItem.created_at)}.
                   <br /><br />
                   <span style={{ color: '#dc2626', fontWeight: 600 }}>Data yang dihapus tidak dapat dikembalikan.</span>
@@ -608,8 +627,8 @@ export default function KritikSaranAdminPage() {
                   <button
                     onClick={() => { setDeleteItem(null); setDeleteStep(0) }}
                     style={{
-                      flex: 1, padding: '0.625rem 1rem', background: '#f1f5f9',
-                      color: '#475569', border: 'none', borderRadius: '8px',
+                      flex: 1, padding: '0.625rem 1rem', background: 'var(--surface-3)',
+                      color: 'var(--text-2)', border: 'none', borderRadius: '8px',
                       fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
@@ -633,7 +652,7 @@ export default function KritikSaranAdminPage() {
                 <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#dc2626', margin: '0 0 0.75rem' }}>
                   ⚠️ Konfirmasi Final (2/2)
                 </h2>
-                <p style={{ fontSize: '0.875rem', color: '#475569', lineHeight: '1.6', marginBottom: '1.25rem' }}>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-2)', lineHeight: '1.6', marginBottom: '1.25rem' }}>
                   Apakah Anda <strong>benar-benar yakin</strong> ingin menghapus data ini secara permanen?
                   <br /><br />
                   <span style={{ color: '#dc2626', fontWeight: 600 }}>Tindakan ini tidak dapat dibatalkan.</span>
@@ -642,8 +661,8 @@ export default function KritikSaranAdminPage() {
                   <button
                     onClick={() => setDeleteStep(1)}
                     style={{
-                      flex: 1, padding: '0.625rem 1rem', background: '#f1f5f9',
-                      color: '#475569', border: 'none', borderRadius: '8px',
+                      flex: 1, padding: '0.625rem 1rem', background: 'var(--surface-3)',
+                      color: 'var(--text-2)', border: 'none', borderRadius: '8px',
                       fontSize: '0.875rem', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
@@ -672,11 +691,11 @@ export default function KritikSaranAdminPage() {
 
 function StatCard({ label, value, bg, color, suffix = '' }) {
   return (
-    <div style={{ background: 'white', borderRadius: '12px', padding: '1.25rem', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+    <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.25rem', border: '1px solid var(--border)', textAlign: 'center' }}>
       <div style={{ fontSize: '1.75rem', fontWeight: 800, color }}>
         {value}{suffix}
       </div>
-      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.25rem', fontWeight: 600 }}>
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.25rem', fontWeight: 600 }}>
         {label}
       </div>
     </div>

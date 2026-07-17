@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
+import { formatRupiah, formatRupiahShort as fmtShort, formatDate, formatDateShort } from '@/lib/utils/format';
 
 // ============ KONSTANTA ============
 const BULAN_LIST = [
@@ -23,32 +24,6 @@ const TRIWULAN = [
   { value: '4', label: 'Triwulan IV',  short: 'TW IV',  bulan: [10,11,12],range: 'Oktober – Desember' },
 ];
 
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
-
-const fmtShort = (n) => {
-  if (!n || isNaN(n)) return 'Rp 0';
-  if (n >= 1e9) return 'Rp ' + (n / 1e9).toFixed(1).replace('.', ',') + 'M';
-  if (n >= 1e6) return 'Rp ' + (n / 1e6).toFixed(1).replace('.', ',') + 'Jt';
-  return 'Rp ' + n.toLocaleString('id-ID');
-};
-
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
-};
-
-const formatDateShort = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'short', year: 'numeric'
-  });
-};
 
 function getDateRange(filterPeriode, filterBulan, filterTahun, filterTW, filterDateFrom, filterDateTo) {
   const y = parseInt(filterTahun);
@@ -399,7 +374,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem', letterSpacing: '0.5px' }}>
               LAPORAN REALISASI SERAPAN ANGGARAN
             </h3>
-            <p style={{ fontSize: '1rem', fontWeight: 600, color: '#1e293b', marginBottom: '0.25rem' }}>
+            <p style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>
               {dateRange.shortLabel || dateRange.label}
             </p>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-2)' }}>
@@ -416,24 +391,24 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
             <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
               Ringkasan Anggaran
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: '#f8fafc', padding: '1.25rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', background: 'var(--surface-2)', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <div style={{ textAlign: 'center', padding: '0.5rem' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Total Pagu TA {filterTahun}</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{formatRupiah(totals.pagu)}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', fontWeight: 500 }}>Total Pagu TA {filterTahun}</p>
+                <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)' }}>{formatRupiah(totals.pagu)}</p>
               </div>
-              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Pencairan Periode Ini</p>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', fontWeight: 500 }}>Pencairan Periode Ini</p>
                 <p style={{ fontSize: '1rem', fontWeight: 700, color: '#059669' }}>{formatRupiah(totals.pencairanPeriode)}</p>
-                <p style={{ fontSize: '0.6875rem', color: '#64748b' }}>{pencairanList.length} transaksi</p>
+                <p style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>{pencairanList.length} transaksi</p>
               </div>
-              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Sisa Anggaran</p>
-                <p style={{ fontSize: '1rem', fontWeight: 700, color: totals.pagu - totals.pencairanPeriode < 0 ? '#dc2626' : '#1e293b' }}>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', fontWeight: 500 }}>Sisa Anggaran</p>
+                <p style={{ fontSize: '1rem', fontWeight: 700, color: totals.pagu - totals.pencairanPeriode < 0 ? '#dc2626' : 'var(--text)' }}>
                   {formatRupiah(totals.pagu - totals.pencairanPeriode)}
                 </p>
               </div>
-              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid #e2e8f0' }}>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '0.5rem', fontWeight: 500 }}>Serapan</p>
+              <div style={{ textAlign: 'center', padding: '0.5rem', borderLeft: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: '0.5rem', fontWeight: 500 }}>Serapan</p>
                 <p style={{ fontSize: '1.25rem', fontWeight: 700, color: serapan >= 80 ? '#059669' : serapan >= 50 ? '#d97706' : '#dc2626' }}>
                   {serapan}%
                 </p>
@@ -446,8 +421,8 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
             <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
               Narasi Laporan
             </h4>
-            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem' }}>
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.875rem', lineHeight: 1.75, color: '#1e293b', margin: 0 }}>
+            <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '1.5rem' }}>
+              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.875rem', lineHeight: 1.75, color: 'var(--text)', margin: 0 }}>
                 {narasi}
               </pre>
             </div>
@@ -465,20 +440,20 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
               <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
                 Daftar Pencairan Periode Ini
               </h4>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
                 <table style={{ fontSize: '0.8125rem', width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: '#f1f5f9' }}>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '40px' }}>No</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Nama Pencairan</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '130px' }}>Tanggal</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '140px' }}>Jumlah</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '90px' }}>Status</th>
+                    <tr style={{ background: 'var(--surface-3)' }}>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '40px' }}>No</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid var(--border)' }}>Nama Pencairan</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '130px' }}>Tanggal</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '140px' }}>Jumlah</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '90px' }}>Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pencairanList.map((item, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={idx} style={{ borderBottom: '1px solid var(--surface-3)' }}>
                         <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{idx + 1}</td>
                         <td style={{ padding: '0.75rem 1rem' }}>{item.nama}</td>
                         <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{formatDateShort(item.tanggal)}</td>
@@ -492,7 +467,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                         </td>
                       </tr>
                     ))}
-                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                    <tr style={{ background: 'var(--surface-2)', fontWeight: 700 }}>
                       <td colSpan={3} style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>TOTAL</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(totals.pencairanPeriode)}</td>
                       <td />
@@ -509,26 +484,26 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
               <h4 style={{ fontSize: '0.9375rem', fontWeight: 600, marginBottom: '1rem', borderLeft: '3px solid var(--primary)', paddingLeft: '0.75rem' }}>
                 Rekap Program Kerja (Pagu Tahunan)
               </h4>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
                 <table style={{ fontSize: '0.8125rem', width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ background: '#f1f5f9' }}>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '40px' }}>No</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid #e2e8f0' }}>Program Kerja</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '140px' }}>Pagu</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '140px' }}>SPJ</th>
-                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid #e2e8f0', width: '70px' }}>%</th>
+                    <tr style={{ background: 'var(--surface-3)' }}>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '40px' }}>No</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'left', fontWeight: 600, borderBottom: '2px solid var(--border)' }}>Program Kerja</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '140px' }}>Pagu</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'right', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '140px' }}>SPJ</th>
+                      <th style={{ padding: '0.75rem 1rem', textAlign: 'center', fontWeight: 600, borderBottom: '2px solid var(--border)', width: '70px' }}>%</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.map((item, idx) => {
                       const pct = item.pagu > 0 ? Math.round((item.total_spj / item.pagu) * 100) : 0;
                       return (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--surface-3)' }}>
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>{idx + 1}</td>
                           <td style={{ padding: '0.75rem 1rem' }}>
                             <div style={{ fontWeight: 500 }}>{item.nama}</div>
-                            <div style={{ fontSize: '0.6875rem', color: '#64748b' }}>{item.unit_kerja}</div>
+                            <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>{item.unit_kerja}</div>
                           </td>
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.pagu)}</td>
                           <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.total_spj)}</td>
@@ -536,7 +511,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                         </tr>
                       );
                     })}
-                    <tr style={{ background: '#f8fafc', fontWeight: 700 }}>
+                    <tr style={{ background: 'var(--surface-2)', fontWeight: 700 }}>
                       <td colSpan={2} style={{ padding: '0.75rem 1rem', textAlign: 'right' }}>TOTAL</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(totals.pagu)}</td>
                       <td style={{ padding: '0.75rem 1rem', textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(totals.spj)}</td>
@@ -552,18 +527,18 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
           <div className="page-break" style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2.5rem', padding: '0 1rem' }}>
             <div style={{ textAlign: 'center', width: '220px' }}>
               <p style={{ fontSize: '0.875rem', marginBottom: '4rem' }}>Dibuat oleh,</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, borderTop: '1px solid #334155', paddingTop: '0.375rem' }}>Penanggung Jawab</p>
-              <p style={{ fontSize: '0.8125rem', color: '#64748b' }}>NIP. ....................</p>
+              <p style={{ fontSize: '0.875rem', fontWeight: 600, borderTop: '1px solid var(--text)', paddingTop: '0.375rem' }}>Penanggung Jawab</p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>NIP. ....................</p>
             </div>
             <div style={{ textAlign: 'center', width: '220px' }}>
               <p style={{ fontSize: '0.875rem', marginBottom: '4rem' }}>Mengetahui,</p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, borderTop: '1px solid #334155', paddingTop: '0.375rem' }}>Kepala Direktorat USC</p>
-              <p style={{ fontSize: '0.8125rem', color: '#64748b' }}>NIP. ....................</p>
+              <p style={{ fontSize: '0.875rem', fontWeight: 600, borderTop: '1px solid var(--text)', paddingTop: '0.375rem' }}>Kepala Direktorat USC</p>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>NIP. ....................</p>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e2e8f0' }}>
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border)' }}>
             <button className="btn btn-ghost" onClick={onClose}>Tutup</button>
             <button className="btn btn-primary" onClick={() => window.print()}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>

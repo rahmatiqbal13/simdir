@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUsers } from '@/context/UsersContext';
+import { useToast } from '@/app/components/Toast';
 
 // Role configurations
 const ROLE_CONFIGS = {
@@ -310,7 +311,7 @@ function UserTable({ users, canEdit, onEdit, onToggleStatus, onDelete }) {
 }
 
 // ============ KOMPONEN MODAL ============
-function UserModal({ user, onSave, onClose }) {
+function UserModal({ user, onSave, onClose, actionLoading }) {
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === 'Escape') onClose();
@@ -454,9 +455,9 @@ function UserModal({ user, onSave, onClose }) {
             </div>
           </div>
           <div className="card-form-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary">
-              {user?.id ? 'Simpan Perubahan' : 'Tambah User'}
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={actionLoading}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={actionLoading}>
+              {actionLoading ? 'Menyimpan...' : (user?.id ? 'Simpan Perubahan' : 'Tambah User')}
             </button>
           </div>
         </form>
@@ -548,6 +549,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
 // ============ HALAMAN UTAMA ============
 export default function UsersPage() {
   const { users, loading, error, addUser, updateUser, deleteUser, toggleUserStatus, refreshUsers } = useUsers();
+  const { error: toastError } = useToast();
 
   // States
   const [searchQuery, setSearchQuery] = useState('');
@@ -560,7 +562,13 @@ export default function UsersPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const userRole = 'super_admin';
+  const [userRole, setUserRole] = useState('');
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('simdir_session');
+      if (s) setUserRole(JSON.parse(atob(s)).role || '');
+    } catch {}
+  }, []);
   const canEdit = userRole === 'super_admin';
 
   // Filter users
@@ -619,7 +627,7 @@ export default function UsersPage() {
       setShowModal(false);
       setEditingItem(null);
     } catch (err) {
-      alert('Gagal menyimpan user: ' + err.message);
+      toastError('Gagal menyimpan user: ' + err.message);
     } finally {
       setActionLoading(false);
     }
@@ -632,7 +640,7 @@ export default function UsersPage() {
         await toggleUserStatus(id, user.is_active);
       }
     } catch (err) {
-      alert('Gagal mengubah status: ' + err.message);
+      toastError('Gagal mengubah status: ' + err.message);
     }
   };
 
@@ -646,7 +654,7 @@ export default function UsersPage() {
       setActionLoading(true);
       await deleteUser(deleteConfirm);
     } catch (err) {
-      alert('Gagal menghapus user: ' + err.message);
+      toastError('Gagal menghapus user: ' + err.message);
     } finally {
       setActionLoading(false);
       setDeleteConfirm(null);
@@ -907,6 +915,7 @@ export default function UsersPage() {
           user={editingItem}
           onSave={handleSave}
           onClose={() => { setShowModal(false); setEditingItem(null); }}
+          actionLoading={actionLoading}
         />
       )}
 

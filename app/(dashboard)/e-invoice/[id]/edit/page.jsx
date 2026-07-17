@@ -4,19 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
+import { useToast } from '@/app/components/Toast';
+import { formatRupiah } from '@/lib/utils/format';
 
 // ============ KOMPONEN ITEM ROW ============
 function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
   const total = (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0);
 
   return (
-    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+    <tr style={{ borderBottom: '1px solid var(--border)' }}>
       <td style={{ padding: '0.75rem', textAlign: 'center', width: '50px' }}>
         {index + 1}
       </td>
@@ -26,7 +22,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           placeholder="Deskripsi item"
           value={item.deskripsi}
           onChange={(e) => onUpdate(index, 'deskripsi', e.target.value)}
-          style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+          style={{ width: '100%', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
         />
       </td>
       <td style={{ padding: '0.75rem', width: '100px' }}>
@@ -35,7 +31,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           placeholder="Qty"
           value={item.quantity}
           onChange={(e) => onUpdate(index, 'quantity', e.target.value)}
-          style={{ width: '100%', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+          style={{ width: '100%', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
           min="0"
           step="0.01"
         />
@@ -46,7 +42,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           placeholder="Harga"
           value={item.harga_satuan}
           onChange={(e) => onUpdate(index, 'harga_satuan', e.target.value)}
-          style={{ width: '100%', textAlign: 'right', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+          style={{ width: '100%', textAlign: 'right', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
           min="0"
         />
       </td>
@@ -56,14 +52,12 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
       <td style={{ padding: '0.75rem', width: '50px', textAlign: 'center' }}>
         <button
           type="button"
+          className="btn btn-ghost btn-sm btn-icon"
           onClick={() => onRemove(index)}
           disabled={!canRemove}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: canRemove ? '#dc2626' : '#94a3b8', 
-            cursor: canRemove ? 'pointer' : 'not-allowed',
-            padding: '0.25rem'
+          aria-label="Hapus item"
+          style={{
+            color: canRemove ? '#dc2626' : 'var(--text-3)',
           }}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 18, height: 18 }}>
@@ -95,7 +89,8 @@ export default function EditInvoicePage() {
   const params = useParams();
   const router = useRouter();
   const invoiceId = params?.id;
-  
+  const { error } = useToast();
+
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
@@ -150,11 +145,7 @@ export default function EditInvoicePage() {
         return;
       }
       
-      console.log('Starting fetch with invoiceId:', invoiceId, 'type:', typeof invoiceId);
-      
       try {
-        console.log('Fetching data for invoice:', invoiceId);
-        
         // Fetch customers first
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
@@ -164,9 +155,6 @@ export default function EditInvoicePage() {
         if (customersError) {
           console.error('Error fetching customers:', customersError);
           console.error('Customers error details:', JSON.stringify(customersError));
-        } else {
-          console.log('Customers loaded:', customersData?.length || 0, 'customers');
-          console.log('First customer:', customersData?.[0]);
         }
         setCustomers(customersData || []);
         
@@ -187,9 +175,7 @@ export default function EditInvoicePage() {
             .single();
           
           if (fallbackError) throw fallbackError;
-          
-          console.log('Invoice data (fallback):', fallbackData);
-          
+
           setFormData({
             customer_id: fallbackData.customer_id || '',
             tanggal_invoice: fallbackData.tanggal_invoice || '',
@@ -246,13 +232,6 @@ export default function EditInvoicePage() {
             total: fallbackData.total || 0,
           });
         } else {
-          console.log('Invoice data:', invoiceData);
-          console.log('Subtotal:', invoiceData.subtotal);
-          console.log('PPN:', invoiceData.ppn_nilai, 'Persen:', invoiceData.ppn_persen);
-          console.log('Diskon:', invoiceData.diskon_nilai);
-          console.log('Biaya Pengiriman:', invoiceData.biaya_pengiriman);
-          console.log('Total:', invoiceData.total);
-          
           setFormData({
             customer_id: invoiceData.customer_id || '',
             tanggal_invoice: invoiceData.tanggal_invoice || '',
@@ -319,7 +298,6 @@ export default function EditInvoicePage() {
         }
         
         // Fetch items
-        console.log('Fetching items for invoice_id:', invoiceId);
         const { data: itemsData, error: itemsError } = await supabase
           .from('invoice_items')
           .select('*')
@@ -331,12 +309,9 @@ export default function EditInvoicePage() {
           console.error('Items error details:', JSON.stringify(itemsError));
           console.error('Items error message:', itemsError.message);
           console.error('Items error code:', itemsError.code);
-          // Don't throw, just log and continue with empty items
-          console.log('Continuing with empty items...');
-            setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
+          // Don't throw, just continue with empty items
+          setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
         } else {
-          console.log('Items data:', itemsData);
-          
           if (itemsData && itemsData.length > 0) {
             setItems(itemsData.map(item => ({
               id: item.id,
@@ -346,14 +321,13 @@ export default function EditInvoicePage() {
               satuan: item.satuan || '',
             })));
           } else {
-            console.log('No items found, using default');
-          setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
+            setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
           }
         }
       } catch (err) {
         console.error('Error fetching data:', err);
         console.error('Error stack:', err.stack);
-        alert('Gagal memuat data invoice: ' + (err.message || 'Unknown error') + '\n\nCek console browser (F12) untuk detail lebih lanjut.');
+        error('Gagal memuat data invoice: ' + (err.message || 'Unknown error') + '\n\nCek console browser (F12) untuk detail lebih lanjut.');
       } finally {
         setFetchingData(false);
       }
@@ -415,11 +389,6 @@ export default function EditInvoicePage() {
 
   // Get selected customer info
   const selectedCustomer = customers.find(c => c.id === formData.customer_id);
-  
-  // Debug logging
-  console.log('Debug - customers count:', customers.length);
-  console.log('Debug - formData.customer_id:', formData.customer_id);
-  console.log('Debug - selectedCustomer:', selectedCustomer);
 
   // Handle item update
   const updateItem = (index, field, value) => {
@@ -456,20 +425,20 @@ export default function EditInvoicePage() {
     e.preventDefault();
     
     if (!formData.customer_id) {
-      alert('Silakan pilih pelanggan terlebih dahulu.');
+      error('Silakan pilih pelanggan terlebih dahulu.');
       return;
     }
-    
+
     // Filter only valid items (with description)
     const validItems = items.filter(item => item.deskripsi && item.deskripsi.trim() !== '');
-    
+
     if (validItems.length === 0) {
-      alert('Invoice harus memiliki minimal satu item dengan deskripsi.');
+      error('Invoice harus memiliki minimal satu item dengan deskripsi.');
       return;
     }
-    
+
     if (!formData.tanggal_invoice || !formData.tanggal_jatuh_tempo) {
-      alert('Tanggal invoice dan jatuh tempo harus diisi.');
+      error('Tanggal invoice dan jatuh tempo harus diisi.');
       return;
     }
     
@@ -534,7 +503,7 @@ export default function EditInvoicePage() {
       router.push(`/e-invoice/${invoiceId}`);
     } catch (err) {
       console.error('Error updating invoice:', err);
-      alert('Gagal mengupdate invoice: ' + (err.message || 'Terjadi kesalahan'));
+      error('Gagal mengupdate invoice: ' + (err.message || 'Terjadi kesalahan'));
       setLoading(false);
     }
   };
@@ -593,7 +562,7 @@ export default function EditInvoicePage() {
                       type="date"
                       value={formData.tanggal_invoice}
                       onChange={(e) => setFormData({ ...formData, tanggal_invoice: e.target.value })}
-                      style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+                      style={{ width: '150px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
                       required
                     />
                   </div>
@@ -603,7 +572,7 @@ export default function EditInvoicePage() {
                       type="date"
                       value={formData.tanggal_jatuh_tempo}
                       onChange={(e) => setFormData({ ...formData, tanggal_jatuh_tempo: e.target.value })}
-                      style={{ width: '150px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem' }}
+                      style={{ width: '150px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem' }}
                       required
                     />
                   </div>
@@ -624,7 +593,7 @@ export default function EditInvoicePage() {
                   <select
                     value={formData.customer_id}
                     onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    style={{ width: '100%', maxWidth: '400px', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                    style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                     required
                   >
                     <option value="">-- Pilih Pelanggan --</option>
@@ -654,35 +623,39 @@ export default function EditInvoicePage() {
 
           {/* Items Table */}
           <div className="card">
-            <div className="card-header" style={{ backgroundColor: '#64748b', color: 'white' }}>
+            <div className="card-header" style={{ backgroundColor: 'var(--text-3)', color: 'white' }}>
               <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Item Invoice</h3>
             </div>
             <div className="card-body" style={{ padding: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f1f5f9' }}>
-                    <th style={{ padding: '0.75rem', textAlign: 'center', width: '50px', fontSize: '0.875rem', fontWeight: 600 }}>No</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Deskripsi *</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'center', width: '100px', fontSize: '0.875rem', fontWeight: 600 }}>Jumlah</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Harga Satuan</th>
-                    <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Total</th>
-                    <th style={{ padding: '0.75rem', width: '50px' }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
-                    <InvoiceItemRow
-                      key={index}
-                      item={item}
-                      index={index}
-                      onUpdate={updateItem}
-                      onRemove={removeItem}
-                      canRemove={items.length > 1}
-                    />
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ padding: '1rem', borderTop: '1px solid #e2e8f0' }}>
+              <div className="table-wrap">
+                <div className="table-scroll">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--surface-3)' }}>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', width: '50px', fontSize: '0.875rem', fontWeight: 600 }}>No</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: 600 }}>Deskripsi *</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'center', width: '100px', fontSize: '0.875rem', fontWeight: 600 }}>Jumlah</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Harga Satuan</th>
+                        <th style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontSize: '0.875rem', fontWeight: 600 }}>Total</th>
+                        <th style={{ padding: '0.75rem', width: '50px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <InvoiceItemRow
+                          key={index}
+                          item={item}
+                          index={index}
+                          onUpdate={updateItem}
+                          onRemove={removeItem}
+                          canRemove={items.length > 1}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              <div style={{ padding: '1rem', borderTop: '1px solid var(--border)' }}>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -715,13 +688,13 @@ export default function EditInvoicePage() {
 
                 {/* Right - Summary */}
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: '0.875rem' }}>Sub Total</span>
                     <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatRupiah(subtotal)}</span>
                   </div>
                   
                   {/* Pajak */}
-                  <div style={{ padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
@@ -773,7 +746,7 @@ export default function EditInvoicePage() {
                               style={{ 
                                 width: '80px', 
                                 textAlign: 'right',
-                                border: '1px solid #cbd5e1',
+                                border: '1px solid var(--border-strong)',
                                 borderRadius: '4px',
                                 padding: '0.5rem',
                                 fontFamily: 'monospace'
@@ -795,7 +768,7 @@ export default function EditInvoicePage() {
                             style={{ 
                               width: '150px', 
                               textAlign: 'right',
-                              border: '1px solid #cbd5e1',
+                              border: '1px solid var(--border-strong)',
                               borderRadius: '4px',
                               padding: '0.5rem',
                               fontFamily: 'monospace'
@@ -807,7 +780,7 @@ export default function EditInvoicePage() {
                   </div>
                   
                   {/* Diskon */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input
                         type="checkbox"
@@ -825,17 +798,17 @@ export default function EditInvoicePage() {
                       style={{ 
                         width: '150px', 
                         textAlign: 'right',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
                         fontFamily: 'monospace',
-                        backgroundColor: diskon.aktif ? 'white' : 'var(--surface-2)'
+                        backgroundColor: diskon.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
                   </div>
                   
                   {/* Biaya Pengiriman */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid #e2e8f0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 0', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <input
                         type="checkbox"
@@ -853,11 +826,11 @@ export default function EditInvoicePage() {
                       style={{ 
                         width: '150px', 
                         textAlign: 'right',
-                        border: '1px solid #cbd5e1',
+                        border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
                         fontFamily: 'monospace',
-                        backgroundColor: biayaPengiriman.aktif ? 'white' : 'var(--surface-2)'
+                        backgroundColor: biayaPengiriman.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
                   </div>
@@ -868,7 +841,7 @@ export default function EditInvoicePage() {
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     padding: '1rem 0',
-                    backgroundColor: '#e2e8f0',
+                    backgroundColor: 'var(--border)',
                     marginTop: '0.5rem',
                     paddingLeft: '1rem',
                     paddingRight: '1rem',

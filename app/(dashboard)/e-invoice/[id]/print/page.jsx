@@ -4,59 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
+import { formatRupiah, formatDate } from '@/lib/utils/format';
+import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
-// ============ KONSTANTA ============
-const STATUS_CONFIG = {
-  dibuat: { 
-    label: 'Dibuat', 
-    color: '#64748b', 
-    bgColor: '#f1f5f9',
-    stamp: null 
-  },
-  dikirim: { 
-    label: 'Dikirim', 
-    color: '#3b82f6', 
-    bgColor: '#dbeafe',
-    stamp: 'dikirim' 
-  },
-  disetujui: { 
-    label: 'Disetujui', 
-    color: '#8b5cf6', 
-    bgColor: '#ede9fe',
-    stamp: 'disetujui' 
-  },
-  segera: { 
-    label: 'Segera', 
-    color: '#f59e0b', 
-    bgColor: '#fef3c7',
-    stamp: 'segera' 
-  },
-  jatuh_tempo: { 
-    label: 'Jatuh Tempo', 
-    color: '#dc2626', 
-    bgColor: '#fee2e2',
-    stamp: 'jatuh_tempo' 
-  },
-  lunas: { 
-    label: 'Lunas', 
-    color: '#059669', 
-    bgColor: '#d1fae5',
-    stamp: 'lunas' 
-  },
-};
+// Cetak butuh warna sebagai hex mentah (bukan var(--x)), jadi map field
+// `color` ke `hex` dari sumber status yang sama dengan halaman lain.
+const STATUS_CONFIG = Object.fromEntries(
+  Object.entries(INVOICE_STATUS).map(([key, v]) => [key, { label: v.label, color: v.hex, stamp: v.stamp }])
+);
 
-// ============ HELPERS ============
-const formatRupiah = (num) => {
-  if (!num || isNaN(num)) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
-};
-
-const formatDate = (date) => {
-  if (!date) return '-';
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
-};
 
 const terbilang = (angka) => {
   const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
