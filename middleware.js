@@ -12,6 +12,7 @@ const ROLE_RULES = [
   { prefix: '/pengaturan', roles: ['super_admin'] },
   { prefix: '/tv-pamflet', roles: ['super_admin', 'admin'] },
   { prefix: '/kelola-kritik-saran', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { prefix: '/kelola-tamu', roles: ['super_admin', 'admin', 'pimpinan'] },
 ]
 
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
@@ -30,6 +31,10 @@ function isPublicPath(pathname, method) {
   if (pathname === '/kritik-saran' || pathname.startsWith('/kritik-saran?')) {
     return true
   }
+  // Public guest book form (exact path) — dipakai di kiosk/tablet resepsionis
+  if (pathname === '/daftar-tamu' || pathname.startsWith('/daftar-tamu?')) {
+    return true
+  }
   if (pathname.startsWith('/api/auth/')) return true
   // Dipakai oleh tampilan TV publik (/agenda/tv) — hanya method baca yang publik.
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
@@ -37,6 +42,8 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/app-settings' && method === 'GET') return true
   // Public feedback submission endpoint
   if (pathname === '/api/kritik-saran' && method === 'POST') return true
+  // Public guest book submission endpoint
+  if (pathname === '/api/tamu' && method === 'POST') return true
   // Public questions endpoint (for feedback form)
   if (pathname === '/api/pertanyaan-kritik-saran' && method === 'GET') return true
   return false
