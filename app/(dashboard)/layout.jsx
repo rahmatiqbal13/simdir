@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client'
 import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
 import MobileBottomNav from '@/app/components/MobileBottomNav'
+import ThemeToggle from '@/app/components/ThemeToggle'
 import { NAV_ICONS as icons, getSidebarItems, getPaletteItems } from '@/app/components/navConfig'
 
 function CommandPalette({ open, onClose, items, icons }) {
@@ -39,7 +40,7 @@ function CommandPalette({ open, onClose, items, icons }) {
       onClick={onClose}
     >
       <div
-        style={{ background:'white', borderRadius:16, width:'100%', maxWidth:560, boxShadow:'0 20px 40px rgba(15,23,42,0.18)', overflow:'hidden', animation:'modalIn .18s ease' }}
+        style={{ background:'var(--surface)', borderRadius:16, width:'100%', maxWidth:560, boxShadow:'0 20px 40px rgba(15,23,42,0.18)', overflow:'hidden', animation:'modalIn .18s ease' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Search input */}
@@ -335,6 +336,7 @@ export default function DashboardLayout({ children }) {
 
           {/* Actions */}
           <div className="topbar-actions">
+            <ThemeToggle style={{ width: 40, height: 40, borderRadius: 10 }} />
             <button className="icon-btn" aria-label="Notifikasi">
               <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
               <span className="dot" aria-hidden="true" />
@@ -359,7 +361,7 @@ export default function DashboardLayout({ children }) {
               </button>
 
               {showUserMenu && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', minWidth: 200, zIndex: 100, animation: 'modalIn .15s ease', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', minWidth: 200, zIndex: 100, animation: 'modalIn .15s ease', overflow: 'hidden' }}>
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
                     <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text)' }}>{userName}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 2 }}>{userRole.replace('_', ' ')}</div>
@@ -410,6 +412,7 @@ export default function DashboardLayout({ children }) {
               <div className="mobile-header-sub">{items.find(item => item.href === pathname)?.label || 'USC'}</div>
             </div>
           </div>
+          <ThemeToggle style={{ width: 40, height: 40, border: 'none', background: 'none' }} />
           <button className="icon-btn" aria-label="Notifikasi" style={{ width: 40, height: 40 }}>
             <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
           </button>

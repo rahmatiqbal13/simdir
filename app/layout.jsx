@@ -51,8 +51,15 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id" dir="ltr">
+    <html lang="id" dir="ltr" suppressHydrationWarning>
       <head>
+        {/* Terapkan override tema tersimpan sebelum paint pertama, agar tidak flash
+            dan berlaku di halaman manapun tanpa menunggu ThemeToggle mount */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('simdir_theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}`,
+          }}
+        />
         {/* Font */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

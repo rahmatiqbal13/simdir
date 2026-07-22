@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { compressImage } from '@/lib/image'
 
 function getServiceClient() {
   return createClient(
@@ -142,7 +143,7 @@ export async function POST(request) {
       const storagePath = `pamflets/${timestamp}-${random}.${ext}`
 
       const arrayBuffer = await file.arrayBuffer()
-      const buffer = Buffer.from(arrayBuffer)
+      const buffer = await compressImage(Buffer.from(arrayBuffer), file.type, { maxWidth: 1920, quality: 80 })
 
       const { error: uploadError } = await supabase.storage
         .from('tv-pamflets')

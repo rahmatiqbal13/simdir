@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import ThemeToggle from '@/app/components/ThemeToggle'
 
 // Logo instansi — diambil dari pengaturan (fallback ke logo default)
 const InstansiLogo = ({ logoUrl }) => (
@@ -90,6 +91,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-shell">
+      <ThemeToggle style={{ position: 'fixed', top: 16, right: 16, zIndex: 10 }} />
       {/* Left Side - Branding (hidden on mobile) */}
       <div className="login-aside">
         <div className="login-aside-content">

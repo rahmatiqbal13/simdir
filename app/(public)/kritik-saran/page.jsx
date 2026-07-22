@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import ThemeToggle from '@/app/components/ThemeToggle'
 
 const FASILITAS_LIST = [
   'Achilles Gym Hub', 'Kolam Renang Unesa', 'Driving Golf Unesa',
@@ -477,13 +478,16 @@ function PublicHeader() {
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>
-        <a href="/penilaian" style={{
-          fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
-          textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
-          border: '1px solid #bfdbfe', background: '#eff6ff',
-        }}>
-          Penilaian Fasilitas
-        </a>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ThemeToggle style={{ width: 36, height: 36 }} />
+          <a href="/penilaian" style={{
+            fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
+            textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
+            border: '1px solid #bfdbfe', background: '#eff6ff',
+          }}>
+            Penilaian Fasilitas
+          </a>
+        </div>
       </div>
     </header>
   )

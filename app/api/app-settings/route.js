@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { compressImage } from '@/lib/image'
 
 const BUCKET = 'app-settings'
 const SETTINGS_FILE = 'branding.json'
@@ -62,9 +63,10 @@ export async function PUT(request) {
       const ext = (logoFile.name?.split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '')
       const path = `logo-${Date.now()}.${ext}`
       const arrayBuffer = await logoFile.arrayBuffer()
+      const compressed = await compressImage(Buffer.from(arrayBuffer), logoFile.type, { maxWidth: 800, quality: 82 })
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(path, Buffer.from(arrayBuffer), { contentType: logoFile.type, upsert: false })
+        .upload(path, compressed, { contentType: logoFile.type, upsert: false })
       if (uploadError) throw uploadError
 
       const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(path)

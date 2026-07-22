@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import ThemeToggle from '@/app/components/ThemeToggle'
 
 const KEPERLUAN_LIST = [
   { value: 'kunjungan_kerja', label: 'Kunjungan Kerja' },
@@ -30,12 +31,15 @@ function Req() {
 function PublicHeader({ brandName, logoUrl }) {
   return (
     <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100 }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <img src={logoUrl} alt={brandName} style={{ height: 32, width: 'auto', maxWidth: 120, objectFit: 'contain' }} />
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>{brandName}</div>
-          <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Buku Tamu Digital</div>
+      <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src={logoUrl} alt={brandName} style={{ height: 32, width: 'auto', maxWidth: 120, objectFit: 'contain' }} />
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>{brandName}</div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Buku Tamu Digital</div>
+          </div>
         </div>
+        <ThemeToggle style={{ width: 36, height: 36 }} />
       </div>
     </header>
   )
