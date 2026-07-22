@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { compressImage } from '@/lib/image'
+
+const FOTO_BUCKET = 'tamu-foto'
 
 function getServiceClient() {
   return createClient(
@@ -30,7 +33,18 @@ export async function GET(request) {
       .range(offset, offset + limit - 1)
 
     if (error) throw error
-    return NextResponse.json(data || [])
+
+    const rows = data || []
+    const paths = rows.filter((r) => r.foto_path).map((r) => r.foto_path)
+    if (paths.length > 0) {
+      const { data: signed } = await supabase.storage.from(FOTO_BUCKET).createSignedUrls(paths, 3600)
+      const urlByPath = new Map((signed || []).map((s) => [s.path, s.signedUrl]))
+      for (const row of rows) {
+        if (row.foto_path) row.foto_url = urlByPath.get(row.foto_path) || null
+      }
+    }
+
+    return NextResponse.json(rows)
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Gagal memuat data' }, { status: 500 })
   }
@@ -39,14 +53,17 @@ export async function GET(request) {
 // POST /api/tamu — isi buku tamu (publik, tanpa login — dipakai di kiosk/tablet resepsionis)
 export async function POST(request) {
   try {
-    const body = await request.json()
+    const formData = await request.formData()
 
-    const namaLengkap = (body.nama_lengkap || '').trim()
-    const instansi = (body.instansi || '').trim()
-    const telepon = (body.telepon || '').trim()
-    const email = (body.email || '').trim()
-    const keperluan = body.keperluan
-    const unitDituju = (body.unit_dituju || '').trim()
+    const namaLengkap = (formData.get('nama_lengkap') || '').trim()
+    const instansi = (formData.get('instansi') || '').trim()
+    const telepon = (formData.get('telepon') || '').trim()
+    const email = (formData.get('email') || '').trim()
+    const keperluan = formData.get('keperluan')
+    const unitDituju = (formData.get('unit_dituju') || '').trim()
+    const tandaTangan = formData.get('tanda_tangan')
+    const fotoFile = formData.get('foto')
+    const supabase = getServiceClient()
 
     if (!namaLengkap) {
       return NextResponse.json({ error: 'Nama lengkap wajib diisi' }, { status: 400 })
@@ -64,9 +81,34 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unit/fasilitas yang dituju wajib diisi' }, { status: 400 })
     }
 
-    const jumlahRombongan = Math.max(1, parseInt(body.jumlah_rombongan, 10) || 1)
+    let fotoPath = null
+    if (fotoFile && fotoFile instanceof Blob && fotoFile.size > 0) {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!allowedTypes.includes(fotoFile.type)) {
+        return NextResponse.json({ error: 'Format foto harus JPG, PNG, atau WebP' }, { status: 400 })
+      }
+      if (fotoFile.size > 5 * 1024 * 1024) {
+        return NextResponse.json({ error: 'Ukuran foto maksimal 5MB' }, { status: 400 })
+      }
 
-    const supabase = getServiceClient()
+      const ext = (fotoFile.name?.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '')
+      const timestamp = Date.now()
+      const random = Math.random().toString(36).substring(2, 8)
+      const storagePath = `foto/${timestamp}-${random}.${ext}`
+
+      const arrayBuffer = await fotoFile.arrayBuffer()
+      const compressed = await compressImage(Buffer.from(arrayBuffer), fotoFile.type, { maxWidth: 1000, quality: 82 })
+
+      const { error: uploadError } = await supabase.storage
+        .from(FOTO_BUCKET)
+        .upload(storagePath, compressed, { contentType: fotoFile.type, upsert: false })
+      if (uploadError) throw uploadError
+
+      fotoPath = storagePath
+    }
+
+    const jumlahRombongan = Math.max(1, parseInt(formData.get('jumlah_rombongan'), 10) || 1)
+
     const { data, error } = await supabase
       .from('tamu')
       .insert([{
@@ -75,16 +117,20 @@ export async function POST(request) {
         telepon: telepon || null,
         email: email || null,
         keperluan,
-        keperluan_detail: (body.keperluan_detail || '').trim() || null,
+        keperluan_detail: (formData.get('keperluan_detail') || '').trim() || null,
         unit_dituju: unitDituju,
-        nama_ditemui: (body.nama_ditemui || '').trim() || null,
+        nama_ditemui: (formData.get('nama_ditemui') || '').trim() || null,
         jumlah_rombongan: jumlahRombongan,
-        tanda_tangan: body.tanda_tangan || null,
+        tanda_tangan: tandaTangan || null,
+        foto_path: fotoPath,
       }])
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      if (fotoPath) await supabase.storage.from(FOTO_BUCKET).remove([fotoPath])
+      throw error
+    }
     return NextResponse.json(data, { status: 201 })
   } catch (err) {
     return NextResponse.json({ error: err.message || 'Gagal menyimpan data' }, { status: 500 })
@@ -106,8 +152,14 @@ export async function DELETE(request) {
     }
 
     const supabase = getServiceClient()
+    const { data: existing } = await supabase.from('tamu').select('foto_path').eq('id', id).single()
+
     const { error } = await supabase.from('tamu').delete().eq('id', id)
     if (error) throw error
+
+    if (existing?.foto_path) {
+      await supabase.storage.from(FOTO_BUCKET).remove([existing.foto_path])
+    }
 
     return NextResponse.json({ success: true })
   } catch (err) {

@@ -193,6 +193,12 @@ export default function KelolaTamuPage() {
               {selectedItem.nama_ditemui && <Detail label="Nama yang Ditemui" value={selectedItem.nama_ditemui} />}
               <Detail label="Jumlah Rombongan" value={String(selectedItem.jumlah_rombongan)} />
               <Detail label="Waktu Kunjungan" value={fmtDate(selectedItem.created_at)} />
+              {selectedItem.foto_url && (
+                <div>
+                  <div className="muted" style={{ fontSize: '0.75rem', marginBottom: 6 }}>Foto</div>
+                  <img src={selectedItem.foto_url} alt="Foto tamu" style={{ width: 160, height: 160, objectFit: 'cover', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface-2)' }} />
+                </div>
+              )}
               {selectedItem.tanda_tangan && (
                 <div>
                   <div className="muted" style={{ fontSize: '0.75rem', marginBottom: 6 }}>Tanda Tangan</div>
