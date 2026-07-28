@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { UNIT_COLORS } from '../tv/unit-colors'
 import { MONTHS_L, DAYS, useStageScale, useTheme, useClock, sortActiveAgenda } from '../tv/shared'
 import AgendaTvTable from '../tv/AgendaTvTable'
+import ProgramKerjaTvPanel from './ProgramKerjaTvPanel'
 
 // Halaman TV internal — menampilkan SEMUA agenda (internal + publik), tanpa
 // panel media/pamflet, tanpa login, dan tanpa entri menu (akses lewat URL
@@ -45,7 +46,8 @@ export default function AgendaTVInternalPage() {
       .catch(() => {})
   }, [])
 
-  const [agenda, setAgenda]   = useState([])
+  const [agenda, setAgenda]           = useState([])
+  const [programKerja, setProgramKerja] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
@@ -58,6 +60,12 @@ export default function AgendaTVInternalPage() {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
       } else { setAgenda(data || []); setError(null) }
+
+      const { data: pkData, error: pkErr } = await supabase
+        .from('program_kerja_pui')
+        .select('*, unit_kerja(nama, kode)')
+      if (pkErr) console.error('Gagal memuat program kerja:', pkErr)
+      else setProgramKerja(pkData || [])
     } catch (e) {
       console.error('Load error:', e)
       setError('Terjadi kesalahan')
@@ -192,9 +200,14 @@ export default function AgendaTVInternalPage() {
           </div>
         </header>
 
-        {/* ── MAIN: full-width table ── */}
-        <main style={{ flex: 1, minHeight: 0, padding: '1.5vh 1.5vw', overflow: 'hidden' }}>
-          <AgendaTvTable agenda={filtered} t={t} scale={scale} />
+        {/* ── MAIN: Agenda | Program Kerja PUI, berdampingan ── */}
+        <main style={{ flex: 1, minHeight: 0, padding: '1.5vh 1.5vw', overflow: 'hidden', display: 'flex', gap: '1.5vw' }}>
+          <div style={{ flex: '0 1 55%', minWidth: 0, height: '100%' }}>
+            <AgendaTvTable agenda={filtered} t={t} scale={scale} />
+          </div>
+          <div style={{ flex: '0 1 45%', minWidth: 0, height: '100%' }}>
+            <ProgramKerjaTvPanel items={programKerja} t={t} scale={scale} />
+          </div>
         </main>
       </div>
 

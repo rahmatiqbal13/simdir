@@ -130,6 +130,7 @@ export const ALL_NAV_ITEMS = [
   { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin', 'admin'] },
   { key: 'kelola-saran', href: '/kelola-saran', label: 'Kritik & Saran', shortLabel: 'Saran', icon: 'message', roles: ['super_admin', 'admin', 'pimpinan'] },
   { key: 'kelola-tamu', href: '/kelola-tamu', label: 'Daftar Tamu', shortLabel: 'Tamu', icon: 'guests', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'admin', 'pimpinan'] },
   { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'] },
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'] },
@@ -139,10 +140,10 @@ export const ALL_NAV_ITEMS = [
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'e-invoice', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
   admin_keuangan: ['dashboard', 'laporan'],
-  admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu'],
-  pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'laporan'],
+  admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui'],
+  pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'laporan'],
 }
 
 // Item terpilih untuk bottom nav mobile (maks. 3 + tombol "Menu" statis), per role.
