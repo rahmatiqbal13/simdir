@@ -13,6 +13,7 @@ const ROLE_RULES = [
   { prefix: '/tv-pamflet', roles: ['super_admin', 'admin'] },
   { prefix: '/kelola-kritik-saran', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/kelola-tamu', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { prefix: '/kelola-program-kerja', roles: ['super_admin', 'admin', 'pimpinan'] },
 ]
 
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
@@ -22,6 +23,10 @@ const TV_PAMFLET_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/tv-pamflet').
 // Endpoint yang mengubah nama instansi/logo lewat service-role key — ikut
 // aturan role halaman /pengaturan (super_admin saja).
 const APP_SETTINGS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+
+// Endpoint program kerja PUI lewat service-role key dan tidak punya
+// pengecekan role sendiri — harus ikut aturan role halaman /kelola-program-kerja.
+const PROGRAM_KERJA_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-program-kerja').roles
 
 function isPublicPath(pathname, method) {
   if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
@@ -171,6 +176,10 @@ export async function middleware(request) {
   }
 
   if (pathname.startsWith('/api/app-settings') && !APP_SETTINGS_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/program-kerja') && !PROGRAM_KERJA_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
