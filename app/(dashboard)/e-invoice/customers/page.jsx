@@ -471,6 +471,7 @@ export default function CustomersPage() {
         </div>
         <div className="card-body" style={{ padding: 0 }}>
           <div className="table-wrap">
+            <div className="table-scroll">
             <table>
               <thead>
                 <tr>
@@ -581,6 +582,7 @@ export default function CustomersPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       </div>

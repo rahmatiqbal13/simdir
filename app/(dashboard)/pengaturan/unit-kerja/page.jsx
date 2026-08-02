@@ -124,8 +124,8 @@ function UnitCard({ unit, index, canEdit, onEdit, onToggleStatus, onDelete }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
               <strong style={{ fontSize: '0.9375rem' }}>{unit.nama}</strong>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <code style={{ 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <code style={{
                 background: 'var(--surface-2)', 
                 padding: '0.125rem 0.375rem', 
                 borderRadius: 'var(--radius)',

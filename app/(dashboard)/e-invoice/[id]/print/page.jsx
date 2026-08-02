@@ -160,17 +160,19 @@ export default function PrintInvoicePage() {
   return (
     <div>
       {/* Print Controls */}
-      <div className="no-print" style={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        right: 0, 
-        padding: '1rem', 
+      <div className="no-print" style={{
+        position: 'sticky',
+        top: 0,
+        left: 0,
+        right: 0,
+        padding: '1rem',
         background: 'white',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: '0.75rem',
+        flexWrap: 'wrap',
         zIndex: 100,
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
       }}>
@@ -205,12 +207,12 @@ export default function PrintInvoicePage() {
       </div>
 
       {/* Invoice Content */}
-      <div className="invoice-print-container" style={{ 
+      <div className="invoice-print-scroll no-print-scroll" style={{ overflowX: 'auto' }}>
+      <div className="invoice-print-container" style={{
         maxWidth: '210mm',
         minHeight: '297mm',
         margin: '0 auto',
         padding: '20mm',
-        paddingTop: '100px',
         paddingBottom: '25mm',
         background: 'white',
         boxSizing: 'border-box',
@@ -492,6 +494,7 @@ export default function PrintInvoicePage() {
           Dokumen ini digenerate secara elektronik melalui sistem SIMDIR E-Invoice
         </div>
       </div>
+      </div>
 
       {/* Print Styles */}
       <style>{`
@@ -512,7 +515,11 @@ export default function PrintInvoicePage() {
             padding: 0 !important;
             overflow: visible !important;
           }
-          
+
+          .invoice-print-scroll {
+            overflow: visible !important;
+          }
+
           /* Hide UI elements */
           .no-print,
           nav,

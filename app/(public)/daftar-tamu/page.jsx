@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import ThemeToggle from '@/app/components/ThemeToggle'
+import ConfirmModal from '@/app/components/ConfirmModal'
 
 const KEPERLUAN_LIST = [
   { value: 'kunjungan_kerja', label: 'Kunjungan Kerja' },
@@ -51,6 +52,38 @@ function SignaturePad({ onChange }) {
   const canvasRef = useRef(null)
   const drawingRef = useRef(false)
   const hasDrawnRef = useRef(false)
+  const strokeColorRef = useRef('#0f172a')
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false)
+
+  // Buffer internal canvas HARUS sama dengan ukuran render sesungguhnya
+  // (dikali devicePixelRatio), kalau tidak posisi coretan meleset dari
+  // posisi jari/pointer — lihat rect.width vs atribut width={560} lama.
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+
+    const setupSize = () => {
+      const rect = canvas.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) return
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = Math.round(rect.width * dpr)
+      canvas.height = Math.round(rect.height * dpr)
+      const ctx = canvas.getContext('2d')
+      ctx.scale(dpr, dpr)
+      // Resize (mis. rotasi tablet) membersihkan isi canvas — sinkronkan
+      // state form supaya tidak mengirim tanda tangan yang sudah hilang.
+      if (hasDrawnRef.current) {
+        hasDrawnRef.current = false
+        onChange(null)
+      }
+    }
+
+    setupSize()
+    const ro = new ResizeObserver(setupSize)
+    ro.observe(canvas)
+    return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const getPos = (e, canvas) => {
     const rect = canvas.getBoundingClientRect()
@@ -63,6 +96,8 @@ function SignaturePad({ onChange }) {
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')
     const { x, y } = getPos(e, canvas)
+    // Baca warna teks aktif (adaptif tema terang/gelap) alih-alih hardcode hex.
+    strokeColorRef.current = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#0f172a'
     drawingRef.current = true
     ctx.beginPath()
     ctx.moveTo(x, y)
@@ -76,7 +111,7 @@ function SignaturePad({ onChange }) {
     const { x, y } = getPos(e, canvas)
     ctx.lineWidth = 2
     ctx.lineCap = 'round'
-    ctx.strokeStyle = '#0f172a'
+    ctx.strokeStyle = strokeColorRef.current
     ctx.lineTo(x, y)
     ctx.stroke()
     hasDrawnRef.current = true
@@ -88,20 +123,26 @@ function SignaturePad({ onChange }) {
     if (hasDrawnRef.current) onChange(canvasRef.current.toDataURL('image/png'))
   }
 
-  const clear = () => {
-    if (hasDrawnRef.current && !window.confirm('Hapus tanda tangan ini?')) return
+  const requestClear = () => {
+    if (hasDrawnRef.current) {
+      setConfirmClearOpen(true)
+      return
+    }
+    doClear()
+  }
+
+  const doClear = () => {
     const canvas = canvasRef.current
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
     hasDrawnRef.current = false
     onChange(null)
+    setConfirmClearOpen(false)
   }
 
   return (
     <div>
       <canvas
         ref={canvasRef}
-        width={560}
-        height={150}
         aria-label="Area tanda tangan (opsional) — gambar dengan mouse atau jari"
         style={{ width: '100%', height: 150, borderRadius: 10, border: '1px dashed var(--border-strong)', background: 'var(--surface-2)', touchAction: 'none', cursor: 'crosshair' }}
         onMouseDown={start}
@@ -112,9 +153,17 @@ function SignaturePad({ onChange }) {
         onTouchMove={move}
         onTouchEnd={end}
       />
-      <button type="button" onClick={clear} className="btn btn-ghost btn-sm" style={{ marginTop: 6 }}>
+      <button type="button" onClick={requestClear} className="btn btn-ghost btn-sm" style={{ marginTop: 6, minHeight: 44 }}>
         Hapus Tanda Tangan
       </button>
+      <ConfirmModal
+        open={confirmClearOpen}
+        title="Hapus Tanda Tangan"
+        message="Hapus tanda tangan ini?"
+        confirmLabel="Ya, Hapus"
+        onConfirm={doClear}
+        onCancel={() => setConfirmClearOpen(false)}
+      />
     </div>
   )
 }
@@ -128,6 +177,7 @@ function PhotoCapture({ onChange }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
   const fileInputRef = useRef(null)
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false)
 
   const stopCamera = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -174,11 +224,13 @@ function PhotoCapture({ onChange }) {
     onChange(file)
   }
 
-  const reset = () => {
-    if (!window.confirm('Hapus foto ini dan ambil ulang?')) return
+  const requestReset = () => setConfirmResetOpen(true)
+
+  const doReset = () => {
     setPreviewUrl(null)
     onChange(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    setConfirmResetOpen(false)
   }
 
   if (previewUrl) {
@@ -186,10 +238,18 @@ function PhotoCapture({ onChange }) {
       <div>
         <img src={previewUrl} alt="Preview foto tamu" width={160} height={160} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
         <div>
-          <button type="button" onClick={reset} className="btn btn-ghost btn-sm" style={{ marginTop: 6 }}>
+          <button type="button" onClick={requestReset} className="btn btn-ghost btn-sm" style={{ marginTop: 6, minHeight: 44 }}>
             Ambil/Upload Ulang
           </button>
         </div>
+        <ConfirmModal
+          open={confirmResetOpen}
+          title="Ambil Ulang Foto"
+          message="Hapus foto ini dan ambil ulang?"
+          confirmLabel="Ya, Ambil Ulang"
+          onConfirm={doReset}
+          onCancel={() => setConfirmResetOpen(false)}
+        />
       </div>
     )
   }
@@ -199,8 +259,8 @@ function PhotoCapture({ onChange }) {
       <div>
         <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 320, borderRadius: 10, border: '1px solid var(--border)', background: '#000' }} />
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button type="button" onClick={capture} className="btn btn-primary btn-sm">Jepret</button>
-          <button type="button" onClick={stopCamera} className="btn btn-ghost btn-sm">Batal</button>
+          <button type="button" onClick={capture} className="btn btn-primary btn-sm" style={{ minHeight: 44 }}>Jepret</button>
+          <button type="button" onClick={stopCamera} className="btn btn-ghost btn-sm" style={{ minHeight: 44 }}>Batal</button>
         </div>
       </div>
     )
@@ -209,10 +269,10 @@ function PhotoCapture({ onChange }) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" onClick={startCamera} className="btn btn-outline btn-sm">Ambil Foto</button>
-        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-outline btn-sm">Upload dari Galeri</button>
+        <button type="button" onClick={startCamera} className="btn btn-outline btn-sm" style={{ minHeight: 44 }}>Ambil Foto</button>
+        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-outline btn-sm" style={{ minHeight: 44 }}>Upload dari Galeri</button>
       </div>
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleFileChange} style={{ display: 'none' }} />
       {cameraError && (
         <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: 'var(--danger)' }}>{cameraError}</p>
       )}
@@ -464,7 +524,7 @@ export default function DaftarTamuPage() {
                   aria-invalid={!!fieldErrors.keperluan}
                   aria-describedby={fieldErrors.keperluan ? 'err-keperluan' : undefined}
                 >
-                  <option value="">-- Pilih keperluan --</option>
+                  <option value="">Pilih keperluan…</option>
                   {KEPERLUAN_LIST.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
                 </select>
                 {fieldErrors.keperluan && <p id="err-keperluan" style={errorTextStyle}>{fieldErrors.keperluan}</p>}
@@ -489,7 +549,7 @@ export default function DaftarTamuPage() {
                   aria-invalid={!!fieldErrors.unit_dituju}
                   aria-describedby={fieldErrors.unit_dituju ? 'err-unit_dituju' : undefined}
                 >
-                  <option value="">-- Pilih unit/fasilitas --</option>
+                  <option value="">Pilih unit/fasilitas…</option>
                   {UNIT_DITUJU_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
                 </select>
                 {fieldErrors.unit_dituju && <p id="err-unit_dituju" style={errorTextStyle}>{fieldErrors.unit_dituju}</p>}

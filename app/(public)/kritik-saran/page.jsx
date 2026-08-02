@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ThemeToggle from '@/app/components/ThemeToggle'
 
 const FASILITAS_LIST = [
@@ -45,6 +45,18 @@ export default function KritikSaranPage() {
   const [done, setDone] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
+  const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
+  useEffect(() => {
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.brand_name) setBrandName(data.brand_name)
+        if (data.logo_url) setLogoUrl(data.logo_url)
+      })
+      .catch(() => {})
+  }, [])
 
   const [form, setForm] = useState({
     jenis: '', fasilitas: '', judul: '', isi: '',
@@ -116,7 +128,7 @@ export default function KritikSaranPage() {
   if (done) {
     return (
       <div style={pageStyle}>
-        <PublicHeader />
+        <PublicHeader brandName={brandName} logoUrl={logoUrl} />
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
           <div style={{
             maxWidth: 460, width: '100%', background: 'var(--surface)', borderRadius: 24,
@@ -154,7 +166,7 @@ export default function KritikSaranPage() {
 
   return (
     <div style={pageStyle}>
-      <PublicHeader />
+      <PublicHeader brandName={brandName} logoUrl={logoUrl} />
 
       <div style={{ flex: 1, padding: '28px 16px 40px' }}>
         <div style={{ maxWidth: 580, margin: '0 auto' }}>
@@ -464,7 +476,7 @@ export default function KritikSaranPage() {
   )
 }
 
-function PublicHeader() {
+function PublicHeader({ brandName, logoUrl }) {
   return (
     <header style={{
       background: 'var(--surface)', borderBottom: '1px solid var(--border)',
@@ -472,9 +484,9 @@ function PublicHeader() {
     }}>
       <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src="/images/logo USC.png" alt="USC" style={{ width: 36, height: 36, objectFit: 'contain' }} />
+          <img src={logoUrl} alt={brandName} style={{ width: 36, height: 36, objectFit: 'contain' }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>Unesa Science Center</div>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>{brandName}</div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>

@@ -441,6 +441,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                 Daftar Pencairan Periode Ini
               </h4>
               <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
                 <table style={{ fontSize: '0.8125rem', width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface-3)' }}>
@@ -474,6 +475,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -485,6 +487,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                 Rekap Program Kerja (Pagu Tahunan)
               </h4>
               <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
+                <div style={{ overflowX: 'auto' }}>
                 <table style={{ fontSize: '0.8125rem', width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface-3)' }}>
@@ -519,6 +522,7 @@ function PreviewModal({ show, onClose, dateRange, data, totals, pencairanList, t
                     </tr>
                   </tbody>
                 </table>
+                </div>
               </div>
             </div>
           )}
@@ -916,6 +920,7 @@ export default function LaporanPage() {
               </div>
               <div className="card-body" style={{ padding: 0 }}>
                 <div className="table-wrap">
+                  <div className="table-scroll">
                   <table>
                     <thead>
                       <tr>
@@ -948,6 +953,7 @@ export default function LaporanPage() {
                       </tr>
                     </tbody>
                   </table>
+                  </div>
                 </div>
               </div>
             </div>

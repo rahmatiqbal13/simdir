@@ -31,6 +31,10 @@ function isPublicPath(pathname, method) {
   if (pathname === '/kritik-saran' || pathname.startsWith('/kritik-saran?')) {
     return true
   }
+  // Public facility rating form (exact path) — diakses dari QR code TV/agenda
+  if (pathname === '/penilaian' || pathname.startsWith('/penilaian?')) {
+    return true
+  }
   // Public guest book form (exact path) — dipakai di kiosk/tablet resepsionis
   if (pathname === '/daftar-tamu' || pathname.startsWith('/daftar-tamu?')) {
     return true

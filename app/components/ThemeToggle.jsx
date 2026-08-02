@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useTheme } from '@/lib/theme'
 
 /**
@@ -10,17 +9,13 @@ import { useTheme } from '@/lib/theme'
  */
 export default function ThemeToggle({ style }) {
   const { theme, mounted, toggleTheme } = useTheme()
-  const [isDark, setIsDark] = useState(false)
-
-  useEffect(() => {
-    if (!mounted) return
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-    setIsDark(theme === 'dark' || (!theme && prefersDark))
-  }, [mounted, theme])
 
   if (!mounted) {
     return <span style={{ width: 40, height: 40, flexShrink: 0, ...style }} aria-hidden="true" />
   }
+
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+  const isDark = theme === 'dark' || (!theme && prefersDark)
 
   return (
     <button
@@ -28,6 +23,7 @@ export default function ThemeToggle({ style }) {
       onClick={toggleTheme}
       aria-label={isDark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'}
       title={isDark ? 'Mode terang' : 'Mode gelap'}
+      className="theme-toggle-btn"
       style={{
         display: 'inline-flex',
         alignItems: 'center',

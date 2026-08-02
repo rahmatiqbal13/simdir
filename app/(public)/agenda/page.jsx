@@ -696,7 +696,7 @@ export default function AgendaPage() {
             <div className="brand-section" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <img src={logoUrl} alt={brandName} className="brand-logo" style={{ height: '40px', width: 'auto', maxWidth: '140px', objectFit: 'contain', flexShrink: 0 }} />
               <div className="brand-text">
-                <strong style={{ display: 'block', fontSize: '1.0625rem', color: 'var(--text)', lineHeight: 1.25, maxWidth: '260px' }}>
+                <strong style={{ display: 'block', fontSize: '1.0625rem', color: 'var(--text)', lineHeight: 1.25, maxWidth: '260px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {brandName}
                 </strong>
               </div>
@@ -713,7 +713,7 @@ export default function AgendaPage() {
             </div>
 
             {/* TV Mode & Login Buttons */}
-            <div className="header-buttons" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <div className="header-buttons" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
               <ThemeToggle />
               <a
                 href="/agenda/tv"

@@ -418,6 +418,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
 function AgendaTable({ items, canEdit, onEdit, onDelete }) {
   return (
     <div className="table-wrap">
+      <div className="table-scroll">
       <table>
         <thead>
           <tr>
@@ -515,6 +516,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   )
 }

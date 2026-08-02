@@ -22,15 +22,28 @@ export async function GET(request) {
     }
 
     const supabase = getServiceClient()
-    const { searchParams } = new URL(request.url)
-    const limit = Math.min(200, parseInt(searchParams.get('limit') || '100', 10))
-    const offset = parseInt(searchParams.get('offset') || '0', 10)
 
-    const { data, error } = await supabase
+    // Tanpa limit/offset secara default — halaman admin melakukan
+    // pencarian, filter, dan pagination di sisi klien atas seluruh data
+    // (sama seperti /api/saran, /api/kritik-saran), supaya statistik
+    // "Total Tamu" dan pencarian tidak diam-diam kehilangan data lama
+    // begitu jumlah tamu melewati satu batas tersembunyi.
+    const { searchParams } = new URL(request.url)
+    const limitParam = searchParams.get('limit')
+    const offsetParam = searchParams.get('offset')
+
+    let query = supabase
       .from('tamu')
       .select('*')
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
+
+    if (limitParam) {
+      const limit = Math.min(1000, parseInt(limitParam, 10) || 1000)
+      const offset = parseInt(offsetParam || '0', 10)
+      query = query.range(offset, offset + limit - 1)
+    }
+
+    const { data, error } = await query
 
     if (error) throw error
 

@@ -309,7 +309,7 @@ export default function PertanyaanKritikSaranPage() {
 
       {/* Stats for selected facility */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem',
       }}>
         <StatCard label="Total Pertanyaan" value={totalCount} bg="var(--surface-2)" color="var(--text)" />
         <StatCard label="Aktif" value={activeCount} bg="#f0fdf4" color="#047857" />
@@ -478,7 +478,7 @@ export default function PertanyaanKritikSaranPage() {
                 key={q.id}
                 style={{
                   padding: '14px 16px', borderBottom: '1px solid var(--surface-3)',
-                  display: 'flex', alignItems: 'center', gap: '12px',
+                  display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
                   background: q.is_active ? 'var(--surface)' : 'var(--surface-2)',
                   opacity: q.is_active ? 1 : 0.7,
                 }}
@@ -612,7 +612,7 @@ export default function PertanyaanKritikSaranPage() {
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                   {/* Move up */}
                   <button
                     onClick={() => handleMove(index, -1)}
@@ -620,7 +620,7 @@ export default function PertanyaanKritikSaranPage() {
                     title="Naikkan urutan"
                     aria-label="Naikkan urutan"
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: 'transparent', color: index === 0 ? 'var(--border-strong)' : 'var(--text-3)',
                       fontSize: '14px', cursor: index === 0 ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -635,7 +635,7 @@ export default function PertanyaanKritikSaranPage() {
                     title="Turunkan urutan"
                     aria-label="Turunkan urutan"
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: 'transparent', color: index === facilityQuestions.length - 1 ? 'var(--border-strong)' : 'var(--text-3)',
                       fontSize: '14px', cursor: index === facilityQuestions.length - 1 ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -650,7 +650,7 @@ export default function PertanyaanKritikSaranPage() {
                     title={q.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                     aria-label={q.is_active ? 'Sembunyikan pertanyaan' : 'Tampilkan pertanyaan'}
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: q.is_active ? '#fef2f2' : '#dcfce7',
                       color: q.is_active ? '#dc2626' : '#047857',
                       fontSize: '14px', cursor: 'pointer',
@@ -675,7 +675,7 @@ export default function PertanyaanKritikSaranPage() {
                     title="Edit"
                     aria-label="Edit pertanyaan"
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: '#eff6ff', color: '#3b82f6',
                       fontSize: '14px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -690,7 +690,7 @@ export default function PertanyaanKritikSaranPage() {
                     title="Duplikat"
                     aria-label="Duplikat pertanyaan"
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: '#fef3c7', color: '#b45309',
                       fontSize: '14px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -705,7 +705,7 @@ export default function PertanyaanKritikSaranPage() {
                     title="Hapus"
                     aria-label="Hapus pertanyaan"
                     style={{
-                      width: '28px', height: '28px', borderRadius: '6px', border: 'none',
+                      width: '44px', height: '44px', borderRadius: '6px', border: 'none',
                       background: '#fee2e2', color: '#dc2626',
                       fontSize: '14px', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',

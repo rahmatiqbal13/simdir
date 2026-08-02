@@ -28,7 +28,7 @@ function AgendaTableRow({ item, num, t, rowH }) {
   return (
     <div className="agenda-tv-row" style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 3fr 13fr',
+      gridTemplateColumns: '1fr 3fr 8fr',
       gap: '1cqw',
       padding: `${Math.round(rowH * 0.1)}px 1.5cqw`,
       alignItems: 'center',
@@ -160,7 +160,7 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
       {/* Table head */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 3fr 13fr',
+        gridTemplateColumns: '1fr 3fr 8fr',
         gap: '1cqw',
         padding: '1.2vh 1.5cqw',
         background: t.theadBg,

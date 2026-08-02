@@ -133,7 +133,7 @@ export default function KelolaSaranPage() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
           { label: 'Total Masuk',   value: stats.total,      bg: '#eff6ff', color: '#1e3a8a' },
           { label: 'Belum Dibaca',  value: stats.baru,       bg: '#fef2f2', color: '#dc2626' },

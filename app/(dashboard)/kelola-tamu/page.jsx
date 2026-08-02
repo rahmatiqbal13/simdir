@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useToast } from '@/app/components/Toast'
 import ConfirmModal from '@/app/components/ConfirmModal'
+import { useFocusTrap } from '@/app/components/useFocusTrap'
+
+const ITEMS_PER_PAGE = 15
 
 const KEPERLUAN_META = {
   kunjungan_kerja:  { label: 'Kunjungan Kerja',    color: 'var(--info)',    bg: 'var(--info-50)' },
@@ -23,6 +26,8 @@ export default function KelolaTamuPage() {
   const [selectedItem, setSelectedItem] = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const detailModalRef = useFocusTrap(!!selectedItem, () => setSelectedItem(null))
 
   const authHeaders = useCallback(() => {
     try {
@@ -58,6 +63,16 @@ export default function KelolaTamuPage() {
     }
     return true
   })
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
+  const pageItems = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
+  // Kembali ke halaman 1 setiap kali pencarian/filter berubah, dan jangan
+  // pernah "terdampar" di halaman yang sudah tidak ada datanya lagi.
+  useEffect(() => { setCurrentPage(1) }, [search, filterKeperluan])
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
 
   const today = new Date().toDateString()
   const stats = {
@@ -114,7 +129,7 @@ export default function KelolaTamuPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari nama, instansi, atau unit..."
+          placeholder="Cari nama, instansi, atau unit…"
           style={{ ...selectStyle, flex: 1, minWidth: 220 }}
         />
         <select value={filterKeperluan} onChange={(e) => setFilterKeperluan(e.target.value)} style={selectStyle}>
@@ -139,10 +154,10 @@ export default function KelolaTamuPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center muted" style={{ padding: '2rem' }}>Memuat...</td></tr>
+                <tr><td colSpan={7} className="text-center muted" style={{ padding: '2rem' }}>Memuat…</td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={7} className="text-center muted" style={{ padding: '2rem' }}>Belum ada tamu tercatat</td></tr>
-              ) : filtered.map((item) => {
+              ) : pageItems.map((item) => {
                 const km = KEPERLUAN_META[item.keperluan] || KEPERLUAN_META.lainnya
                 return (
                   <tr key={item.id}>
@@ -155,7 +170,7 @@ export default function KelolaTamuPage() {
                     <td>{item.unit_dituju}</td>
                     <td className="text-center num">{item.jumlah_rombongan}</td>
                     <td className="text-right">
-                      <div style={{ display: 'inline-flex', gap: 4 }}>
+                      <div style={{ display: 'inline-flex', gap: 10 }}>
                         <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSelectedItem(item)} title="Detail" aria-label="Lihat detail">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                         </button>
@@ -172,12 +187,44 @@ export default function KelolaTamuPage() {
         </div>
       </div>
 
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <span className="muted" style={{ fontSize: '0.8125rem' }}>
+            Menampilkan {(currentPage - 1) * ITEMS_PER_PAGE + 1}–{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} dari {filtered.length} tamu
+          </span>
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                aria-label="Halaman sebelumnya"
+              >
+                ‹
+              </button>
+              <span className="muted" style={{ fontSize: '0.8125rem', padding: '0 0.25rem' }}>
+                Halaman {currentPage} dari {totalPages}
+              </span>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                aria-label="Halaman berikutnya"
+              >
+                ›
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Detail Modal */}
       {selectedItem && (
-        <div className="modal-overlay" onClick={() => setSelectedItem(null)}>
+        <div className="modal-overlay" onClick={() => setSelectedItem(null)} ref={detailModalRef} role="dialog" aria-modal="true" aria-labelledby="tamu-detail-title">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3>Detail Tamu</h3>
+              <h3 id="tamu-detail-title">Detail Tamu</h3>
               <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSelectedItem(null)} aria-label="Tutup">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>

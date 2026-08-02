@@ -40,6 +40,9 @@ export async function PUT(request) {
     if (!brandName) {
       return NextResponse.json({ error: 'Nama instansi wajib diisi' }, { status: 400 })
     }
+    if (brandName.length > 80) {
+      return NextResponse.json({ error: 'Nama instansi maksimal 80 karakter' }, { status: 400 })
+    }
 
     // Baca setting saat ini supaya logo_url lama tidak hilang kalau admin
     // hanya mengubah nama tanpa upload logo baru.
@@ -49,6 +52,7 @@ export async function PUT(request) {
       if (currentFile) current = { ...DEFAULTS, ...JSON.parse(await currentFile.text()) }
     } catch {}
 
+    const oldLogoUrl = current.logo_url
     let logoUrl = current.logo_url
 
     if (logoFile && logoFile instanceof Blob && logoFile.size > 0) {
@@ -78,6 +82,17 @@ export async function PUT(request) {
       .from(BUCKET)
       .upload(SETTINGS_FILE, Buffer.from(JSON.stringify(updated, null, 2)), { contentType: 'application/json', upsert: true })
     if (saveError) throw saveError
+
+    // Hapus file logo lama dari storage kalau baru saja diganti, supaya
+    // tidak menumpuk file yatim (orphaned) di bucket tanpa batas.
+    if (logoFile && oldLogoUrl && oldLogoUrl !== logoUrl) {
+      const marker = `/${BUCKET}/`
+      const idx = oldLogoUrl.indexOf(marker)
+      if (idx !== -1) {
+        const oldPath = oldLogoUrl.slice(idx + marker.length)
+        await supabase.storage.from(BUCKET).remove([oldPath]).catch(() => {})
+      }
+    }
 
     return NextResponse.json(updated)
   } catch (err) {

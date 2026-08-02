@@ -616,8 +616,8 @@ export default function AgendaTVPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw' }}>
               {/* Brand */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.9vw', flexShrink: 0 }}>
-                <img src={logoUrl} alt={brandName} style={{ height: '3vw', width: 'auto', maxWidth: '9vw', objectFit: 'contain', flexShrink: 0 }} />
-                <div style={{ fontSize: '1.3vw', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.15, color: t.text, maxWidth: '16vw' }}>{brandName}</div>
+                <img src={logoUrl} alt={brandName} style={{ height: '4.5vw', width: 'auto', maxWidth: '4.5vw', objectFit: 'contain', flexShrink: 0 }} />
+                <div style={{ fontSize: '1.3vw', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.15, color: t.text, maxWidth: '16vw', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
               </div>
 
               {/* Title */}

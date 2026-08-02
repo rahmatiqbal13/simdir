@@ -296,6 +296,7 @@ export default function InvoiceDetailPage() {
           </div>
           <div className="card-body" style={{ padding: 0 }}>
             <div className="table-wrap">
+              <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
@@ -324,6 +325,7 @@ export default function InvoiceDetailPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         </div>

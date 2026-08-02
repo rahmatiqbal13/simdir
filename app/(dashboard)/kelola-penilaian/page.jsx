@@ -216,7 +216,7 @@ export default function KritikSaranAdminPage() {
       </div>
 
       {/* Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <StatCard label="Total Masuk" value={totalItems} bg="#eff6ff" color="#1e3a8a" />
         <StatCard label="Belum Dibaca" value={totalBaru} bg="#fef2f2" color="#dc2626" />
         <StatCard label="Rata-rata Rating" value={avgRating} bg="#f0fdf4" color="#047857" suffix="/5" />
@@ -224,7 +224,7 @@ export default function KritikSaranAdminPage() {
       </div>
 
       {/* Stats per Fasilitas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {Object.entries(statsByFasilitas).map(([name, stat]) => (
           <div key={name} style={{
             background: 'var(--surface)', borderRadius: '12px', padding: '1rem',

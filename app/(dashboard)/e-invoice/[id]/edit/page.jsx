@@ -540,7 +540,7 @@ export default function EditInvoicePage() {
           {/* Invoice Header Card */}
           <div className="card">
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '2rem', alignItems: 'start' }}>
                 {/* Left - Logo & Company */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
@@ -556,7 +556,7 @@ export default function EditInvoicePage() {
 
                 {/* Right - Invoice Info */}
                 <div style={{ display: 'grid', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Tanggal Invoice*</span>
                     <input
                       type="date"
@@ -566,7 +566,7 @@ export default function EditInvoicePage() {
                       required
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Jatuh Tempo*</span>
                     <input
                       type="date"
@@ -673,7 +673,7 @@ export default function EditInvoicePage() {
           {/* Summary & Additional Charges */}
           <div className="card">
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
                 {/* Left - Notes */}
                 <div>
                   <label>Catatan</label>

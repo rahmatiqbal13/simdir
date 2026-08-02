@@ -150,7 +150,7 @@ export const BOTTOM_NAV_ORDER = {
   super_admin: ['dashboard', 'kelola-agenda', 'laporan'],
   admin_keuangan: ['dashboard', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'tv-pamflet'],
-  pimpinan: ['dashboard', 'kelola-agenda', 'kelola-saran', 'laporan'],
+  pimpinan: ['dashboard', 'kelola-agenda', 'laporan'],
 }
 
 export function getSidebarItems(role) {

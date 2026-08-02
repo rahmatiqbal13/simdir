@@ -5,10 +5,10 @@ import { supabase } from '@/lib/supabase/client'
 import ThemeToggle from '@/app/components/ThemeToggle'
 
 // Logo instansi — diambil dari pengaturan (fallback ke logo default)
-const InstansiLogo = ({ logoUrl }) => (
+const InstansiLogo = ({ logoUrl, brandName }) => (
   <img
     src={logoUrl}
-    alt="Logo"
+    alt={brandName}
     style={{
       height: '100%',
       width: 'auto',
@@ -98,9 +98,9 @@ export default function LoginPage() {
           {/* Brand mark + name */}
           <div className="row-flex" style={{ gap: 14 }}>
             <div style={{ height: 48, display: 'flex', alignItems: 'center' }}>
-              <InstansiLogo logoUrl={logoUrl} />
+              <InstansiLogo logoUrl={logoUrl} brandName={brandName} />
             </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 260 }}>{brandName}</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
           </div>
 
           {/* Headline */}
@@ -151,9 +151,9 @@ export default function LoginPage() {
           {/* Mobile-only brand header */}
           <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
             <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
-              <InstansiLogo logoUrl={logoUrl} />
+              <InstansiLogo logoUrl={logoUrl} brandName={brandName} />
             </div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 220 }}>{brandName}</div>
+            <div style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
           </div>
 
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 6 }}>Selamat datang kembali</h2>
@@ -244,8 +244,9 @@ export default function LoginPage() {
                   aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                   disabled={loading}
                   style={{
-                    position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 0, color: 'var(--text-3)', cursor: 'pointer', padding: 8
+                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'none', border: 0, color: 'var(--text-3)', cursor: 'pointer', padding: 0
                   }}
                 >
                   {showPassword ? (

@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useToast } from '@/app/components/Toast'
+import ConfirmModal from '@/app/components/ConfirmModal'
+
+const ALLOWED_LOGO_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml']
+const MAX_LOGO_SIZE = 2 * 1024 * 1024
 
 export default function BrandingSettingsPage() {
   const { success, error } = useToast()
@@ -11,6 +15,7 @@ export default function BrandingSettingsPage() {
   const [logoUrl, setLogoUrl] = useState(null)
   const [logoPreview, setLogoPreview] = useState(null)
   const [logoFile, setLogoFile] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -29,19 +34,44 @@ export default function BrandingSettingsPage() {
     load()
   }, [error])
 
+  useEffect(() => {
+    return () => {
+      if (logoPreview) URL.revokeObjectURL(logoPreview)
+    }
+  }, [logoPreview])
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
+      error('Format logo harus JPG, PNG, WebP, atau SVG')
+      e.target.value = ''
+      return
+    }
+    if (file.size > MAX_LOGO_SIZE) {
+      error('Ukuran logo maksimal 2MB')
+      e.target.value = ''
+      return
+    }
     setLogoFile(file)
     setLogoPreview(URL.createObjectURL(file))
   }
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault()
     if (!brandName.trim()) {
       error('Nama instansi wajib diisi')
       return
     }
+    if (logoFile) {
+      setConfirmOpen(true)
+      return
+    }
+    doSave()
+  }
+
+  const doSave = async () => {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       const fd = new FormData()
@@ -93,6 +123,7 @@ export default function BrandingSettingsPage() {
               value={brandName}
               onChange={(e) => setBrandName(e.target.value)}
               placeholder="Direktorat Unesa Science Center"
+              maxLength={80}
               required
             />
           </div>
@@ -135,6 +166,17 @@ export default function BrandingSettingsPage() {
           </button>
         </div>
       </form>
+
+      <ConfirmModal
+        open={confirmOpen}
+        title="Ganti Logo?"
+        message="Logo ini dipakai di banyak halaman sekaligus (TV kiosk, login, agenda publik). Logo lama akan digantikan permanen untuk semua halaman tersebut."
+        confirmLabel="Ganti Logo"
+        cancelLabel="Batal"
+        busy={saving}
+        onConfirm={doSave}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   )
 }

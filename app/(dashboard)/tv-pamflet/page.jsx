@@ -206,7 +206,7 @@ export default function TVPamfletPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
         {/* Form Input */}
         <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', border: '1px solid var(--border)' }}>
           {/* Tabs */}
@@ -503,7 +503,7 @@ export default function TVPamfletPage() {
                         onClick={() => handleDelete(pamflet)}
                         title="Hapus"
                         aria-label="Hapus pamflet"
-                        style={{ padding: '4px', background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', borderRadius: '4px', display: 'flex' }}
+                        style={{ width: 44, height: 44, background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                           <polyline points="3 6 5 6 21 6" />
