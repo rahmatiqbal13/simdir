@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 
-const PUI_TABS = [
-  { kode: 'pui-olah', label: 'PUI Keolahragaan' },
-  { kode: 'pui-dis', label: 'PUI Disabilitas' },
-  { kode: 'pui-seni', label: 'PUI Seni Budaya' },
-  { kode: 'pui-ai', label: 'PUI AI' },
-]
+// Urutan tampil yang disukai — cuma hint pengurutan. Tab yang benar-benar
+// tampil diambil dari data `items` yang sudah di-fetch (unit_kerja.kode/nama
+// hasil join), BUKAN daftar tetap — halaman ini publik/tanpa login jadi
+// tidak bisa query tabel unit_kerja langsung (lihat kelola-program-kerja/
+// page.jsx untuk penjelasan lengkap kenapa daftar tetap berbahaya: kalau
+// kode unit PUI diubah/dihapus di Pengaturan > Unit Kerja, tab dengan kode
+// hardcoded akan diam-diam berhenti menampilkan data).
+const PUI_ORDER = ['pui-olah', 'pui-dis', 'pui-seni', 'pui-ai']
 
 const STATUS_LABEL = {
   belum_berjalan: 'Belum Berjalan',
@@ -87,25 +89,48 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
   const [progress, setProgress] = useState(0)
   const unitH = Math.max(70, 90 * scale.s)
 
+  // Tab diturunkan dari unit_kerja unik yang benar-benar muncul di `items`
+  // (bukan daftar kode tetap) — lihat catatan PUI_ORDER di atas.
+  const puiTabs = useMemo(() => {
+    const seen = new Map()
+    for (const it of items) {
+      const kode = it.unit_kerja?.kode
+      if (!kode || seen.has(kode)) continue
+      seen.set(kode, { kode, label: it.unit_kerja?.nama || kode })
+    }
+    return [...seen.values()].sort((a, b) => {
+      const ia = PUI_ORDER.indexOf(a.kode)
+      const ib = PUI_ORDER.indexOf(b.kode)
+      return (ia === -1 ? PUI_ORDER.length : ia) - (ib === -1 ? PUI_ORDER.length : ib)
+    })
+  }, [items])
+
+  // currentTab bisa jadi out-of-range kalau `items` berubah dan jumlah tab
+  // menyusut — pakai index yang sudah di-clamp untuk baca, state tetap apa
+  // adanya (dikoreksi sendiri begitu tab yang hilang muncul lagi).
+  const safeTab = puiTabs.length ? Math.min(currentTab, puiTabs.length - 1) : 0
+
   const itemsByTab = useMemo(
-    () => PUI_TABS.map((tab) => items.filter((it) => it.unit_kerja?.kode === tab.kode)),
-    [items]
+    () => puiTabs.map((tab) => items.filter((it) => it.unit_kerja?.kode === tab.kode)),
+    [items, puiTabs]
   )
 
-  const activePui = PUI_TABS[currentTab]
-  const puiItems = itemsByTab[currentTab]
+  const activePui = puiTabs[safeTab]
+  const puiItems = itemsByTab[safeTab] || []
   const pageCount = Math.max(1, Math.ceil(puiItems.length / ITEMS_PER_PAGE))
   const pageItems = useMemo(
     () => puiItems.slice(currentPage * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE),
     [puiItems, currentPage]
   )
 
-  const tabRef = useRef(currentTab)
+  const tabRef = useRef(safeTab)
   const pageRef = useRef(currentPage)
   const pageCountRef = useRef(pageCount)
-  useEffect(() => { tabRef.current = currentTab }, [currentTab])
+  const tabsLenRef = useRef(puiTabs.length)
+  useEffect(() => { tabRef.current = safeTab }, [safeTab])
   useEffect(() => { pageRef.current = currentPage }, [currentPage])
   useEffect(() => { pageCountRef.current = pageCount }, [pageCount])
+  useEffect(() => { tabsLenRef.current = puiTabs.length }, [puiTabs.length])
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -114,8 +139,8 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
           const nextPage = pageRef.current + 1
           if (nextPage < pageCountRef.current) {
             setCurrentPage(nextPage)
-          } else {
-            setCurrentTab((tabRef.current + 1) % PUI_TABS.length)
+          } else if (tabsLenRef.current > 0) {
+            setCurrentTab((tabRef.current + 1) % tabsLenRef.current)
             setCurrentPage(0)
           }
           return 0
@@ -126,9 +151,21 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
     return () => clearInterval(id)
   }, [])
 
-  useEffect(() => { setProgress(0) }, [currentTab, currentPage])
+  useEffect(() => { setProgress(0) }, [safeTab, currentPage])
   // Kalau PUI aktif berganti (klik manual) sebelum halamannya habis, mulai dari halaman 1 lagi
-  useEffect(() => { setCurrentPage(0) }, [currentTab])
+  useEffect(() => { setCurrentPage(0) }, [safeTab])
+
+  if (puiTabs.length === 0) {
+    return (
+      <div style={{
+        containerType: 'inline-size', background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`,
+        borderRadius: '0.8vw', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        minWidth: 0, height: '100%', color: t.text3, fontSize: `${unitH * 0.2}px`,
+      }}>
+        Belum ada data program kerja
+      </div>
+    )
+  }
 
   const totalAnggaran = puiItems.reduce((sum, it) => sum + Number(it.anggaran || 0), 0)
   const totalSpj = puiItems.reduce((sum, it) => sum + Number(it.nominal_spj || 0), 0)
@@ -192,16 +229,16 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
           <div style={{ width: `${progress}%`, height: '100%', background: `linear-gradient(90deg, ${t.accent}, #ffd34d)`, transition: 'width 0.1s linear' }} />
         </div>
         <div style={{ display: 'flex', gap: '0.2cqw' }}>
-          {PUI_TABS.map((tab, i) => (
+          {puiTabs.map((tab, i) => (
             <button
               key={tab.kode}
               onClick={() => { setCurrentTab(i); setProgress(0) }}
               aria-label={tab.label}
-              aria-current={i === currentTab ? 'true' : undefined}
+              aria-current={i === safeTab ? 'true' : undefined}
               className="pager-dot"
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '2.2cqw', height: '2.2cqw', minWidth: 24, minHeight: 24, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
-              <span style={{ display: 'block', width: i === currentTab ? '1.8cqw' : '0.6cqw', height: '0.6cqw', borderRadius: 999, background: i === currentTab ? t.accent : t.border, transition: 'width 0.3s, background-color 0.3s' }} />
+              <span style={{ display: 'block', width: i === safeTab ? '1.8cqw' : '0.6cqw', height: '0.6cqw', borderRadius: 999, background: i === safeTab ? t.accent : t.border, transition: 'width 0.3s, background-color 0.3s' }} />
             </button>
           ))}
         </div>

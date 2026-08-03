@@ -5,8 +5,8 @@ import ThemeToggle from '@/app/components/ThemeToggle'
 
 const FASILITAS_LIST = [
   'Achilles Gym Hub', 'Kolam Renang Unesa', 'Driving Golf Unesa',
-  'SSFC', 'PUIPT DIC', 'PUIPT SERC', 'PUI Disabilitas',
-  'ULABK', 'PUI Seni', 'PUI Olahraga', 'USC (Umum)', 'Lainnya',
+  'SSFC', 'PUIPT DIC', 'PUIPT SERC',
+  'ULABK', 'USC (Umum)', 'Lainnya',
 ]
 
 const JENIS_LIST = [
@@ -34,8 +34,8 @@ const JENIS_LIST = [
 
 const UNIT_KERJA_LIST = [
   'USC (Umum)', 'Achilles Gym Hub', 'Kolam Renang Unesa', 'Driving Golf Unesa',
-  'SSFC', 'PUIPT DIC', 'PUIPT SERC', 'PUI Disabilitas',
-  'ULABK', 'PUI Seni', 'PUI Olahraga', 'Eksternal',
+  'SSFC', 'PUIPT DIC', 'PUIPT SERC',
+  'ULABK', 'Eksternal',
 ]
 
 const STEPS = ['Jenis', 'Detail', 'Identitas']
@@ -482,15 +482,15 @@ function PublicHeader({ brandName, logoUrl }) {
       background: 'var(--surface)', borderBottom: '1px solid var(--border)',
       padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100,
     }}>
-      <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={logoUrl} alt={brandName} style={{ width: 36, height: 36, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>{brandName}</div>
+      <div style={{ maxWidth: 580, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <img src={logoUrl} alt={brandName} style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <ThemeToggle style={{ width: 36, height: 36 }} />
           <a href="/penilaian" style={{
             fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',

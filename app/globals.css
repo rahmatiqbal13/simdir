@@ -1258,7 +1258,7 @@ label > input[type="radio"] {
 }
 
 @media print {
-  .sidebar, .topbar, .mobile-header { display: none !important; }
+  .sidebar, .topbar, .mobile-header, .pwa-install-prompt { display: none !important; }
 }
 
 /* ===================== FLEX UTILITIES ===================== */

@@ -51,8 +51,6 @@ export function AgendaProvider({ children }) {
         throw new Error('Supabase belum dikonfigurasi');
       }
 
-      console.log('Adding agenda - raw item:', item);
-
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -67,7 +65,6 @@ export function AgendaProvider({ children }) {
         lokasi: item.lokasi || '',
         link_meeting: item.link_meeting || null,
         penyelenggara: item.penyelenggara || '',
-        unit_kerja: item.unit_kerja || null,
         deskripsi: item.deskripsi || '',
         disposisi: item.disposisi || null,
         pic: item.pic || null,
@@ -75,8 +72,6 @@ export function AgendaProvider({ children }) {
         tampil_publik: item.tampil_publik ?? false,
         created_by: user?.id || null
       };
-
-      console.log('Adding agenda - formatted data:', agendaData);
 
       const { data, error: supabaseError } = await supabase
         .from('agenda')
@@ -95,7 +90,6 @@ export function AgendaProvider({ children }) {
         throw new Error(supabaseError.message || 'Gagal menambahkan agenda');
       }
 
-      console.log('Agenda added successfully:', data);
       setAgenda(prev => [data, ...prev]);
       return data;
     } catch (err) {

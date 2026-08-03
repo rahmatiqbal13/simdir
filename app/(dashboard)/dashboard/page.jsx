@@ -8,8 +8,19 @@ import { SkeletonDashboard } from '@/app/components/Skeleton';
 const MONTHS     = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 const MONTH_FULL = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
 
-const getStatus = (mulai, selesai) => {
-  const now = new Date(), s = new Date(mulai), e = new Date(selesai);
+// `T${jam}` tanpa akhiran "Z" diparse sebagai waktu lokal browser (bukan
+// UTC) — sama seperti fix di kelola-agenda/page.jsx. Tanpa jam, dianggap
+// mulai 00:00 / selesai 23:59:59 hari itu.
+const toDateTime = (tanggal, waktu, endOfDay = false) => {
+  if (!tanggal) return null;
+  const time = waktu || (endOfDay ? '23:59:59' : '00:00:00');
+  return new Date(`${tanggal}T${time}`);
+};
+
+const getStatus = (mulai, selesai, waktuMulai, waktuSelesai) => {
+  const now = new Date();
+  const s = toDateTime(mulai, waktuMulai, false);
+  const e = toDateTime(selesai, waktuSelesai, true);
   if (now > e) return 'completed';
   if (now >= s) return 'ongoing';
   const days = Math.ceil((s - now) / 864e5);
@@ -87,15 +98,15 @@ export default function DashboardPage() {
   const dayStr   = now.toLocaleDateString('id-ID', { weekday: 'long' });
 
   const agendaStats = useMemo(() => {
-    const ongoing      = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing');
-    const upcoming     = agendaData.filter(a => ['upcoming','upcoming_soon'].includes(getStatus(a.tanggal_mulai, a.tanggal_selesai)));
-    const upcomingSoon = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) === 'upcoming_soon');
+    const ongoing      = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai, a.waktu_mulai, a.waktu_selesai) === 'ongoing');
+    const upcoming     = agendaData.filter(a => ['upcoming','upcoming_soon'].includes(getStatus(a.tanggal_mulai, a.tanggal_selesai, a.waktu_mulai, a.waktu_selesai)));
+    const upcomingSoon = agendaData.filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai, a.waktu_mulai, a.waktu_selesai) === 'upcoming_soon');
     return { ongoing: ongoing.length, upcoming: upcoming.length, upcomingSoon: upcomingSoon.length, total: agendaData.length };
   }, [agendaData]);
 
   const upcomingList = useMemo(() =>
     agendaData
-      .filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')
+      .filter(a => getStatus(a.tanggal_mulai, a.tanggal_selesai, a.waktu_mulai, a.waktu_selesai) !== 'completed')
       .sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
       .slice(0, 6),
     [agendaData]
@@ -171,7 +182,7 @@ export default function DashboardPage() {
           value={agendaStats.total}
           sub={agendaStats.ongoing > 0 ? `${agendaStats.ongoing} sedang berlangsung` : `${agendaStats.upcoming} mendatang`}
           icon={<IconCalendar />}
-          accent="#2563eb" accentBg="#eff6ff"
+          accent="var(--info)" accentBg="var(--info-50)"
           href="/kelola-agenda"
           badge={agendaStats.upcomingSoon > 0 ? agendaStats.upcomingSoon : null}
           badgeTitle="Segera"
@@ -181,8 +192,8 @@ export default function DashboardPage() {
           value={saranStats.total}
           sub={saranStats.baru > 0 ? `${saranStats.baru} belum ditinjau` : 'Semua sudah ditinjau'}
           icon={<IconMessage />}
-          accent={saranStats.baru > 0 ? '#dc2626' : '#047857'}
-          accentBg={saranStats.baru > 0 ? '#fef2f2' : '#ecfdf5'}
+          accent={saranStats.baru > 0 ? 'var(--danger)' : 'var(--success)'}
+          accentBg={saranStats.baru > 0 ? 'var(--danger-50)' : 'var(--success-50)'}
           href="/kelola-saran"
           badge={saranStats.baru > 0 ? saranStats.baru : null}
         />
@@ -191,7 +202,7 @@ export default function DashboardPage() {
           value={penilaianStats.total}
           sub={penilaianStats.avgRating > 0 ? `Rata-rata ⭐ ${penilaianStats.avgRating}/5` : 'Belum ada penilaian'}
           icon={<IconStar />}
-          accent="#b45309" accentBg="#fffbeb"
+          accent="var(--warning)" accentBg="var(--warning-50)"
           href="/kelola-penilaian"
         />
         <KpiCard
@@ -213,7 +224,7 @@ export default function DashboardPage() {
           subtitle={`${upcomingList.length} kegiatan aktif & mendatang`}
           action={{ label: 'Lihat Semua', href: '/kelola-agenda' }}
           icon={<IconCalendar />}
-          accentColor="#2563eb"
+          accentColor="var(--info)"
         >
           {upcomingList.length === 0
             ? <EmptyState icon="📅" text="Tidak ada agenda mendatang" />
@@ -230,7 +241,7 @@ export default function DashboardPage() {
             subtitle="Kritik, saran & permohonan dari pengguna"
             action={{ label: 'Kelola', href: '/kelola-saran' }}
             icon={<IconMessage />}
-            accentColor="#2563eb"
+            accentColor="var(--info)"
           >
             <SaranBreakdown stats={saranStats} loading={statsLoading} />
           </SectionCard>
@@ -238,10 +249,10 @@ export default function DashboardPage() {
           {/* Quick links */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             {[
-              { href: '/kelola-agenda',   label: 'Kelola Agenda',    desc: `${agendaStats.total} agenda`,           icon: <IconCalendar />,   accent: '#2563eb', bg: '#eff6ff' },
-              { href: '/kelola-penilaian',label: 'Penilaian',        desc: `${penilaianStats.total} penilaian`,     icon: <IconStar />,       accent: '#b45309', bg: '#fffbeb' },
-              { href: '/kelola-saran',    label: 'Kritik & Saran',   desc: saranStats.baru > 0 ? `${saranStats.baru} perlu ditinjau` : `${saranStats.total} masuk`, icon: <IconMessage />, accent: saranStats.baru > 0 ? '#dc2626' : '#047857', bg: saranStats.baru > 0 ? '#fef2f2' : '#ecfdf5', badge: saranStats.baru || null },
-              { href: '/laporan',         label: 'Laporan',          desc: 'Analisis & narasi',                     icon: <IconChart />,      accent: '#047857', bg: '#ecfdf5' },
+              { href: '/kelola-agenda',   label: 'Kelola Agenda',    desc: `${agendaStats.total} agenda`,           icon: <IconCalendar />,   accent: 'var(--info)', bg: 'var(--info-50)' },
+              { href: '/kelola-penilaian',label: 'Penilaian',        desc: `${penilaianStats.total} penilaian`,     icon: <IconStar />,       accent: 'var(--warning)', bg: 'var(--warning-50)' },
+              { href: '/kelola-saran',    label: 'Kritik & Saran',   desc: saranStats.baru > 0 ? `${saranStats.baru} perlu ditinjau` : `${saranStats.total} masuk`, icon: <IconMessage />, accent: saranStats.baru > 0 ? 'var(--danger)' : 'var(--success)', bg: saranStats.baru > 0 ? 'var(--danger-50)' : 'var(--success-50)', badge: saranStats.baru || null },
+              { href: '/laporan',         label: 'Laporan',          desc: 'Analisis & narasi',                     icon: <IconChart />,      accent: 'var(--success)', bg: 'var(--success-50)' },
             ].map(item => (
               <a key={item.href} href={item.href} style={{
                 display: 'flex', flexDirection: 'column', gap: 10, padding: '16px',
@@ -283,10 +294,10 @@ function SaranBreakdown({ stats, loading }) {
   );
 
   const rows = [
-    { label: 'Kritik',               value: stats.kritik,     color: '#dc2626', bg: '#fef2f2', icon: '⚠️' },
-    { label: 'Saran',                value: stats.saran,      color: '#d97706', bg: '#fffbeb', icon: '💡' },
-    { label: 'Permohonan Kelas',     value: stats.permohonan, color: '#2563eb', bg: '#eff6ff', icon: '📚' },
-    { label: 'Belum Ditinjau',       value: stats.baru,       color: stats.baru > 0 ? '#dc2626' : '#6b7280', bg: stats.baru > 0 ? '#fef2f2' : '#f8fafc', icon: '🔴' },
+    { label: 'Kritik',               value: stats.kritik,     color: 'var(--danger)', bg: 'var(--danger-50)', icon: '⚠️' },
+    { label: 'Saran',                value: stats.saran,      color: 'var(--warning)', bg: 'var(--warning-50)', icon: '💡' },
+    { label: 'Permohonan Kelas',     value: stats.permohonan, color: 'var(--info)', bg: 'var(--info-50)', icon: '📚' },
+    { label: 'Belum Ditinjau',       value: stats.baru,       color: stats.baru > 0 ? 'var(--danger)' : 'var(--text-3)', bg: stats.baru > 0 ? 'var(--danger-50)' : 'var(--surface-2)', icon: '🔴' },
   ];
 
   const max = Math.max(...rows.map(r => r.value), 1);
@@ -365,23 +376,23 @@ function KpiCard({ label, value, sub, icon, accent, accentBg, href, badge }) {
 
 // ─── Agenda Row ───────────────────────────────────────────────────────────────
 function AgendaRow({ a }) {
-  const status = getStatus(a.tanggal_mulai, a.tanggal_selesai);
+  const status = getStatus(a.tanggal_mulai, a.tanggal_selesai, a.waktu_mulai, a.waktu_selesai);
   const cfg = {
-    upcoming:      { label: 'Mendatang',   color: '#2563eb', bg: '#eff6ff' },
-    upcoming_soon: { label: 'Segera',      color: '#d97706', bg: '#fffbeb' },
-    ongoing:       { label: 'Berlangsung', color: '#047857', bg: '#ecfdf5' },
-    completed:     { label: 'Selesai',     color: '#6b7280', bg: '#f8fafc' },
-  }[status] || { label: 'Mendatang', color: '#2563eb', bg: '#eff6ff' };
+    upcoming:      { label: 'Mendatang',   color: 'var(--info)', bg: 'var(--info-50)' },
+    upcoming_soon: { label: 'Segera',      color: 'var(--warning)', bg: 'var(--warning-50)' },
+    ongoing:       { label: 'Berlangsung', color: 'var(--success)', bg: 'var(--success-50)' },
+    completed:     { label: 'Selesai',     color: 'var(--text-3)', bg: 'var(--surface-2)' },
+  }[status] || { label: 'Mendatang', color: 'var(--info)', bg: 'var(--info-50)' };
 
   const d = new Date(a.tanggal_mulai);
   const isOngoing = status === 'ongoing';
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? '#f0fdf4' : 'transparent' }}
-      onMouseEnter={e => e.currentTarget.style.background = isOngoing ? '#ecfdf5' : 'var(--surface-2)'}
+      onMouseEnter={e => e.currentTarget.style.background = isOngoing ? 'var(--success-50)' : 'var(--surface-2)'}
       onMouseLeave={e => e.currentTarget.style.background = isOngoing ? '#f0fdf4' : 'transparent'}
     >
-      <div style={{ width: 44, flexShrink: 0, textAlign: 'center', background: isOngoing ? '#047857' : 'var(--surface-3)', borderRadius: 10, padding: '6px 4px' }}>
+      <div style={{ width: 44, flexShrink: 0, textAlign: 'center', background: isOngoing ? 'var(--success)' : 'var(--surface-3)', borderRadius: 10, padding: '6px 4px' }}>
         <div style={{ fontSize: '0.625rem', fontWeight: 700, color: isOngoing ? 'rgba(255,255,255,0.8)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{MONTHS[d.getMonth()]}</div>
         <div style={{ fontSize: '1.25rem', fontWeight: 800, color: isOngoing ? 'white' : 'var(--text)', lineHeight: 1.1 }}>{d.getDate()}</div>
         <div style={{ fontSize: '0.625rem', fontWeight: 600, color: isOngoing ? 'rgba(255,255,255,0.7)' : 'var(--text-3)' }}>{fmtTime(a.waktu_mulai)}</div>

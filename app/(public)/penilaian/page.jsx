@@ -3,18 +3,16 @@
 import { useState, useEffect, useRef } from 'react'
 import ThemeToggle from '@/app/components/ThemeToggle'
 
+// Cuma unit usaha yang dinilai lewat penilaian bintang — PUI dan USC (Umum)
+// bukan unit usaha, jadi tidak masuk di sini (lihat juga
+// kelola-penilaian/pertanyaan/page.jsx yang harus selalu sinkron dengan
+// daftar ini). 'ssfc' sudah berganti nama jadi 'Achilles Gym Hub' — entri
+// lama dihapus, bukan cuma di-rename, supaya tidak dobel.
 const FACILITIES = [
   { id: 'achilles-gym',    name: 'Achilles Gym Hub',   icon: '🏋️', color: '#dbeafe', textColor: '#1e40af', border: '#bfdbfe' },
   { id: 'kolam-renang',    name: 'Kolam Renang Unesa', icon: '🏊', color: '#dcfce7', textColor: '#166534', border: '#bbf7d0' },
   { id: 'driving-golf',    name: 'Driving Golf Unesa', icon: '⛳', color: '#fef3c7', textColor: '#92400e', border: '#fde68a' },
-  { id: 'ssfc',            name: 'SSFC',               icon: '🏟️', color: '#fce7f3', textColor: '#9d174d', border: '#fbcfe8' },
-  { id: 'puipt-dic',       name: 'PUIPT DIC',          icon: '💡', color: '#fffbeb', textColor: '#b45309', border: '#fde68a' },
-  { id: 'puipt-serc',      name: 'PUIPT SERC',         icon: '🔬', color: '#ede9fe', textColor: '#5b21b6', border: '#ddd6fe' },
-  { id: 'pui-disabilitas', name: 'PUI Disabilitas',    icon: '♿', color: '#ecfdf5', textColor: '#065f46', border: '#a7f3d0' },
   { id: 'ulabk',           name: 'ULABK',              icon: '📖', color: '#fff7ed', textColor: '#c2410c', border: '#fed7aa' },
-  { id: 'pui-seni',        name: 'PUI Seni',           icon: '🎨', color: '#fdf4ff', textColor: '#7c3aed', border: '#e9d5ff' },
-  { id: 'pui-olahraga',    name: 'PUI Olahraga',       icon: '🏅', color: '#fff1f2', textColor: '#be123c', border: '#fecdd3' },
-  { id: 'usc-umum',        name: 'USC (Umum)',          icon: '🏛️', color: '#f0f9ff', textColor: '#0369a1', border: '#bae6fd' },
 ]
 
 const RATING_LABELS = { 1: 'Buruk', 2: 'Kurang Baik', 3: 'Cukup', 4: 'Baik', 5: 'Sangat Baik' }
@@ -609,15 +607,15 @@ function PublicHeader({ brandName, logoUrl }) {
       background: 'var(--surface)', borderBottom: '1px solid var(--border)',
       padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100,
     }}>
-      <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={logoUrl} alt={brandName} style={{ width: 36, height: 36, objectFit: 'contain' }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2 }}>{brandName}</div>
+      <div style={{ maxWidth: 680, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          <img src={logoUrl} alt={brandName} style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Sistem Informasi Direktorat</div>
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <ThemeToggle style={{ width: 36, height: 36 }} />
           <a href="/kritik-saran" style={{
             fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',

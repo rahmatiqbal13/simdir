@@ -111,18 +111,30 @@ const formatTime = (date) => {
   })
 }
 
+// Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
+// cuma tanggalnya (event 14:00-16:00 sebelumnya sudah "Berlangsung" sejak
+// 00:00 di hari itu). `T${jam}` tanpa akhiran "Z" diparse sebagai waktu
+// lokal browser, bukan UTC — sebelumnya `new Date('YYYY-MM-DD')` diparse
+// UTC-midnight, jadi transisi status bisa meleset sampai 7 jam dari
+// seharusnya (label UI selalu "WIB").
+const toAgendaDateTime = (tanggal, waktu, endOfDay = false) => {
+  if (!tanggal) return null
+  const time = waktu || (endOfDay ? '23:59:59' : '00:00:00')
+  return new Date(`${tanggal}T${time}`)
+}
+
 // Get agenda status
-const getAgendaStatus = (mulai, selesai) => {
+const getAgendaStatus = (mulai, selesai, waktuMulai, waktuSelesai) => {
   const now = new Date()
-  const start = new Date(mulai)
-  const end = new Date(selesai)
-  
+  const start = toAgendaDateTime(mulai, waktuMulai, false)
+  const end = toAgendaDateTime(selesai, waktuSelesai, true)
+
   if (now > end) return 'completed'
   if (now >= start && now <= end) return 'ongoing'
-  
+
   const diffTime = start - now
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
+
   if (diffDays <= 3) return 'upcoming_soon'
   return 'upcoming'
 }
@@ -151,8 +163,8 @@ function StatCard({ label, value, icon, color, trend }) {
 }
 
 // ============ KOMPONEN STATUS BADGE ============
-function StatusBadge({ tanggalMulai, tanggalSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai)
+function StatusBadge({ tanggalMulai, tanggalSelesai, waktuMulai, waktuSelesai }) {
+  const status = getAgendaStatus(tanggalMulai, tanggalSelesai, waktuMulai, waktuSelesai)
   
   const configs = {
     upcoming: { label: 'Akan Datang', class: 'badge-blue' },
@@ -268,7 +280,7 @@ function JenisToggle({ value, onChange }) {
 
 // ============ KOMPONEN AGENDA CARD ============
 function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
-  const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+  const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
   
   const statusColors = {
     upcoming: 'var(--primary)',
@@ -305,7 +317,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
+                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} waktuMulai={item.waktu_mulai} waktuSelesai={item.waktu_selesai} />
                 <JenisBadge jenis={item.jenis} />
                 {item.tampil_publik && (
                   <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
@@ -482,7 +494,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
                 )}
               </td>
               <td>
-                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
+                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} waktuMulai={item.waktu_mulai} waktuSelesai={item.waktu_selesai} />
               </td>
               {canEdit && (
                 <td className="text-center">
@@ -562,6 +574,14 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     }
     if (new Date(form.tanggal_mulai) > new Date(form.tanggal_selesai)) {
       setError('Tanggal mulai tidak boleh lebih besar dari tanggal selesai')
+      return
+    }
+    if (
+      form.tanggal_mulai === form.tanggal_selesai &&
+      form.waktu_mulai && form.waktu_selesai &&
+      form.waktu_selesai <= form.waktu_mulai
+    ) {
+      setError('Jam selesai harus lebih besar dari jam mulai (untuk agenda di hari yang sama)')
       return
     }
     if (jenis === 'internal' && form.unit_kerja === 'lainnya' && !form.unit_kerja_manual.trim()) {
@@ -956,15 +976,15 @@ export default function AgendaManagePage() {
   const stats = useMemo(() => {
     const total = agenda.length
     const upcoming = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
       return status === 'upcoming' || status === 'upcoming_soon'
     }).length
     const ongoing = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
       return status === 'ongoing'
     }).length
     const completed = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
       return status === 'completed'
     }).length
     return { total, upcoming, ongoing, completed }
@@ -980,7 +1000,7 @@ export default function AgendaManagePage() {
       
       const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter
       
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
+      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
       const matchesStatus = statusFilter === 'all' || 
         (statusFilter === 'upcoming' && (status === 'upcoming' || status === 'upcoming_soon')) ||
         status === statusFilter

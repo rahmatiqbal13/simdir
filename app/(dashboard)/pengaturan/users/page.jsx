@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUsers } from '@/context/UsersContext';
 import { useToast } from '@/app/components/Toast';
+import ConfirmModal from '@/app/components/ConfirmModal';
 
 // Role configurations
 const ROLE_CONFIGS = {
@@ -920,32 +921,15 @@ export default function UsersPage() {
       )}
 
       {/* Delete Confirmation */}
-      {deleteConfirm && (
-        <div className="modal-backdrop" onClick={() => setDeleteConfirm(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className="modal-head">
-              <h3>Konfirmasi Hapus</h3>
-              <button onClick={() => setDeleteConfirm(null)} aria-label="Tutup">✕</button>
-            </div>
-            <div className="card-form-body">
-              <p style={{ fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.6 }}>
-                Apakah Anda yakin ingin menghapus user ini? Tindakan ini tidak dapat dibatalkan.
-              </p>
-            </div>
-            <div className="card-form-footer">
-              <button type="button" className="btn btn-ghost" onClick={() => setDeleteConfirm(null)}>Batal</button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={confirmDelete}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Menghapus…' : 'Hapus User'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        open={!!deleteConfirm}
+        title="Hapus User"
+        message={<>Apakah Anda yakin ingin menghapus user <strong>{users.find(u => u.id === deleteConfirm)?.full_name || users.find(u => u.id === deleteConfirm)?.email || 'ini'}</strong>? Tindakan ini tidak dapat dibatalkan.</>}
+        confirmLabel="Ya, Hapus"
+        busy={actionLoading}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirm(null)}
+      />
     </div>
   );
 }

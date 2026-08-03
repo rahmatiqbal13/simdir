@@ -10,14 +10,7 @@ const FACILITIES = [
   { id: 'achilles-gym', name: 'Achilles Gym Hub', icon: '🏋️', color: '#dbeafe', textColor: '#1e3a8a' },
   { id: 'kolam-renang', name: 'Kolam Renang Unesa', icon: '🏊', color: '#dcfce7', textColor: '#047857' },
   { id: 'driving-golf', name: 'Driving Golf Unesa', icon: '⛳', color: '#fef3c7', textColor: '#b45309' },
-  { id: 'ssfc', name: 'SSFC', icon: '🏟️', color: '#fce7f3', textColor: '#9d174d' },
-  { id: 'puipt-dic', name: 'PUIPT DIC', icon: '💡', color: '#fffbeb', textColor: '#b45309' },
-  { id: 'puipt-serc', name: 'PUIPT SERC', icon: '🔬', color: '#ede9fe', textColor: '#5b21b6' },
-  { id: 'pui-disabilitas', name: 'PUI Disabilitas', icon: '♿', color: '#ecfdf5', textColor: '#065f46' },
   { id: 'ulabk', name: 'ULABK', icon: '📖', color: '#fff7ed', textColor: '#c2410c' },
-  { id: 'pui-seni', name: 'PUI Seni', icon: '🎨', color: '#fdf4ff', textColor: '#7c3aed' },
-  { id: 'pui-olahraga', name: 'PUI Olahraga', icon: '🏅', color: '#fff1f2', textColor: '#be123c' },
-  { id: 'usc-umum', name: 'USC (Umum)', icon: '🏛️', color: '#f0f9ff', textColor: '#0369a1' },
 ]
 
 export default function PertanyaanKritikSaranPage() {
@@ -36,6 +29,14 @@ export default function PertanyaanKritikSaranPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [userRole, setUserRole] = useState('')
+
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('simdir_session')
+      if (s) setUserRole(JSON.parse(atob(s)).role || '')
+    } catch {}
+  }, [])
 
   const getAuthHeaders = useCallback(() => {
     const session = typeof window !== 'undefined' && localStorage.getItem('simdir_session')
@@ -258,13 +259,20 @@ export default function PertanyaanKritikSaranPage() {
       </div>
 
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>
-          Pertanyaan Kritik & Saran
-        </h1>
-        <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>
-          Atur pertanyaan khusus untuk setiap unit usaha/fasilitas
-        </p>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 0.25rem' }}>
+            Pertanyaan Kritik & Saran
+          </h1>
+          <p style={{ color: 'var(--text-3)', fontSize: '0.875rem', margin: 0 }}>
+            Atur pertanyaan khusus untuk setiap unit usaha/fasilitas
+          </p>
+        </div>
+        {userRole === 'super_admin' && (
+          <Link href="/kelola-penilaian/pertanyaan/log" className="btn btn-secondary">
+            📋 Log Aktivitas
+          </Link>
+        )}
       </div>
 
       {/* Alert */}

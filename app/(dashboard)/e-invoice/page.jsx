@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
+import { useToast } from '@/app/components/Toast';
 import { formatRupiah, formatDate, formatDateShort } from '@/lib/utils/format';
 import { INVOICE_STATUS as STATUS_CONFIG } from '@/lib/invoiceStatus';
 
@@ -140,6 +141,7 @@ function DeleteConfirmModal({ show, onClose, onConfirm, invoice }) {
 // ============ HALAMAN UTAMA ============
 export default function EInvoicePage() {
   const router = useRouter();
+  const { error: toastError } = useToast();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -236,7 +238,7 @@ export default function EInvoicePage() {
       setInvoiceToDelete(null);
     } catch (err) {
       console.error('Error deleting invoice:', err);
-      alert('Gagal menghapus invoice. Silakan coba lagi.');
+      toastError('Gagal menghapus invoice. Silakan coba lagi.');
     }
   };
 
@@ -255,7 +257,7 @@ export default function EInvoicePage() {
       ));
     } catch (err) {
       console.error('Error updating status:', err);
-      alert('Gagal mengupdate status. Silakan coba lagi.');
+      toastError('Gagal mengupdate status. Silakan coba lagi.');
     }
   };
 

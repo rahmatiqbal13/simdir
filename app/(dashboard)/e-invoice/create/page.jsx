@@ -263,6 +263,24 @@ export default function CreateInvoicePage() {
     return 'dibuat';
   };
 
+  // 5 checkbox status (di luar 'final', yang independen) sebenarnya
+  // merepresentasikan satu kolom status — kalau dibiarkan independen,
+  // mencentang lebih dari satu diam-diam "menang" lewat prioritas
+  // tersembunyi di getStatusFromStempel(). Paksa saling eksklusif di sini
+  // supaya UI selalu mencerminkan status yang benar-benar akan tersimpan.
+  const STATUS_STEMPEL_KEYS = ['lunas', 'segera', 'jatuh_tempo', 'dikirim', 'disetujui'];
+  const setStatusStempel = (key, checked) => {
+    setStempel((prev) => {
+      const next = { ...prev, [key]: checked };
+      if (checked) {
+        for (const k of STATUS_STEMPEL_KEYS) {
+          if (k !== key) next[k] = false;
+        }
+      }
+      return next;
+    });
+  };
+
   // Reset form without confirmation
   const resetForm = () => {
     setCustomerMode('select');
@@ -403,21 +421,18 @@ export default function CreateInvoicePage() {
       error('Tanggal invoice dan jatuh tempo harus diisi.');
       return;
     }
-    
+    if (formData.tanggal_jatuh_tempo < formData.tanggal_invoice) {
+      error('Tanggal jatuh tempo tidak boleh sebelum tanggal invoice.');
+      return;
+    }
+    if (total < 0) {
+      error('Total tidak boleh negatif — periksa nilai diskon.');
+      return;
+    }
+
     setLoading(true);
     
     try {
-      // Debug: Log data yang akan dikirim
-      console.log('Submitting invoice with data:', {
-        customerMode,
-        customerId,
-        formData,
-        subtotal,
-        ppnNilai,
-        total,
-        itemCount: items.length
-      });
-      
       // Jika mode new customer, buat customer dulu (dengan retry jika kode duplikat)
       if (customerMode === 'new') {
         let createdCustomer = null;
@@ -428,12 +443,10 @@ export default function CreateInvoicePage() {
         while (attempts < maxAttempts && !createdCustomer) {
           attempts++;
           // Generate kode baru jika retry
-          const kodePelanggan = attempts === 1 
-            ? newCustomer.kode_pelanggan 
+          const kodePelanggan = attempts === 1
+            ? newCustomer.kode_pelanggan
             : generateCustomerCode();
-          
-          console.log(`Creating new customer (attempt ${attempts}):`, { ...newCustomer, kode_pelanggan: kodePelanggan });
-          
+
           const result = await supabase
             .from('customers')
             .insert({
@@ -467,7 +480,6 @@ export default function CreateInvoicePage() {
         
         customerId = createdCustomer.id;
         customerData = createdCustomer;
-        console.log('Customer created:', customerId);
       }
       
       // Create invoice
@@ -486,9 +498,7 @@ export default function CreateInvoicePage() {
         catatan: formData.catatan || null,
         terms_conditions: '',
       };
-      
-      console.log('Inserting invoice:', invoiceDataToInsert);
-      
+
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices')
         .insert(invoiceDataToInsert)
@@ -504,8 +514,6 @@ export default function CreateInvoicePage() {
         throw new Error('Gagal membuat invoice: ' + invoiceError.message);
       }
       
-      console.log('Invoice created:', invoiceData.id);
-      
       // Create invoice items
       const itemRecords = items.map((item, index) => ({
         invoice_id: invoiceData.id,
@@ -517,21 +525,17 @@ export default function CreateInvoicePage() {
         total: (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0),
         urutan: index,
       }));
-      
-      console.log('Inserting items:', itemRecords);
-      
-      const { data: insertedItems, error: itemsError } = await supabase
+
+      const { error: itemsError } = await supabase
         .from('invoice_items')
         .insert(itemRecords)
         .select();
-      
+
       if (itemsError) {
         console.error('Items creation error:', itemsError);
         throw new Error('Gagal membuat item invoice: ' + itemsError.message);
       }
-      
-      console.log('Items created:', insertedItems?.length || 0);
-      
+
       // Clear draft and mark submitted before navigating
       safeLocalStorage.removeItem('simdir_invoice_draft');
       setSubmitted(true);
@@ -1093,34 +1097,34 @@ export default function CreateInvoicePage() {
             </div>
             <div className="card-body">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
-                <Checkbox 
-                  checked={stempel.lunas} 
-                  onChange={(checked) => setStempel({ ...stempel, lunas: checked })}
+                <Checkbox
+                  checked={stempel.lunas}
+                  onChange={(checked) => setStatusStempel('lunas', checked)}
                   label="Lunas"
                 />
-                <Checkbox 
-                  checked={stempel.segera} 
-                  onChange={(checked) => setStempel({ ...stempel, segera: checked })}
+                <Checkbox
+                  checked={stempel.segera}
+                  onChange={(checked) => setStatusStempel('segera', checked)}
                   label="Segera"
                 />
-                <Checkbox 
-                  checked={stempel.jatuh_tempo} 
-                  onChange={(checked) => setStempel({ ...stempel, jatuh_tempo: checked })}
+                <Checkbox
+                  checked={stempel.jatuh_tempo}
+                  onChange={(checked) => setStatusStempel('jatuh_tempo', checked)}
                   label="Jatuh Tempo"
                 />
-                <Checkbox 
-                  checked={stempel.final} 
+                <Checkbox
+                  checked={stempel.final}
                   onChange={(checked) => setStempel({ ...stempel, final: checked })}
                   label="Final"
                 />
-                <Checkbox 
-                  checked={stempel.dikirim} 
-                  onChange={(checked) => setStempel({ ...stempel, dikirim: checked })}
+                <Checkbox
+                  checked={stempel.dikirim}
+                  onChange={(checked) => setStatusStempel('dikirim', checked)}
                   label="Dikirim"
                 />
-                <Checkbox 
-                  checked={stempel.disetujui} 
-                  onChange={(checked) => setStempel({ ...stempel, disetujui: checked })}
+                <Checkbox
+                  checked={stempel.disetujui}
+                  onChange={(checked) => setStatusStempel('disetujui', checked)}
                   label="Disetujui"
                 />
               </div>

@@ -5,12 +5,13 @@ import { useToast } from '@/app/components/Toast'
 import ConfirmModal from '@/app/components/ConfirmModal'
 import { useUnitKerja } from '@/context/UnitKerjaContext'
 
-const PUI_TABS = [
-  { kode: 'pui-olah', label: 'PUI Keolahragaan' },
-  { kode: 'pui-dis', label: 'PUI Disabilitas' },
-  { kode: 'pui-seni', label: 'PUI Seni Budaya' },
-  { kode: 'pui-ai', label: 'PUI AI' },
-]
+// Urutan tampil yang disukai — cuma dipakai sebagai hint pengurutan, BUKAN
+// sumber data tab. Tab yang benar-benar tampil diambil dari unit_kerja yang
+// kode-nya diawali "pui-" (lihat `puiTabs` di bawah), supaya kalau admin
+// mengubah/menghapus/menambah unit kerja PUI lewat Pengaturan > Unit Kerja,
+// tab di sini ikut berubah otomatis alih-alih diam-diam rusak (lihat juga
+// ProgramKerjaTvPanel.jsx yang punya masalah sama untuk panel TV internal).
+const PUI_ORDER = ['pui-olah', 'pui-dis', 'pui-seni', 'pui-ai']
 
 const STATUS_META = {
   belum_berjalan:   { label: 'Belum Berjalan',   bg: 'var(--surface-3)', color: 'var(--text-2)' },
@@ -29,9 +30,30 @@ const fmtDate = (d) => d ? new Date(d + 'T00:00:00').toLocaleDateString('id-ID',
 
 export default function KelolaProgramKerjaPage() {
   const { success: toastSuccess, error: toastError } = useToast()
-  const { units } = useUnitKerja()
+  const { units, loading: unitsLoading } = useUnitKerja()
 
-  const [activeTab, setActiveTab] = useState(PUI_TABS[0].kode)
+  const puiTabs = useMemo(() => (
+    units
+      .filter((u) => u.kode?.startsWith('pui-'))
+      .map((u) => ({ kode: u.kode, label: u.nama }))
+      .sort((a, b) => {
+        const ia = PUI_ORDER.indexOf(a.kode)
+        const ib = PUI_ORDER.indexOf(b.kode)
+        return (ia === -1 ? PUI_ORDER.length : ia) - (ib === -1 ? PUI_ORDER.length : ib)
+      })
+  ), [units])
+
+  const [activeTab, setActiveTab] = useState('')
+  // Pilih tab pertama begitu daftar unit PUI selesai dimuat, dan pindah
+  // otomatis kalau tab yang sedang aktif ternyata sudah tidak ada lagi
+  // (unit-nya dihapus/kode-nya diubah di Pengaturan > Unit Kerja).
+  useEffect(() => {
+    if (puiTabs.length === 0) return
+    if (!puiTabs.some((t) => t.kode === activeTab)) {
+      setActiveTab(puiTabs[0].kode)
+    }
+  }, [puiTabs, activeTab])
+
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -151,12 +173,18 @@ export default function KelolaProgramKerjaPage() {
             Kelola program kerja, anggaran, status, dan SPJ dari masing-masing PUI
           </p>
         </div>
-        <button className="btn btn-primary" onClick={openCreate}>+ Tambah Program</button>
+        <button className="btn btn-primary" onClick={openCreate} disabled={!activeUnit}>+ Tambah Program</button>
       </div>
 
       {/* Tabs PUI */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', borderBottom: '1px solid var(--border)' }}>
-        {PUI_TABS.map((tab) => (
+      <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        {unitsLoading ? (
+          <div style={{ padding: '0.625rem 1rem', fontSize: '0.875rem', color: 'var(--text-3)' }}>Memuat unit kerja…</div>
+        ) : puiTabs.length === 0 ? (
+          <div style={{ padding: '0.625rem 1rem', fontSize: '0.875rem', color: 'var(--text-3)' }}>
+            Belum ada unit kerja PUI. Tambahkan di Pengaturan → Unit Kerja dengan kode diawali "pui-".
+          </div>
+        ) : puiTabs.map((tab) => (
           <button
             key={tab.kode}
             onClick={() => setActiveTab(tab.kode)}
@@ -258,7 +286,7 @@ export default function KelolaProgramKerjaPage() {
                 <div className="field">
                   <label className="field-label">Unit / PUI</label>
                   <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: '0.875rem' }}>
-                    {PUI_TABS.find((t) => t.kode === activeTab)?.label}
+                    {activeUnit?.nama}
                   </div>
                 </div>
 

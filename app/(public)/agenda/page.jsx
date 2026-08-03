@@ -508,9 +508,15 @@ export default function AgendaPage() {
           return
         }
 
+        // Halaman ini publik & tanpa login — hanya agenda yang eksplisit
+        // ditandai "Tampilkan di TV Publik" boleh muncul di sini juga
+        // (agenda internal punya field disposisi/link_meeting rapat yang
+        // tidak boleh terlihat pengunjung anonim). Sama seperti filter yang
+        // sudah dipakai /agenda/tv.
         const { data, error: supabaseError } = await supabase
           .from('agenda')
           .select('*')
+          .eq('tampil_publik', true)
           .order('tanggal_mulai', { ascending: true })
 
         if (supabaseError) {

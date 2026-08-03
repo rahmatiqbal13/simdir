@@ -67,6 +67,14 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Anggaran harus berupa angka positif' }, { status: 400 })
     }
 
+    let nominalSpj = null
+    if (body.nominal_spj !== undefined && body.nominal_spj !== null && body.nominal_spj !== '') {
+      nominalSpj = Number(body.nominal_spj)
+      if (!Number.isFinite(nominalSpj) || nominalSpj < 0) {
+        return NextResponse.json({ error: 'Nominal SPJ harus berupa angka positif' }, { status: 400 })
+      }
+    }
+
     const supabase = getServiceClient()
     const { data, error } = await supabase
       .from('program_kerja_pui')
@@ -78,7 +86,7 @@ export async function POST(request) {
         status,
         tanggal_mulai: body.tanggal_mulai || null,
         tanggal_selesai: body.tanggal_selesai || null,
-        nominal_spj: body.nominal_spj !== undefined && body.nominal_spj !== '' ? Number(body.nominal_spj) : null,
+        nominal_spj: nominalSpj,
       }])
       .select('*, unit_kerja(nama, kode)')
       .single()

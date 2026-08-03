@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/app/components/Toast';
 import { formatRupiah } from '@/lib/utils/format';
+import useAutosave from '@/app/components/useAutosave';
+import { safeLocalStorage } from '@/lib/localStorage';
 
 // ============ KOMPONEN ITEM ROW ============
 function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
@@ -128,14 +130,51 @@ export default function EditInvoicePage() {
     disetujui: false,
   });
   
-  // Fallback values from database (for display when items are empty)
-  const [dbTotals, setDbTotals] = useState({
-    subtotal: 0,
-    ppn_nilai: 0,
-    diskon_nilai: 0,
-    biaya_pengiriman: 0,
-    total: 0,
-  });
+  const [draftFound, setDraftFound] = useState(false);
+  const draftKey = `simdir_invoice_edit_draft_${invoiceId}`;
+
+  // Draft object for autosave — sama seperti create/page.jsx, supaya
+  // perubahan tidak hilang kalau tab tertutup/koneksi putus sebelum sempat
+  // klik Simpan (sebelumnya Edit tidak punya proteksi ini sama sekali,
+  // padahal ini operasi yang lebih berisiko daripada Create karena bisa
+  // menimpa invoice yang sudah ada).
+  const draftPayload = useMemo(() => ({
+    version: 1,
+    formData,
+    items,
+    pajak,
+    diskon,
+    biayaPengiriman,
+    stempel,
+  }), [formData, items, pajak, diskon, biayaPengiriman, stempel]);
+
+  useAutosave(draftPayload, draftKey, !fetchingData && !loading);
+
+  const restoreDraft = () => {
+    try {
+      const raw = safeLocalStorage.getItem(draftKey);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.version === 1) {
+          setFormData(draft.formData || formData);
+          setItems(draft.items || items);
+          setPajak(draft.pajak || pajak);
+          setDiskon(draft.diskon || diskon);
+          setBiayaPengiriman(draft.biayaPengiriman || biayaPengiriman);
+          setStempel(draft.stempel || stempel);
+        }
+      }
+    } catch (e) {
+      console.error('Error restoring draft:', e);
+    } finally {
+      setDraftFound(false);
+    }
+  };
+
+  const dismissDraft = () => {
+    safeLocalStorage.removeItem(draftKey);
+    setDraftFound(false);
+  };
 
   // Fetch invoice data and customers
   useEffect(() => {
@@ -222,15 +261,6 @@ export default function EditInvoicePage() {
             aktif: (fallbackData.biaya_pengiriman || 0) > 0,
             nominal: fallbackData.biaya_pengiriman || 0,
           });
-          
-          // Set database totals as fallback
-          setDbTotals({
-            subtotal: fallbackData.subtotal || 0,
-            ppn_nilai: fallbackData.ppn_nilai || 0,
-            diskon_nilai: fallbackData.diskon_nilai || 0,
-            biaya_pengiriman: fallbackData.biaya_pengiriman || 0,
-            total: fallbackData.total || 0,
-          });
         } else {
           setFormData({
             customer_id: invoiceData.customer_id || '',
@@ -286,15 +316,6 @@ export default function EditInvoicePage() {
             aktif: (invoiceData.biaya_pengiriman || 0) > 0,
             nominal: invoiceData.biaya_pengiriman || 0,
           });
-          
-          // Set database totals as fallback
-          setDbTotals({
-            subtotal: invoiceData.subtotal || 0,
-            ppn_nilai: invoiceData.ppn_nilai || 0,
-            diskon_nilai: invoiceData.diskon_nilai || 0,
-            biaya_pengiriman: invoiceData.biaya_pengiriman || 0,
-            total: invoiceData.total || 0,
-          });
         }
         
         // Fetch items
@@ -336,6 +357,23 @@ export default function EditInvoicePage() {
     fetchData();
   }, [supabase, invoiceId]);
 
+  // Cek draft tersimpan SETELAH data asli selesai dimuat — supaya kalau
+  // ditemukan, banner menawarkan "Lanjutkan" yang menimpa data asli dengan
+  // draft (bukan sebaliknya, race dengan fetchData di atas).
+  useEffect(() => {
+    if (fetchingData) return;
+    try {
+      const raw = safeLocalStorage.getItem(draftKey);
+      if (raw) {
+        const draft = JSON.parse(raw);
+        if (draft && draft.version === 1) setDraftFound(true);
+      }
+    } catch (e) {
+      console.error('Error reading draft:', e);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchingData]);
+
   // Calculate totals
   const calculateTotals = useCallback(() => {
     // Subtotal dari items
@@ -345,12 +383,6 @@ export default function EditInvoicePage() {
       const price = parseFloat(item.harga_satuan) || 0;
       subtotal += qty * price;
     });
-    
-    // Fallback to database values if calculated subtotal is 0 but db has values
-    // This handles cases where items might not be loaded properly
-    if (subtotal === 0 && dbTotals.subtotal > 0) {
-      subtotal = dbTotals.subtotal;
-    }
     
     // Pajak - bisa persen atau nominal
     let ppnNilai = 0;
@@ -375,15 +407,10 @@ export default function EditInvoicePage() {
     const pengirimanNilai = biayaPengiriman.aktif ? (parseFloat(biayaPengiriman.nominal) || 0) : 0;
     
     // Total
-    let total = subtotal + ppnNilai - diskonNilai + pengirimanNilai;
-    
-    // If calculated total is 0 but db has total value, use db value
-    if (total === 0 && dbTotals.total > 0) {
-      total = dbTotals.total;
-    }
-    
+    const total = subtotal + ppnNilai - diskonNilai + pengirimanNilai;
+
     return { subtotal, ppnNilai, diskonNilai, pengirimanNilai, total };
-  }, [items, pajak, diskon, biayaPengiriman, dbTotals]);
+  }, [items, pajak, diskon, biayaPengiriman]);
 
   const { subtotal, ppnNilai, diskonNilai, pengirimanNilai, total } = calculateTotals();
 
@@ -420,6 +447,24 @@ export default function EditInvoicePage() {
     return 'dibuat';
   };
 
+  // 5 checkbox status (di luar 'final', yang independen) sebenarnya
+  // merepresentasikan satu kolom status — kalau dibiarkan independen,
+  // mencentang lebih dari satu diam-diam "menang" lewat prioritas
+  // tersembunyi di getStatusFromStempel(). Paksa saling eksklusif di sini
+  // supaya UI selalu mencerminkan status yang benar-benar akan tersimpan.
+  const STATUS_STEMPEL_KEYS = ['lunas', 'segera', 'jatuh_tempo', 'dikirim', 'disetujui'];
+  const setStatusStempel = (key, checked) => {
+    setStempel((prev) => {
+      const next = { ...prev, [key]: checked };
+      if (checked) {
+        for (const k of STATUS_STEMPEL_KEYS) {
+          if (k !== key) next[k] = false;
+        }
+      }
+      return next;
+    });
+  };
+
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -429,11 +474,8 @@ export default function EditInvoicePage() {
       return;
     }
 
-    // Filter only valid items (with description)
-    const validItems = items.filter(item => item.deskripsi && item.deskripsi.trim() !== '');
-
-    if (validItems.length === 0) {
-      error('Invoice harus memiliki minimal satu item dengan deskripsi.');
+    if (items.some(item => !item.deskripsi || !item.deskripsi.trim())) {
+      error('Semua item harus memiliki deskripsi.');
       return;
     }
 
@@ -441,7 +483,15 @@ export default function EditInvoicePage() {
       error('Tanggal invoice dan jatuh tempo harus diisi.');
       return;
     }
-    
+    if (formData.tanggal_jatuh_tempo < formData.tanggal_invoice) {
+      error('Tanggal jatuh tempo tidak boleh sebelum tanggal invoice.');
+      return;
+    }
+    if (total < 0) {
+      error('Total tidak boleh negatif — periksa nilai diskon.');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -482,8 +532,8 @@ export default function EditInvoicePage() {
       
       if (deleteError) throw deleteError;
       
-      // Insert new items (only valid items)
-      const itemRecords = validItems.map((item, index) => ({
+      // Insert new items
+      const itemRecords = items.map((item, index) => ({
         invoice_id: invoiceId,
         deskripsi: item.deskripsi,
         quantity: parseFloat(item.quantity) || 0,
@@ -499,7 +549,8 @@ export default function EditInvoicePage() {
         .insert(itemRecords);
       
       if (itemsError) throw itemsError;
-      
+
+      safeLocalStorage.removeItem(draftKey);
       router.push(`/e-invoice/${invoiceId}`);
     } catch (err) {
       console.error('Error updating invoice:', err);
@@ -533,6 +584,55 @@ export default function EditInvoicePage() {
           </Link>
         </div>
       </div>
+
+      {/* Draft Banner */}
+      {draftFound && (
+        <div style={{
+          backgroundColor: '#fef3c7',
+          border: '1px solid #f59e0b',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span style={{ fontSize: '0.875rem', color: '#92400e', fontWeight: 500 }}>
+            Perubahan yang belum tersimpan ditemukan untuk invoice ini.
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={restoreDraft}
+              style={{
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                border: '1px solid #f59e0b',
+                padding: '0.375rem 0.75rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Lanjutkan
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              onClick={dismissDraft}
+              style={{
+                padding: '0.375rem 0.75rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.875rem'
+              }}
+            >
+              Abaikan
+            </button>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gap: '1.5rem' }}>
@@ -864,34 +964,34 @@ export default function EditInvoicePage() {
             </div>
             <div className="card-body">
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem' }}>
-                <Checkbox 
-                  checked={stempel.lunas} 
-                  onChange={(checked) => setStempel({ ...stempel, lunas: checked })}
+                <Checkbox
+                  checked={stempel.lunas}
+                  onChange={(checked) => setStatusStempel('lunas', checked)}
                   label="Lunas"
                 />
-                <Checkbox 
-                  checked={stempel.segera} 
-                  onChange={(checked) => setStempel({ ...stempel, segera: checked })}
+                <Checkbox
+                  checked={stempel.segera}
+                  onChange={(checked) => setStatusStempel('segera', checked)}
                   label="Segera"
                 />
-                <Checkbox 
-                  checked={stempel.jatuh_tempo} 
-                  onChange={(checked) => setStempel({ ...stempel, jatuh_tempo: checked })}
+                <Checkbox
+                  checked={stempel.jatuh_tempo}
+                  onChange={(checked) => setStatusStempel('jatuh_tempo', checked)}
                   label="Jatuh Tempo"
                 />
-                <Checkbox 
-                  checked={stempel.final} 
+                <Checkbox
+                  checked={stempel.final}
                   onChange={(checked) => setStempel({ ...stempel, final: checked })}
                   label="Final"
                 />
-                <Checkbox 
-                  checked={stempel.dikirim} 
-                  onChange={(checked) => setStempel({ ...stempel, dikirim: checked })}
+                <Checkbox
+                  checked={stempel.dikirim}
+                  onChange={(checked) => setStatusStempel('dikirim', checked)}
                   label="Dikirim"
                 />
-                <Checkbox 
-                  checked={stempel.disetujui} 
-                  onChange={(checked) => setStempel({ ...stempel, disetujui: checked })}
+                <Checkbox
+                  checked={stempel.disetujui}
+                  onChange={(checked) => setStatusStempel('disetujui', checked)}
                   label="Disetujui"
                 />
               </div>

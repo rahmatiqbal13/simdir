@@ -8,12 +8,35 @@ import { verifySession } from '@/lib/session'
 const ROLE_RULES = [
   { prefix: '/kelola-agenda', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/surat', roles: ['super_admin', 'pimpinan'] },
-  { prefix: '/laporan', roles: ['super_admin'] },
+  // Laporan sekarang berisi analisis penilaian/kritik-saran (bukan lagi
+  // laporan keuangan) — admin ikut butuh akses, bukan cuma super_admin.
+  { prefix: '/laporan', roles: ['super_admin', 'admin'] },
   { prefix: '/pengaturan', roles: ['super_admin'] },
   { prefix: '/tv-pamflet', roles: ['super_admin', 'admin'] },
-  { prefix: '/kelola-kritik-saran', roles: ['super_admin', 'admin', 'pimpinan'] },
+  // Urutan di bawah ini SENGAJA dari yang paling spesifik ke paling umum
+  // (ROLE_RULES.find() mengambil match pertama untuk pathname.startsWith,
+  // jadi prefix yang lebih panjang wajib ditaruh lebih dulu):
+  // - Log pertanyaan: super_admin saja.
+  // - Kelola pertanyaan (tambah/ubah/hapus pertanyaan penilaian): sama
+  //   seperti navConfig ('pertanyaan-penilaian'), TIDAK termasuk pimpinan.
+  // - Kelola Penilaian (lihat hasil penilaian): boleh pimpinan juga.
+  { prefix: '/kelola-penilaian/pertanyaan/log', roles: ['super_admin'] },
+  { prefix: '/kelola-penilaian/pertanyaan', roles: ['super_admin', 'admin'] },
+  { prefix: '/kelola-penilaian', roles: ['super_admin', 'admin', 'pimpinan'] },
+  // Prefix asli sebelumnya '/kelola-kritik-saran' tidak pernah cocok
+  // dengan path halaman sungguhan ('/kelola-saran') — jadi selama ini
+  // halaman itu tidak terlindungi middleware sama sekali (siapa pun yang
+  // login bisa akses, bukan cuma super_admin/admin/pimpinan seperti
+  // maksudnya). Diperbaiki di sini.
+  { prefix: '/kelola-saran', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/kelola-tamu', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/kelola-program-kerja', roles: ['super_admin', 'admin', 'pimpinan'] },
+  // Catatan: /e-invoice sengaja TIDAK didaftarkan di sini — halaman itu
+  // sudah ada sebelum konvensi middleware-role ini dan saat ini hanya
+  // mensyaratkan login (proteksi role dilakukan di navConfig + client-side
+  // saja). Tidak diubah di sini supaya tidak mengubah perilaku e-invoice
+  // yang sudah ada sebagai efek samping dari menambah e-kwitansi.
+  { prefix: '/e-kwitansi', roles: ['super_admin'] },
 ]
 
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
@@ -27,6 +50,24 @@ const APP_SETTINGS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan'
 // Endpoint program kerja PUI lewat service-role key dan tidak punya
 // pengecekan role sendiri — harus ikut aturan role halaman /kelola-program-kerja.
 const PROGRAM_KERJA_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-program-kerja').roles
+
+// Endpoint CRUD user & unit kerja lewat service-role key — sebelumnya
+// halaman ini memanggil Supabase RPC langsung dari browser dengan RLS yang
+// cuma mensyaratkan auth.role()='authenticated' (lihat sql/fixes/fix-pengaturan-rls.sql),
+// yang bisa dieksploitasi untuk eskalasi privilege oleh siapa pun yang
+// authenticated ke Supabase, bukan cuma super_admin. Sekarang lewat API
+// route ini yang tidak punya pengecekan role sendiri — harus ikut aturan
+// role halaman /pengaturan (super_admin saja).
+const USERS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+const UNIT_KERJA_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+
+// Endpoint kwitansi lewat service-role key dan tidak punya pengecekan role
+// sendiri — harus ikut aturan role halaman /e-kwitansi.
+const KWITANSI_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/e-kwitansi').roles
+
+// Log audit pertanyaan penilaian — super_admin saja yang boleh membaca,
+// walau yang menghasilkan log-nya (tambah/hapus pertanyaan) adalah admin.
+const PERTANYAAN_LOG_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-penilaian/pertanyaan/log').roles
 
 function isPublicPath(pathname, method) {
   if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
@@ -180,6 +221,28 @@ export async function middleware(request) {
   }
 
   if (pathname.startsWith('/api/program-kerja') && !PROGRAM_KERJA_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/users') && !USERS_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/unit-kerja') && !UNIT_KERJA_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/kwitansi') && !KWITANSI_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  // Urutan spesifik→umum lagi: log dulu (super_admin saja), baru endpoint
+  // CRUD pertanyaan secara umum (super_admin + admin) — endpoint ini pakai
+  // service-role key dan tidak punya pengecekan role sendiri.
+  if (pathname.startsWith('/api/pertanyaan-kritik-saran/log') && !PERTANYAAN_LOG_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+  if (pathname.startsWith('/api/pertanyaan-kritik-saran') && !['super_admin', 'admin'].includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 

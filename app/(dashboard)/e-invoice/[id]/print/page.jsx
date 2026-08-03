@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-import { formatRupiah, formatDate } from '@/lib/utils/format';
+import { formatRupiah, formatDate, terbilang } from '@/lib/utils/format';
 import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
 // Cetak butuh warna sebagai hex mentah (bukan var(--x)), jadi map field
@@ -13,21 +13,6 @@ const STATUS_CONFIG = Object.fromEntries(
   Object.entries(INVOICE_STATUS).map(([key, v]) => [key, { label: v.label, color: v.hex, stamp: v.stamp }])
 );
 
-
-const terbilang = (angka) => {
-  const bilangan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
-  
-  if (angka < 12) return bilangan[angka];
-  if (angka < 20) return bilangan[angka - 10] + ' Belas';
-  if (angka < 100) return bilangan[Math.floor(angka / 10)] + ' Puluh ' + bilangan[angka % 10];
-  if (angka < 200) return 'Seratus ' + terbilang(angka - 100);
-  if (angka < 1000) return bilangan[Math.floor(angka / 100)] + ' Ratus ' + terbilang(angka % 100);
-  if (angka < 2000) return 'Seribu ' + terbilang(angka - 1000);
-  if (angka < 1000000) return terbilang(Math.floor(angka / 1000)) + ' Ribu ' + terbilang(angka % 1000);
-  if (angka < 1000000000) return terbilang(Math.floor(angka / 1000000)) + ' Juta ' + terbilang(angka % 1000000);
-  if (angka < 1000000000000) return terbilang(Math.floor(angka / 1000000000)) + ' Miliar ' + terbilang(angka % 1000000000);
-  return 'Angka terlalu besar';
-};
 
 // ============ KOMPONEN STAMP/STAMPEL ============
 function InvoiceStamp({ status }) {
@@ -45,14 +30,16 @@ function InvoiceStamp({ status }) {
   };
   
   const label = stampLabels[config.stamp] || config.stamp.toUpperCase();
-  
+
+  // Sengaja mengalir normal (bukan position:absolute ke bawah halaman) —
+  // sebelumnya nempel ke bottom seluruh container, jadi kepotong kalau isi
+  // invoice meluber ke halaman 2 (stempel ada di titik page-break). Dengan
+  // mengalir normal di dalam baris Summary, stempel selalu ada di halaman
+  // yang sama dengan Subtotal/Total-nya.
   return (
     <div style={{
-      position: 'absolute',
-      bottom: '22mm',
-      right: '18mm',
-      width: 80,
-      height: 80,
+      width: 90,
+      height: 90,
       borderRadius: '50%',
       border: `1.5px solid ${config.color}`,
       display: 'flex',
@@ -65,10 +52,10 @@ function InvoiceStamp({ status }) {
       lineHeight: 1.3,
       transform: 'rotate(-12deg)',
       whiteSpace: 'pre-line',
-      opacity: 0.30,
+      opacity: 0.35,
       pointerEvents: 'none',
       userSelect: 'none',
-      zIndex: 0,
+      flexShrink: 0,
     }}>
       {label}
     </div>
@@ -219,9 +206,6 @@ export default function PrintInvoicePage() {
         position: 'relative',
         zIndex: 1,
       }}>
-        {/* Watermark Stamp */}
-        <InvoiceStamp status={invoice.status} />
-
         {/* Header */}
         <div style={{ 
           display: 'flex', 
@@ -355,12 +339,17 @@ export default function PrintInvoicePage() {
         </table>
 
         {/* Summary */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'flex-end',
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           marginBottom: '2rem',
         }}>
-          <div style={{ width: '350px' }}>
+          {/* Area kosong di sebelah kiri Subtotal/Total — tempat stempel status */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <InvoiceStamp status={invoice.status} />
+          </div>
+          <div style={{ width: '350px', flexShrink: 0 }}>
             <div style={{ 
               display: 'flex', 
               justifyContent: 'space-between', 

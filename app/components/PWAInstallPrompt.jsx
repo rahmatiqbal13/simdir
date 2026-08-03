@@ -1,24 +1,40 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+
+// Sekali ditampilkan (di-install ATAU ditutup), jangan tampilkan lagi
+// selamanya — sebelumnya cuma disupres 24 jam lewat 'pwaPromptDismissed',
+// makanya muncul lagi terus tiap hari.
+const SEEN_KEY = 'pwaPromptSeen'
 
 export default function PWAInstallPrompt() {
+  const pathname = usePathname()
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isVisible, setIsVisible] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
 
   useEffect(() => {
     // Cek apakah sudah di-install
-    if (window.matchMedia('(display-mode: standalone)').matches || 
+    if (window.matchMedia('(display-mode: standalone)').matches ||
         window.navigator.standalone === true) {
       setIsInstalled(true)
       return
     }
 
+    // Sudah pernah ditampilkan sebelumnya (di-install atau ditutup) —
+    // jangan tampilkan lagi, tidak peduli sudah berapa lama.
+    if (localStorage.getItem(SEEN_KEY)) return
+
     // Simpan event beforeinstallprompt
     const handleBeforeInstallPrompt = (e) => {
       // Prevent Chrome 67 and earlier from automatically showing the prompt
       e.preventDefault()
+      // Sebagian browser bisa memicu event ini lebih dari sekali dalam satu
+      // sesi (mis. setelah kondisi installability dievaluasi ulang) — cek
+      // lagi di sini, bukan cuma sekali saat mount, supaya popup yang baru
+      // saja ditutup tidak langsung muncul lagi di sesi yang sama.
+      if (localStorage.getItem(SEEN_KEY)) return
       // Stash the event so it can be triggered later
       setDeferredPrompt(e)
       // Update UI to notify the user they can add to home screen
@@ -30,7 +46,7 @@ export default function PWAInstallPrompt() {
       setIsInstalled(true)
       setIsVisible(false)
       setDeferredPrompt(null)
-      console.log('PWA was installed')
+      localStorage.setItem(SEEN_KEY, '1')
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
@@ -49,44 +65,26 @@ export default function PWAInstallPrompt() {
     deferredPrompt.prompt()
 
     // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice
-    
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt')
-    } else {
-      console.log('User dismissed the install prompt')
-    }
+    await deferredPrompt.userChoice
 
     // Clear the saved prompt since it can't be used again
     setDeferredPrompt(null)
     setIsVisible(false)
+    localStorage.setItem(SEEN_KEY, '1')
   }
 
   const handleDismiss = () => {
     setIsVisible(false)
-    // Simpan ke localStorage agar tidak muncul lagi dalam 24 jam
-    localStorage.setItem('pwaPromptDismissed', Date.now().toString())
+    localStorage.setItem(SEEN_KEY, '1')
   }
 
-  // Cek apakah prompt sudah di-dismiss dalam 24 jam terakhir
-  useEffect(() => {
-    const dismissed = localStorage.getItem('pwaPromptDismissed')
-    if (dismissed) {
-      const dismissedTime = parseInt(dismissed)
-      const now = Date.now()
-      const hoursPassed = (now - dismissedTime) / (1000 * 60 * 60)
-      
-      if (hoursPassed < 24) {
-        setIsVisible(false)
-      }
-    }
-  }, [])
-
-  // Jangan render jika sudah installed atau tidak ada prompt
-  if (isInstalled || !isVisible) return null
+  // Cuma tampil di dashboard (akses pertama setelah login), dan cuma kalau
+  // memang belum pernah ditampilkan/di-dismiss sebelumnya.
+  if (isInstalled || !isVisible || pathname !== '/dashboard') return null
 
   return (
     <div
+      className="pwa-install-prompt"
       style={{
         position: 'fixed',
         bottom: '24px',

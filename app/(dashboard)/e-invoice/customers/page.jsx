@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
+import { useToast } from '@/app/components/Toast';
 
 // ============ HELPERS ============
 const generateCustomerCode = () => {
@@ -200,6 +201,7 @@ function DeleteConfirmModal({ show, onClose, onConfirm, customer }) {
 
 // ============ HALAMAN UTAMA ============
 export default function CustomersPage() {
+  const { error: toastError } = useToast();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -337,7 +339,7 @@ export default function CustomersPage() {
       setIsEditing(false);
     } catch (err) {
       console.error('Error saving customer:', err);
-      alert('Gagal menyimpan data pelanggan. Mungkin kode pelanggan sudah digunakan.');
+      toastError('Gagal menyimpan data pelanggan. Mungkin kode pelanggan sudah digunakan.');
     }
   };
 
@@ -358,7 +360,7 @@ export default function CustomersPage() {
       setSelectedCustomer(null);
     } catch (err) {
       console.error('Error deleting customer:', err);
-      alert('Gagal menghapus pelanggan. Pelanggan mungkin memiliki invoice.');
+      toastError('Gagal menghapus pelanggan. Pelanggan mungkin memiliki invoice.');
     }
   };
 

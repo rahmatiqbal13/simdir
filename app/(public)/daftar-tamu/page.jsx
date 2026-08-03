@@ -187,6 +187,13 @@ function PhotoCapture({ onChange }) {
 
   useEffect(() => () => stopCamera(), [])
 
+  // Blob URL dari createObjectURL() TIDAK otomatis dilepas saat komponen
+  // unmount (beda dari state React biasa) — tanpa revoke manual ini,
+  // setiap foto yang diambil membocorkan memori selama tab kiosk terbuka.
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }
+  }, [previewUrl])
+
   const startCamera = async () => {
     setCameraError('')
     try {

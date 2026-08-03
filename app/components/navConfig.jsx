@@ -119,6 +119,14 @@ export const NAV_ICONS = {
       <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   ),
+  receipt: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M4 2h16v20l-3-2-2 2-2-2-2 2-2-2-2 2-3-2z"/>
+      <line x1="8" y1="7" x2="16" y2="7"/>
+      <line x1="8" y1="11" x2="16" y2="11"/>
+      <path d="M8 15h5"/>
+    </svg>
+  ),
 }
 
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.
@@ -132,6 +140,7 @@ export const ALL_NAV_ITEMS = [
   { key: 'kelola-tamu', href: '/kelola-tamu', label: 'Daftar Tamu', shortLabel: 'Tamu', icon: 'guests', roles: ['super_admin', 'admin', 'pimpinan'] },
   { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'admin', 'pimpinan'] },
   { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'] },
+  { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'] },
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'] },
   { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
@@ -140,7 +149,7 @@ export const ALL_NAV_ITEMS = [
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
   admin_keuangan: ['dashboard', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'laporan'],

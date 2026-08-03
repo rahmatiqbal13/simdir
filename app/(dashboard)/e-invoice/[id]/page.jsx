@@ -58,6 +58,7 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {
@@ -197,6 +198,13 @@ export default function InvoiceDetailPage() {
           </Link>
           {isSuperAdmin && (
             <>
+              <Link href={`/e-kwitansi/create?invoice_id=${invoiceId}`} className="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                  <path d="M4 2h16v20l-3-2-2 2-2-2-2 2-2-2-2 2-3-2z"/>
+                  <line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/>
+                </svg>
+                Buat Kwitansi
+              </Link>
               <Link href={`/e-invoice/${invoiceId}/edit`} className="btn btn-primary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -387,7 +395,7 @@ export default function InvoiceDetailPage() {
                   <button
                     key={status}
                     className="btn btn-sm"
-                    onClick={() => updateStatus(status)}
+                    onClick={() => setPendingStatus(status)}
                     disabled={invoice.status === status}
                     style={{
                       backgroundColor: invoice.status === status ? statusColors[status] + '40' : 'var(--surface-2)',
@@ -411,6 +419,18 @@ export default function InvoiceDetailPage() {
       confirmLabel="Ya, Hapus"
       onConfirm={async () => { setConfirmOpen(false); await actuallyDelete(); }}
       onCancel={() => setConfirmOpen(false)}
+    />
+    <ConfirmModal
+      open={!!pendingStatus}
+      title="Ubah Status Invoice"
+      message={
+        invoice.status === 'lunas'
+          ? <>Invoice ini sudah <strong>LUNAS</strong>. Yakin ingin mengubah statusnya menjadi <strong>{pendingStatus?.replace('_', ' ').toUpperCase()}</strong>?</>
+          : <>Ubah status invoice <strong>{invoice.nomor_invoice}</strong> menjadi <strong>{pendingStatus?.replace('_', ' ').toUpperCase()}</strong>?</>
+      }
+      confirmLabel="Ya, Ubah"
+      onConfirm={async () => { const s = pendingStatus; setPendingStatus(null); await updateStatus(s); }}
+      onCancel={() => setPendingStatus(null)}
     />
     </>
   );

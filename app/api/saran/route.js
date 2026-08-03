@@ -89,7 +89,9 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     const jenis  = searchParams.get('jenis')
-    const limit  = Math.min(100, parseInt(searchParams.get('limit') || '50', 10))
+    // Cap dinaikkan dari 100 ke 2000 — halaman Laporan butuh SELURUH data
+    // untuk statistik yang akurat, bukan cuma 100 entri terakhir.
+    const limit  = Math.min(2000, parseInt(searchParams.get('limit') || '50', 10))
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     let query = supabase

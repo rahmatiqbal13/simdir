@@ -26,7 +26,10 @@ export async function GET(request) {
     const supabase = getServiceClient()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const limit = Math.min(100, parseInt(searchParams.get('limit') || '50', 10))
+    // Cap dinaikkan dari 100 ke 2000 — halaman Laporan butuh SELURUH data
+    // untuk menghitung statistik skala Likert yang akurat, bukan cuma 100
+    // entri terakhir (lihat bug serupa yang pernah ditemukan di /api/tamu).
+    const limit = Math.min(2000, parseInt(searchParams.get('limit') || '50', 10))
     const offset = parseInt(searchParams.get('offset') || '0', 10)
 
     let query = supabase
