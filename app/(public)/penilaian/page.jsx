@@ -570,9 +570,13 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
           {[1, 2, 3, 4, 5].map(star => (
             <button key={star} type="button"
               onClick={() => updateItem(item.id, 'rating', star)}
+              aria-label={`Beri rating ${star} dari 5 bintang`}
+              aria-pressed={star <= item.rating}
               style={{
                 background: 'transparent', border: 'none', fontSize: 30,
-                cursor: 'pointer', padding: '2px 4px', lineHeight: 1,
+                cursor: 'pointer', lineHeight: 1,
+                minWidth: 44, minHeight: 44,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
                 filter: star <= item.rating ? 'none' : 'grayscale(1)',
                 opacity: star <= item.rating ? 1 : 0.3, transition: 'all 0.15s',
                 transform: star <= item.rating ? 'scale(1.1)' : 'scale(1)',
@@ -616,7 +620,7 @@ function PublicHeader({ brandName, logoUrl }) {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <ThemeToggle style={{ width: 36, height: 36 }} />
+          <ThemeToggle />
           <a href="/kritik-saran" style={{
             fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
             textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
@@ -642,7 +646,7 @@ function PublicFooter() {
 
 function SectionLabel({ children, style }) {
   return (
-    <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, ...style }}>
+    <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, ...style }}>
       {children}
     </div>
   )
@@ -656,12 +660,14 @@ const pageStyle = {
 
 const inputStyle = {
   padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 10,
-  fontSize: '0.9rem', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
+  // 16px eksplisit — di bawah itu Safari iOS auto-zoom saat field
+  // difokuskan, dan halaman ini mengunci zoom manual.
+  fontSize: '16px', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
   fontFamily: 'inherit',
 }
 
 const labelStyle = {
-  display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: 8,
+  display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: 8,
 }
 
 const anonLabelStyle = {

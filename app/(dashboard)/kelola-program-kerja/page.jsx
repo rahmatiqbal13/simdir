@@ -275,7 +275,7 @@ export default function KelolaProgramKerjaPage() {
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>{editingItem ? 'Edit Program Kerja' : 'Tambah Program Kerja'}</h3>
-              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setShowForm(false)} aria-label="Tutup">
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setShowForm(false)} aria-label="Tutup" style={{ minWidth: 44, minHeight: 44 }}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                 </svg>

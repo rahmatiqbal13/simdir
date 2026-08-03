@@ -336,7 +336,7 @@ export default function DashboardLayout({ children }) {
 
           {/* Actions */}
           <div className="topbar-actions">
-            <ThemeToggle style={{ width: 40, height: 40, borderRadius: 10 }} />
+            <ThemeToggle style={{ borderRadius: 10 }} />
             <button className="icon-btn" aria-label="Notifikasi">
               <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
               <span className="dot" aria-hidden="true" />
@@ -412,7 +412,7 @@ export default function DashboardLayout({ children }) {
               <div className="mobile-header-sub">{items.find(item => item.href === pathname)?.label || 'USC'}</div>
             </div>
           </div>
-          <ThemeToggle style={{ width: 40, height: 40, border: 'none', background: 'none' }} />
+          <ThemeToggle style={{ border: 'none', background: 'none' }} />
           <button className="icon-btn" aria-label="Notifikasi" style={{ width: 40, height: 40 }}>
             <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
           </button>

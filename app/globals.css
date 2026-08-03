@@ -726,7 +726,11 @@ textarea {
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: 10px;
-  font-size: 0.9375rem;
+  /* 16px eksplisit (bukan rem, karena :root font-size 15px membuat rem
+     ikut mengecil) — di bawah 16px, Safari iOS otomatis zoom-in saat
+     field ini difokuskan, dan halaman publik mengunci zoom manual jadi
+     pengunjung tidak bisa mengembalikannya sendiri. */
+  font-size: 16px;
   font-family: inherit;
   outline: none;
   transition: border-color .15s, box-shadow .15s, background .15s;

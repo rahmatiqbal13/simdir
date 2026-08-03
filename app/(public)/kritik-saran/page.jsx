@@ -298,7 +298,7 @@ export default function KritikSaranPage() {
                           placeholder={form.jenis === 'permohonan_kelas' ? 'Contoh: Kelas Yoga Pagi, Renang Tingkat Lanjut...' : 'Contoh: Turnamen Futsal, Workshop Fitness...'}
                           style={fullInputStyle} maxLength={200} />
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                         <div>
                           <label style={labelStyle}>Tanggal yang Diinginkan <Req /></label>
                           <input type="date" value={form.tanggal_diinginkan}
@@ -414,7 +414,7 @@ export default function KritikSaranPage() {
                             onChange={e => set('nama', e.target.value)}
                             placeholder="Nama Anda" style={fullInputStyle} maxLength={100} />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                           <div>
                             <label style={labelStyle}>No. WhatsApp / Telepon</label>
                             <input type="tel" value={form.telepon}
@@ -491,7 +491,7 @@ function PublicHeader({ brandName, logoUrl }) {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-          <ThemeToggle style={{ width: 36, height: 36 }} />
+          <ThemeToggle />
           <a href="/penilaian" style={{
             fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
             textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
@@ -541,12 +541,14 @@ const cardTitleStyle = { fontSize: '1.0625rem', fontWeight: 700, color: 'var(--t
 const cardSubStyle = { color: 'var(--text-3)', fontSize: '0.875rem', margin: '0 0 18px' }
 
 const labelStyle = {
-  display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#374151', marginBottom: 6,
+  display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: 6,
 }
 
 const baseInput = {
   width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid var(--border)',
-  fontSize: '0.9rem', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
+  // 16px eksplisit — di bawah itu Safari iOS auto-zoom saat field
+  // difokuskan, dan halaman ini mengunci zoom manual.
+  fontSize: '16px', color: 'var(--text)', background: 'var(--surface)', outline: 'none',
   boxSizing: 'border-box', fontFamily: 'inherit',
 }
 

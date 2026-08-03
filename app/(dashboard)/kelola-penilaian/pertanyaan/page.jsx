@@ -291,7 +291,7 @@ export default function PertanyaanKritikSaranPage() {
 
       {/* Facility Selector */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
+        <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', marginBottom: '8px' }}>
           Pilih Fasilitas
         </label>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -426,7 +426,7 @@ export default function PertanyaanKritikSaranPage() {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <label style={{
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px',
-              background: 'var(--surface-2)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151',
+              background: 'var(--surface-2)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-2)',
               whiteSpace: 'nowrap',
             }}>
               <input
@@ -486,7 +486,7 @@ export default function PertanyaanKritikSaranPage() {
                 key={q.id}
                 style={{
                   padding: '14px 16px', borderBottom: '1px solid var(--surface-3)',
-                  display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap',
+                  display: 'flex', alignItems: 'flex-start', gap: '12px',
                   background: q.is_active ? 'var(--surface)' : 'var(--surface-2)',
                   opacity: q.is_active ? 1 : 0.7,
                 }}
@@ -501,7 +501,15 @@ export default function PertanyaanKritikSaranPage() {
                 </div>
 
                 {/* Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Konten + Actions digabung dalam satu kolom (bukan
+                    disandingkan di baris yang sama) — supaya baris tombol
+                    aksi selalu punya lebar penuh kartu untuk dirinya
+                    sendiri. Sebelumnya Actions bersaing ruang horizontal
+                    dengan teks pertanyaan di baris yang sama, dan flexWrap
+                    tidak konsisten melipatnya di HP — 6 tombol 44px
+                    berakhir kepotong di tepi layar tanpa cara untuk
+                    menjangkau yang tersembunyi. */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {editingId === q.id ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -617,11 +625,13 @@ export default function PertanyaanKritikSaranPage() {
                       {q.tipe === 'rating' ? '⭐ Rating 1-5' : q.tipe === 'pilihan_ganda' ? '🔘 Pilihan Ganda' : q.tipe === 'checkbox' ? '☑️ Checkbox' : '📝 Teks'}
                     </span>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  {/* Move up */}
+                  {/* Actions — sekarang di baris sendiri (lihat komentar di
+                      pembuka wrapper kolom di atas), jadi punya lebar penuh
+                      kartu. flexWrap tetap dipasang sebagai jaring pengaman
+                      kalau suatu saat tombol bertambah lagi. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    {/* Move up */}
                   <button
                     onClick={() => handleMove(index, -1)}
                     disabled={index === 0 || saving}
@@ -721,6 +731,7 @@ export default function PertanyaanKritikSaranPage() {
                   >
                     🗑️
                   </button>
+                  </div>
                 </div>
               </div>
             ))}

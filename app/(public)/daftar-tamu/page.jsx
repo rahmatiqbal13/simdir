@@ -21,7 +21,10 @@ const UNIT_DITUJU_LIST = [
 const inputStyle = {
   width: '100%', padding: '10px 12px', borderRadius: 10,
   border: '1px solid var(--border)', background: 'var(--surface)',
-  fontSize: '0.9375rem', color: 'var(--text)',
+  // 16px eksplisit — di bawah itu Safari iOS auto-zoom saat field
+  // difokuskan, dan halaman ini mengunci zoom manual jadi tidak bisa
+  // dikembalikan sendiri oleh pengunjung.
+  fontSize: '16px', color: 'var(--text)',
 }
 const labelStyle = { display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }
 const errorTextStyle = { margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--danger)' }
@@ -41,7 +44,7 @@ function PublicHeader({ brandName, logoUrl }) {
             <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Buku Tamu Digital</div>
           </div>
         </div>
-        <ThemeToggle style={{ width: 36, height: 36, flexShrink: 0 }} />
+        <ThemeToggle style={{ flexShrink: 0 }} />
       </div>
     </header>
   )

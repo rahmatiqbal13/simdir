@@ -36,7 +36,12 @@ export default function ConfirmModal({
       <div className="modal" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h3 id="confirm-modal-title">{title}</h3>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onCancel} aria-label="Tutup">
+          {/* minWidth/minHeight eksplisit — class .btn-icon.btn-sm resolve ke
+              32x32px (dirancang buat aksi baris tabel admin yang padat),
+              tapi modal ini juga dipakai dari halaman kiosk publik
+              (konfirmasi hapus tanda tangan/foto di Buku Tamu) yang perlu
+              target sentuh minimal 44x44px. */}
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onCancel} aria-label="Tutup" style={{ minWidth: 44, minHeight: 44 }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />

@@ -1186,7 +1186,7 @@ export default function AgendaManagePage() {
               style={{ maxWidth: '20rem' }}
             />
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
               <select
                 className="select"
                 value={statusFilter}

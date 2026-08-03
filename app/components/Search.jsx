@@ -87,11 +87,15 @@ function HighlightMatch({ text, query }) {
     <>
       {parts.map((part, i) => 
         part.toLowerCase() === query.toLowerCase() ? (
-          <mark 
-            key={i} 
-            style={{ 
-              background: '#fef08a', 
-              color: 'inherit',
+          <mark
+            key={i}
+            style={{
+              // Latar kuning sengaja tetap sama di kedua tema (efek
+              // "stabilo"), jadi warna teksnya HARUS ikut tetap gelap juga
+              // — 'inherit' sebelumnya ikut var(--text) yang jadi putih di
+              // dark mode, hasilnya teks nyaris tak kelihatan di atas kuning.
+              background: '#fef08a',
+              color: '#1e293b',
               padding: '0 2px',
               borderRadius: '2px',
               fontWeight: 600

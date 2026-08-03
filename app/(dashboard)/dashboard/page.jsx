@@ -176,7 +176,12 @@ export default function DashboardPage() {
       </div>
 
       {/* ── KPI CARDS ───────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }} className="kpi-grid">
+      {/* Grid/gap sengaja TIDAK di-inline — .kpi-grid di globals.css punya
+          breakpoint responsive (4→2 kolom) yang tidak akan pernah menang
+          kalau nilai yang sama ditulis ulang lewat inline style (inline
+          selalu mengalahkan class, termasuk media query di dalamnya) —
+          itu penyebab kartu ke-4 kepotong di layar HP sebelumnya. */}
+      <div className="kpi-grid">
         <KpiCard
           label="Total Agenda"
           value={agendaStats.total}
@@ -388,9 +393,9 @@ function AgendaRow({ a }) {
   const isOngoing = status === 'ongoing';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? '#f0fdf4' : 'transparent' }}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? 'var(--success-50)' : 'transparent' }}
       onMouseEnter={e => e.currentTarget.style.background = isOngoing ? 'var(--success-50)' : 'var(--surface-2)'}
-      onMouseLeave={e => e.currentTarget.style.background = isOngoing ? '#f0fdf4' : 'transparent'}
+      onMouseLeave={e => e.currentTarget.style.background = isOngoing ? 'var(--success-50)' : 'transparent'}
     >
       <div style={{ width: 44, flexShrink: 0, textAlign: 'center', background: isOngoing ? 'var(--success)' : 'var(--surface-3)', borderRadius: 10, padding: '6px 4px' }}>
         <div style={{ fontSize: '0.625rem', fontWeight: 700, color: isOngoing ? 'rgba(255,255,255,0.8)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{MONTHS[d.getMonth()]}</div>
