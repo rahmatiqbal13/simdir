@@ -127,6 +127,13 @@ export const NAV_ICONS = {
       <path d="M8 15h5"/>
     </svg>
   ),
+  wallet: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+      <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+    </svg>
+  ),
 }
 
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.
@@ -141,6 +148,7 @@ export const ALL_NAV_ITEMS = [
   { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'admin', 'pimpinan'] },
   { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'] },
   { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'] },
+  { key: 'pemasukan-unit-usaha', href: '/pemasukan-unit-usaha', label: 'Pemasukan Unit Usaha', shortLabel: 'Unit Usaha', icon: 'wallet', roles: ['super_admin', 'admin_keuangan'] },
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'] },
   { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
@@ -149,8 +157,8 @@ export const ALL_NAV_ITEMS = [
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
-  admin_keuangan: ['dashboard', 'laporan'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
+  admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'laporan'],
 }
@@ -158,7 +166,7 @@ export const SIDEBAR_ORDER = {
 // Item terpilih untuk bottom nav mobile (maks. 3 + tombol "Menu" statis), per role.
 export const BOTTOM_NAV_ORDER = {
   super_admin: ['dashboard', 'kelola-agenda', 'laporan'],
-  admin_keuangan: ['dashboard', 'laporan'],
+  admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'tv-pamflet'],
   pimpinan: ['dashboard', 'kelola-agenda', 'laporan'],
 }
