@@ -14,8 +14,14 @@ export default function PrintKwitansiPage() {
   const [logo, setLogo] = useState(null);
 
   useEffect(() => {
-    const savedLogo = localStorage.getItem('simdir_invoice_logo');
-    if (savedLogo) setLogo(savedLogo);
+    // Logo institusi dipusatkan di Pengaturan > Nama Instansi & Logo
+    // (/pengaturan/branding, lihat app/api/app-settings/route.js) — sebelumnya
+    // halaman ini membaca dari localStorage 'simdir_invoice_logo' yang tidak
+    // pernah diisi oleh UI manapun, jadi logo tidak pernah tampil.
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => { if (data.logo_url) setLogo(data.logo_url); })
+      .catch(() => {});
   }, []);
 
   const fetchItem = useCallback(async () => {
@@ -83,66 +89,72 @@ export default function PrintKwitansiPage() {
       <div className="invoice-print-scroll no-print-scroll" style={{ overflowX: 'auto' }}>
         <div className="invoice-print-container" style={{
           maxWidth: '210mm', minHeight: '148mm', margin: '0 auto', padding: '20mm',
-          background: 'white', boxSizing: 'border-box', position: 'relative',
+          background: 'white', boxSizing: 'border-box', position: 'relative', color: '#0f172a',
         }}>
           {/* Header */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-            marginBottom: '2rem', borderBottom: '3px solid #1e3a8a', paddingBottom: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              {logo && (
-                <img src={logo} alt="Logo Lembaga" style={{ maxHeight: '60px', maxWidth: '120px', objectFit: 'contain' }} />
-              )}
-              <div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e3a8a' }}>KWITANSI</div>
-                <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
-                  Unesa Science Center (USC)
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '2.5rem' }}>
+            <h1 style={{ fontSize: '4rem', fontWeight: 900, letterSpacing: '-0.03em', margin: 0, lineHeight: 0.95, color: '#0f172a' }}>
+              Kuitansi
+            </h1>
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.75rem', flexShrink: 0 }}>
+              <div style={{ textAlign: 'right', paddingTop: '0.375rem', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 800, letterSpacing: '0.06em', fontSize: '0.8125rem' }}>
+                  NO: {item.nomor_kwitansi}
+                </div>
+                <div style={{ fontWeight: 800, letterSpacing: '0.06em', fontSize: '0.8125rem', marginTop: 6 }}>
+                  TANGGAL: {formatDate(item.tanggal).toUpperCase()}
                 </div>
               </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'monospace' }}>
-                {item.nomor_kwitansi}
-              </div>
-              <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
-                Tanggal: {formatDate(item.tanggal)}
+
+              <div style={{ textAlign: 'right' }}>
+                {logo && (
+                  <img src={logo} alt="Logo Lembaga" style={{ height: 72, width: 'auto', maxWidth: 160, objectFit: 'contain', marginLeft: 'auto', display: 'block' }} />
+                )}
+                <div style={{ fontSize: '0.6875rem', color: '#64748b', marginTop: 8, lineHeight: 1.5 }}>
+                  Unesa Science Center<br />
+                  Jalan Ketintang, Surabaya
+                </div>
               </div>
             </div>
           </div>
 
           {/* Body */}
-          <div style={{ fontSize: '0.9375rem', color: '#1e293b', lineHeight: 2.2 }}>
-            <Row label="Telah terima dari" value={item.terima_dari} />
-            <Row label="Uang sejumlah">
-              <span style={{ fontWeight: 700, fontSize: '1.125rem', fontFamily: 'monospace', color: '#1e3a8a' }}>
-                {formatRupiah(item.jumlah)}
-              </span>
-            </Row>
-            <div style={{
-              margin: '0.5rem 0 1rem 148px', padding: '0.75rem 1rem', background: '#f8fafc',
-              borderRadius: 8, fontStyle: 'italic', fontSize: '0.875rem', color: '#475569',
-            }}>
-              ( {terbilang(Math.floor(item.jumlah))} Rupiah )
-            </div>
-            <Row label="Untuk pembayaran" value={item.untuk_pembayaran} />
+          <FieldRow label="Telah diterima dari">
+            <div style={{ fontWeight: 600 }}>{item.terima_dari}</div>
+          </FieldRow>
 
-            {item.invoice && (
-              <Row label="Referensi invoice" value={item.invoice.nomor_invoice} />
-            )}
-          </div>
+          <FieldRow label="Uang sejumlah">
+            <div style={{ fontWeight: 700, fontSize: '1.0625rem' }}>{formatRupiah(item.jumlah)}</div>
+            <div style={{ fontSize: '0.8125rem', color: '#475569', marginTop: 2 }}>
+              ({terbilang(Math.floor(item.jumlah))} Rupiah)
+            </div>
+          </FieldRow>
+
+          <FieldRow label="Untuk pembayaran">
+            <div>{item.untuk_pembayaran}</div>
+          </FieldRow>
+
+          {item.invoice && (
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', padding: '0.875rem 1rem', border: '1px solid #cbd5e1', borderRadius: 8 }}>
+              <div style={{ fontWeight: 800, letterSpacing: '0.04em', fontSize: '0.75rem', flexShrink: 0, paddingTop: 1 }}>CATATAN:</div>
+              <div style={{ fontSize: '0.875rem', color: '#334155' }}>
+                Kuitansi ini merupakan pelunasan Invoice No. {item.invoice.nomor_invoice}.
+              </div>
+            </div>
+          )}
 
           {/* Signature */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '3.5rem' }}>
-            <div style={{ textAlign: 'center', width: '260px' }}>
-              <div style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '0.25rem' }}>
-                Surabaya, {formatDate(item.tanggal)}
-              </div>
+            <div style={{ textAlign: 'center', width: '240px' }}>
               <div style={{ fontSize: '0.875rem', color: '#475569', marginBottom: '4.5rem' }}>
                 Penerima,
               </div>
-              <div style={{ borderTop: '1px solid #334155', paddingTop: '0.5rem', fontWeight: 600 }}>
-                {item.penerima || ' '}
+              <div style={{ fontWeight: 700 }}>
+                {item.penerima ? `(${item.penerima})` : '( )'}
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: '#64748b', marginTop: 2 }}>
+                Unesa Science Center
               </div>
             </div>
           </div>
@@ -194,12 +206,11 @@ export default function PrintKwitansiPage() {
   );
 }
 
-function Row({ label, value, children }) {
+function FieldRow({ label, children }) {
   return (
-    <div style={{ display: 'flex', gap: '1rem' }}>
-      <div style={{ width: '140px', flexShrink: 0, color: '#64748b' }}>{label}</div>
-      <div style={{ color: '#334155' }}>:</div>
-      <div style={{ flex: 1, fontWeight: 600 }}>{value}{children}</div>
+    <div style={{ display: 'flex', gap: '1.5rem', paddingBottom: '1rem', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0' }}>
+      <div style={{ width: '170px', flexShrink: 0, fontWeight: 700, fontSize: '0.9375rem' }}>{label}</div>
+      <div style={{ flex: 1, fontSize: '0.9375rem', lineHeight: 1.6 }}>{children}</div>
     </div>
   );
 }

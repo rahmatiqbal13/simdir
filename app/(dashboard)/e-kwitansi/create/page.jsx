@@ -5,18 +5,20 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/app/components/Toast';
-import { terbilang } from '@/lib/utils/format';
+import { terbilang, slugToNomor, nomorToSlug } from '@/lib/utils/format';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 export default function CreateKwitansiPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const invoiceIdParam = searchParams.get('invoice_id');
+  // "invoice_id" di query string sebenarnya berisi slug nomor invoice (mis.
+  // "INV-2026-07-0005"), bukan UUID mentah — lihat Link di e-invoice/[id]/page.jsx.
+  const invoiceSlugParam = searchParams.get('invoice_id');
   const { error: toastError, success: toastSuccess } = useToast();
 
   const [sourceInvoice, setSourceInvoice] = useState(null);
-  const [loadingInvoice, setLoadingInvoice] = useState(!!invoiceIdParam);
+  const [loadingInvoice, setLoadingInvoice] = useState(!!invoiceSlugParam);
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -30,13 +32,13 @@ export default function CreateKwitansiPage() {
   // Kalau dibuka dari halaman invoice ("Buat Kwitansi"), ambil data
   // pelanggan/nominal invoice tsb untuk mengisi form otomatis.
   useEffect(() => {
-    if (!invoiceIdParam) return;
+    if (!invoiceSlugParam) return;
     (async () => {
       try {
         const { data, error } = await supabase
           .from('invoice_summary')
           .select('*')
-          .eq('id', invoiceIdParam)
+          .eq('nomor_invoice', slugToNomor(invoiceSlugParam))
           .single();
         if (error) throw error;
         setSourceInvoice(data);
@@ -53,7 +55,7 @@ export default function CreateKwitansiPage() {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoiceIdParam]);
+  }, [invoiceSlugParam]);
 
   const set = (field, value) => setForm((f) => ({ ...f, [field]: value }));
 
@@ -75,7 +77,9 @@ export default function CreateKwitansiPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tanggal: form.tanggal,
-          invoice_id: invoiceIdParam || null,
+          // FK invoice_id butuh UUID asli, bukan slug — pakai id dari
+          // sourceInvoice yang sudah di-resolve, bukan invoiceSlugParam.
+          invoice_id: sourceInvoice?.id || null,
           terima_dari: form.terima_dari.trim(),
           jumlah: jumlahNum,
           untuk_pembayaran: form.untuk_pembayaran.trim(),
@@ -85,7 +89,7 @@ export default function CreateKwitansiPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       toastSuccess('Kwitansi berhasil dibuat');
-      router.push(`/e-kwitansi/${data.id}`);
+      router.push(`/e-kwitansi/${nomorToSlug(data.nomor_kwitansi)}`);
     } catch (err) {
       toastError('Gagal menyimpan: ' + err.message);
     } finally {

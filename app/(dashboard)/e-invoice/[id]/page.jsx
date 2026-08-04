@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { useToast } from '@/app/components/Toast';
-import { formatRupiah, formatDate } from '@/lib/utils/format';
+import { formatRupiah, formatDate, slugToNomor } from '@/lib/utils/format';
 import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
 const STAMP_LABELS = {
@@ -50,7 +50,11 @@ function InvoiceStamp({ status }) {
 export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const invoiceId = params?.id;
+  // params.id sekarang berisi slug nomor invoice (mis. "INV-2026-07-0005"),
+  // bukan UUID — lihat lib/utils/format.js nomorToSlug/slugToNomor. UUID
+  // asli (dibutuhkan untuk update/delete/FK) diambil dari invoice.id
+  // setelah data ter-fetch, bukan dari param ini secara langsung.
+  const invoiceSlug = params?.id;
   const { error: toastError } = useToast();
 
   const [invoice, setInvoice] = useState(null);
@@ -62,23 +66,23 @@ export default function InvoiceDetailPage() {
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {
-    if (!invoiceId) return;
-    
+    if (!invoiceSlug) return;
+
     setLoading(true);
     try {
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoice_summary')
         .select('*')
-        .eq('id', invoiceId)
+        .eq('nomor_invoice', slugToNomor(invoiceSlug))
         .single();
-      
+
       if (invoiceError) throw invoiceError;
       setInvoice(invoiceData);
-      
+
       const { data: itemsData, error: itemsError } = await supabase
         .from('invoice_items')
         .select('*')
-        .eq('invoice_id', invoiceId)
+        .eq('invoice_id', invoiceData.id)
         .order('urutan', { ascending: true });
       
       if (itemsError) throw itemsError;
@@ -110,7 +114,7 @@ export default function InvoiceDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, invoiceId]);
+  }, [supabase, invoiceSlug]);
 
   useEffect(() => {
     fetchInvoice();
@@ -122,8 +126,8 @@ export default function InvoiceDetailPage() {
       const { error } = await supabase
         .from('invoices')
         .update({ status: newStatus })
-        .eq('id', invoiceId);
-      
+        .eq('id', invoice.id);
+
       if (error) throw error;
       setInvoice({ ...invoice, status: newStatus });
     } catch (err) {
@@ -138,7 +142,7 @@ export default function InvoiceDetailPage() {
       const { error } = await supabase
         .from('invoices')
         .delete()
-        .eq('id', invoiceId);
+        .eq('id', invoice.id);
 
       if (error) throw error;
       router.push('/e-invoice');
@@ -189,7 +193,7 @@ export default function InvoiceDetailPage() {
           <Link href="/e-invoice" className="btn btn-ghost">
             Kembali
           </Link>
-          <Link href={`/e-invoice/${invoiceId}/print`} className="btn btn-secondary">
+          <Link href={`/e-invoice/${invoiceSlug}/print`} className="btn btn-secondary">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <rect x="6" y="14" width="12" height="8"/>
@@ -198,14 +202,14 @@ export default function InvoiceDetailPage() {
           </Link>
           {isSuperAdmin && (
             <>
-              <Link href={`/e-kwitansi/create?invoice_id=${invoiceId}`} className="btn btn-secondary">
+              <Link href={`/e-kwitansi/create?invoice_id=${invoiceSlug}`} className="btn btn-secondary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                   <path d="M4 2h16v20l-3-2-2 2-2-2-2 2-2-2-2 2-3-2z"/>
                   <line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/>
                 </svg>
                 Buat Kwitansi
               </Link>
-              <Link href={`/e-invoice/${invoiceId}/edit`} className="btn btn-primary">
+              <Link href={`/e-invoice/${invoiceSlug}/edit`} className="btn btn-primary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>

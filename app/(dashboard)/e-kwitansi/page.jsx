@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
-import { formatRupiah, formatDate } from '@/lib/utils/format';
+import { formatRupiah, formatDate, nomorToSlug } from '@/lib/utils/format';
 
 export default function KwitansiListPage() {
   const { error: toastError, success: toastSuccess } = useToast();
@@ -40,7 +40,7 @@ export default function KwitansiListPage() {
     if (!deleteItem) return;
     setDeleteLoading(true);
     try {
-      const res = await fetch(`/api/kwitansi/${deleteItem.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/kwitansi/${nomorToSlug(deleteItem.nomor_kwitansi)}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       await fetchData();
@@ -107,7 +107,7 @@ export default function KwitansiListPage() {
                   <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.untuk_pembayaran}</td>
                   <td>
                     {item.invoice ? (
-                      <Link href={`/e-invoice/${item.invoice.id}`} className="badge" style={{ textDecoration: 'none' }}>
+                      <Link href={`/e-invoice/${nomorToSlug(item.invoice.nomor_invoice)}`} className="badge" style={{ textDecoration: 'none' }}>
                         {item.invoice.nomor_invoice}
                       </Link>
                     ) : (
@@ -116,10 +116,10 @@ export default function KwitansiListPage() {
                   </td>
                   <td className="text-right">
                     <div style={{ display: 'inline-flex', gap: 4 }}>
-                      <Link href={`/e-kwitansi/${item.id}`} className="btn btn-ghost btn-sm btn-icon" title="Detail" aria-label="Lihat detail kwitansi">
+                      <Link href={`/e-kwitansi/${nomorToSlug(item.nomor_kwitansi)}`} className="btn btn-ghost btn-sm btn-icon" title="Detail" aria-label="Lihat detail kwitansi">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                       </Link>
-                      <Link href={`/e-kwitansi/${item.id}/print`} className="btn btn-ghost btn-sm btn-icon" title="Cetak" aria-label="Cetak kwitansi">
+                      <Link href={`/e-kwitansi/${nomorToSlug(item.nomor_kwitansi)}/print`} className="btn btn-ghost btn-sm btn-icon" title="Cetak" aria-label="Cetak kwitansi">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                       </Link>
                       <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setDeleteItem(item)} title="Hapus" aria-label="Hapus kwitansi" style={{ color: 'var(--danger)' }}>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
-import { formatRupiah, formatDate, terbilang } from '@/lib/utils/format';
+import { formatRupiah, formatDate, terbilang, slugToNomor } from '@/lib/utils/format';
 import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
 // Cetak butuh warna sebagai hex mentah (bukan var(--x)), jadi map field
@@ -65,18 +65,30 @@ function InvoiceStamp({ status }) {
 // ============ HALAMAN UTAMA ============
 export default function PrintInvoicePage() {
   const params = useParams();
-  const invoiceId = params?.id;
-  
+  // params.id sekarang slug nomor invoice (mis. "INV-2026-07-0005"), bukan
+  // UUID — lihat lib/utils/format.js nomorToSlug/slugToNomor.
+  const invoiceSlug = params?.id;
+
   const [invoice, setInvoice] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [logo, setLogo] = useState(null);
   const [showSignatures, setShowSignatures] = useState(true);
 
-  // Load preferences from localStorage
+  // Logo institusi dipusatkan di Pengaturan > Nama Instansi & Logo
+  // (/pengaturan/branding, lihat app/api/app-settings/route.js) — sebelumnya
+  // halaman ini membaca dari localStorage 'simdir_invoice_logo' yang tidak
+  // pernah diisi oleh UI manapun, jadi logo tidak pernah tampil.
   useEffect(() => {
-    const savedLogo = localStorage.getItem('simdir_invoice_logo');
-    if (savedLogo) setLogo(savedLogo);
+    fetch('/api/app-settings')
+      .then((res) => res.json())
+      .then((data) => { if (data.logo_url) setLogo(data.logo_url); })
+      .catch(() => {});
+  }, []);
+
+  // Preferensi tampilkan-tanda-tangan tetap per-browser (bukan setting
+  // institusi), jadi tetap disimpan di localStorage.
+  useEffect(() => {
     const savedSig = localStorage.getItem('simdir_invoice_show_signatures');
     if (savedSig !== null) setShowSignatures(savedSig === 'true');
   }, []);
@@ -88,27 +100,27 @@ export default function PrintInvoicePage() {
 
   // Fetch invoice data
   const fetchInvoice = useCallback(async () => {
-    if (!invoiceId) return;
-    
+    if (!invoiceSlug) return;
+
     setLoading(true);
     try {
       // Fetch invoice with customer info
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoice_summary')
         .select('*')
-        .eq('id', invoiceId)
+        .eq('nomor_invoice', slugToNomor(invoiceSlug))
         .single();
-      
+
       if (invoiceError) throw invoiceError;
       setInvoice(invoiceData);
-      
-      // Fetch items
+
+      // Fetch items — pakai UUID asli dari invoiceData.id, bukan slug
       const { data: itemsData, error: itemsError } = await supabase
         .from('invoice_items')
         .select('*')
-        .eq('invoice_id', invoiceId)
+        .eq('invoice_id', invoiceData.id)
         .order('urutan', { ascending: true });
-      
+
       if (itemsError) throw itemsError;
       setItems(itemsData || []);
     } catch (err) {
@@ -116,7 +128,7 @@ export default function PrintInvoicePage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, invoiceId]);
+  }, [supabase, invoiceSlug]);
 
   useEffect(() => {
     fetchInvoice();
@@ -164,7 +176,7 @@ export default function PrintInvoicePage() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <Link href={`/e-invoice/${invoiceId}`} className="btn btn-ghost">
+          <Link href={`/e-invoice/${invoiceSlug}`} className="btn btn-ghost">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <path d="M19 12H5M12 19l-7-7 7-7"/>
             </svg>
@@ -218,13 +230,13 @@ export default function PrintInvoicePage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             {logo && (
               <img 
-                src={logo} 
-                alt="Logo Lembaga" 
-                style={{ 
-                  maxHeight: '60px', 
-                  maxWidth: '120px', 
+                src={logo}
+                alt="Logo Lembaga"
+                style={{
+                  maxHeight: '80px',
+                  maxWidth: '170px',
                   objectFit: 'contain',
-                }} 
+                }}
               />
             )}
             <div>
