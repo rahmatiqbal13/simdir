@@ -1,9 +1,24 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ThemeToggle from '@/app/components/ThemeToggle'
 import { formatRupiah } from '@/lib/utils/format'
+
+const MONTH_NAMES_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
+const STATUS_LABEL = {
+  achieved: 'Tercapai',
+  notachieved: 'Belum Tercapai',
+  notarget: 'Tanpa Target',
+  pending: 'Belum Ada Data',
+}
+const STATUS_COLOR = {
+  achieved: 'var(--success)',
+  notachieved: 'var(--danger)',
+  notarget: 'var(--text-3)',
+  pending: 'var(--text-3)',
+}
 
 function getYearRange(count = 6, offset = 3) {
   const current = new Date().getFullYear()
@@ -17,6 +32,7 @@ export default function PendapatanPublikPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [expandedUnit, setExpandedUnit] = useState(null)
 
   useEffect(() => {
     fetch('/api/app-settings')
@@ -118,7 +134,7 @@ export default function PendapatanPublikPage() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
                   <thead>
                     <tr style={{ background: 'var(--surface-2)' }}>
-                      {['Unit Usaha', 'Target Tahunan', 'Realisasi', 'Capaian'].map((h) => (
+                      {['Unit Usaha', 'Target Tahunan', 'Realisasi', 'Capaian', ''].map((h) => (
                         <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Unit Usaha' ? 'left' : 'right', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-3)', borderBottom: '1px solid var(--border)' }}>
                           {h}
                         </th>
@@ -126,26 +142,73 @@ export default function PendapatanPublikPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.units.map((u) => (
-                      <tr key={u.nama}>
-                        <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{u.nama}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-2)', borderBottom: '1px solid var(--border)' }}>{u.target_tahunan > 0 ? formatRupiah(u.target_tahunan) : '-'}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{formatRupiah(u.realisasi)}</td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid var(--border)' }}>
-                          {u.capaian_pct !== null ? (
-                            <span style={{
-                              display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
-                              background: u.capaian_pct >= 100 ? 'var(--success-50)' : u.capaian_pct >= 70 ? 'var(--warning-50)' : 'var(--danger-50)',
-                              color: u.capaian_pct >= 100 ? 'var(--success)' : u.capaian_pct >= 70 ? 'var(--warning)' : 'var(--danger)',
-                            }}>
-                              {u.capaian_pct}%
-                            </span>
-                          ) : '-'}
-                        </td>
-                      </tr>
-                    ))}
+                    {data.units.map((u) => {
+                      const isOpen = expandedUnit === u.nama
+                      return (
+                        <Fragment key={u.nama}>
+                          <tr
+                            onClick={() => setExpandedUnit(isOpen ? null : u.nama)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{u.nama}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-2)', borderBottom: '1px solid var(--border)' }}>{u.target_tahunan > 0 ? formatRupiah(u.target_tahunan) : '-'}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text)', borderBottom: '1px solid var(--border)' }}>{formatRupiah(u.realisasi)}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid var(--border)' }}>
+                              {u.capaian_pct !== null ? (
+                                <span style={{
+                                  display: 'inline-block', padding: '2px 10px', borderRadius: 999, fontSize: '0.75rem', fontWeight: 700,
+                                  background: u.capaian_pct >= 100 ? 'var(--success-50)' : u.capaian_pct >= 70 ? 'var(--warning-50)' : 'var(--danger-50)',
+                                  color: u.capaian_pct >= 100 ? 'var(--success)' : u.capaian_pct >= 70 ? 'var(--warning)' : 'var(--danger)',
+                                }}>
+                                  {u.capaian_pct}%
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right', borderBottom: '1px solid var(--border)', color: 'var(--text-3)' }}>
+                              {isOpen ? '▲ Tutup' : '▼ Detail Bulanan'}
+                            </td>
+                          </tr>
+                          {isOpen && (
+                            <tr>
+                              <td colSpan={5} style={{ padding: 0, background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+                                <div style={{ overflowX: 'auto', padding: '0.75rem 1rem' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8125rem' }}>
+                                    <thead>
+                                      <tr>
+                                        {['Bulan', 'Target Dasar', 'Rollover', 'Target Efektif', 'Realisasi', 'Status'].map((h) => (
+                                          <th key={h} style={{ padding: '8px 10px', textAlign: h === 'Bulan' ? 'left' : 'right', fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.03em', color: 'var(--text-3)' }}>
+                                            {h}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {u.months.map((m) => (
+                                        <tr key={m.month}>
+                                          <td style={{ padding: '6px 10px', fontWeight: 600, color: 'var(--text)' }}>{MONTH_NAMES_FULL[m.month]}</td>
+                                          <td style={{ padding: '6px 10px', textAlign: 'right', color: 'var(--text-2)' }}>{m.baseTarget > 0 ? formatRupiah(m.baseTarget) : '-'}</td>
+                                          <td style={{ padding: '6px 10px', textAlign: 'right', color: m.rollingCarryover > 0 ? 'var(--warning)' : 'var(--text-3)' }}>{m.rollingCarryover > 0 ? `+${formatRupiah(m.rollingCarryover)}` : '-'}</td>
+                                          <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 600, color: 'var(--text)' }}>{m.effectiveTarget > 0 ? formatRupiah(m.effectiveTarget) : '-'}</td>
+                                          <td style={{ padding: '6px 10px', textAlign: 'right', fontWeight: 700, color: 'var(--text)' }}>{m.income !== null ? formatRupiah(m.income) : '-'}</td>
+                                          <td style={{ padding: '6px 10px', textAlign: 'right' }}>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: STATUS_COLOR[m.status] }}>{STATUS_LABEL[m.status]}</span>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                  <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', margin: '0.5rem 0 0' }}>
+                                    Rollover: kekurangan target bulan sebelumnya digulirkan menjadi tambahan target bulan berikutnya, sampai target tahunan tercapai.
+                                  </p>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      )
+                    })}
                     {data.units.length === 0 && (
-                      <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-3)' }}>Belum ada data unit usaha aktif</td></tr>
+                      <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-3)' }}>Belum ada data unit usaha aktif</td></tr>
                     )}
                   </tbody>
                   <tfoot>
@@ -154,6 +217,7 @@ export default function PendapatanPublikPage() {
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text)' }}>{formatRupiah(data.grand_total.target_tahunan)}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text)' }}>{formatRupiah(data.grand_total.realisasi)}</td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text)' }}>{data.grand_total.capaian_pct !== null ? `${data.grand_total.capaian_pct}%` : '-'}</td>
+                      <td style={{ padding: '12px 16px' }} />
                     </tr>
                   </tfoot>
                 </table>
