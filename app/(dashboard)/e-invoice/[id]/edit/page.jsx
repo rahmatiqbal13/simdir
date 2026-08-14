@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/app/components/Toast';
-import { formatRupiah } from '@/lib/utils/format';
+import { formatRupiah, slugToNomor } from '@/lib/utils/format';
 import useAutosave from '@/app/components/useAutosave';
 import { safeLocalStorage } from '@/lib/localStorage';
 
@@ -90,12 +90,17 @@ function Checkbox({ checked, onChange, label }) {
 export default function EditInvoicePage() {
   const params = useParams();
   const router = useRouter();
-  const invoiceId = params?.id;
+  // params.id sekarang slug nomor invoice (mis. "INV-2026-07-0005"), bukan
+  // UUID — lihat lib/utils/format.js nomorToSlug/slugToNomor. UUID asli
+  // (dibutuhkan untuk update/delete/FK item) disimpan terpisah di realId
+  // setelah invoice-nya ter-fetch.
+  const invoiceSlug = params?.id;
   const { error } = useToast();
 
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
+  const [realId, setRealId] = useState(null);
   
   // Invoice data
   const [formData, setFormData] = useState({
@@ -131,7 +136,7 @@ export default function EditInvoicePage() {
   });
   
   const [draftFound, setDraftFound] = useState(false);
-  const draftKey = `simdir_invoice_edit_draft_${invoiceId}`;
+  const draftKey = `simdir_invoice_edit_draft_${invoiceSlug}`;
 
   // Draft object for autosave — sama seperti create/page.jsx, supaya
   // perubahan tidak hilang kalau tab tertutup/koneksi putus sebelum sempat
@@ -179,42 +184,46 @@ export default function EditInvoicePage() {
   // Fetch invoice data and customers
   useEffect(() => {
     const fetchData = async () => {
-      if (!invoiceId) {
-        console.error('No invoiceId provided');
+      if (!invoiceSlug) {
+        console.error('No invoiceSlug provided');
         return;
       }
-      
+
       try {
         // Fetch customers first
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
           .select('id, kode_pelanggan, nama_pelanggan, alamat, telepon, email')
           .order('nama_pelanggan', { ascending: true });
-        
+
         if (customersError) {
           console.error('Error fetching customers:', customersError);
           console.error('Customers error details:', JSON.stringify(customersError));
         }
         setCustomers(customersData || []);
-        
+
         // Fetch invoice directly from invoices table (not view) to ensure all columns are available
         const { data: invoiceData, error: invoiceError } = await supabase
           .from('invoices')
           .select('*')
-          .eq('id', invoiceId)
+          .eq('nomor_invoice', slugToNomor(invoiceSlug))
           .single();
-        
+
+        let resolvedId = null;
+
         if (invoiceError) {
           console.error('Error fetching invoice:', invoiceError);
           // Fallback to invoice_summary view
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('invoices')
             .select('*')
-            .eq('id', invoiceId)
+            .eq('nomor_invoice', slugToNomor(invoiceSlug))
             .single();
-          
+
           if (fallbackError) throw fallbackError;
 
+          resolvedId = fallbackData.id;
+          setRealId(fallbackData.id);
           setFormData({
             customer_id: fallbackData.customer_id || '',
             tanggal_invoice: fallbackData.tanggal_invoice || '',
@@ -262,6 +271,8 @@ export default function EditInvoicePage() {
             nominal: fallbackData.biaya_pengiriman || 0,
           });
         } else {
+          resolvedId = invoiceData.id;
+          setRealId(invoiceData.id);
           setFormData({
             customer_id: invoiceData.customer_id || '',
             tanggal_invoice: invoiceData.tanggal_invoice || '',
@@ -318,11 +329,13 @@ export default function EditInvoicePage() {
           });
         }
         
-        // Fetch items
+        // Fetch items — pakai UUID asli (resolvedId) yang baru diambil di
+        // atas, bukan invoiceSlug (state realId belum ter-update di render
+        // yang sama, jadi tidak bisa dipakai langsung di sini).
         const { data: itemsData, error: itemsError } = await supabase
           .from('invoice_items')
           .select('*')
-          .eq('invoice_id', invoiceId)
+          .eq('invoice_id', resolvedId)
           .order('urutan', { ascending: true });
         
         if (itemsError) {
@@ -355,7 +368,7 @@ export default function EditInvoicePage() {
     };
     
     fetchData();
-  }, [supabase, invoiceId]);
+  }, [supabase, invoiceSlug]);
 
   // Cek draft tersimpan SETELAH data asli selesai dimuat — supaya kalau
   // ditemukan, banner menawarkan "Lanjutkan" yang menimpa data asli dengan
@@ -514,8 +527,8 @@ export default function EditInvoicePage() {
           catatan: formData.catatan || null,
           terms_conditions: '',
         })
-        .eq('id', invoiceId);
-      
+        .eq('id', realId);
+
       if (invoiceError) {
         // Cek apakah error karena kolom belum ada di database
         if (invoiceError.message && invoiceError.message.includes('Could not find')) {
@@ -523,18 +536,18 @@ export default function EditInvoicePage() {
         }
         throw invoiceError;
       }
-      
+
       // Delete old items
       const { error: deleteError } = await supabase
         .from('invoice_items')
         .delete()
-        .eq('invoice_id', invoiceId);
-      
+        .eq('invoice_id', realId);
+
       if (deleteError) throw deleteError;
-      
+
       // Insert new items
       const itemRecords = items.map((item, index) => ({
-        invoice_id: invoiceId,
+        invoice_id: realId,
         deskripsi: item.deskripsi,
         quantity: parseFloat(item.quantity) || 0,
         satuan: item.satuan || null,
@@ -543,15 +556,15 @@ export default function EditInvoicePage() {
         total: (parseFloat(item.quantity) || 0) * (parseFloat(item.harga_satuan) || 0),
         urutan: index,
       }));
-      
+
       const { error: itemsError } = await supabase
         .from('invoice_items')
         .insert(itemRecords);
-      
+
       if (itemsError) throw itemsError;
 
       safeLocalStorage.removeItem(draftKey);
-      router.push(`/e-invoice/${invoiceId}`);
+      router.push(`/e-invoice/${invoiceSlug}`);
     } catch (err) {
       console.error('Error updating invoice:', err);
       error('Gagal mengupdate invoice: ' + (err.message || 'Terjadi kesalahan'));
@@ -579,7 +592,7 @@ export default function EditInvoicePage() {
           <p className="page-subtitle">Ubah data invoice yang sudah ada</p>
         </div>
         <div className="page-actions">
-          <Link href={`/e-invoice/${invoiceId}`} className="btn btn-ghost">
+          <Link href={`/e-invoice/${invoiceSlug}`} className="btn btn-ghost">
             Batal
           </Link>
         </div>
@@ -1023,7 +1036,7 @@ export default function EditInvoicePage() {
                 )}
               </button>
             </div>
-            <Link href={`/e-invoice/${invoiceId}`} className="btn btn-ghost">
+            <Link href={`/e-invoice/${invoiceSlug}`} className="btn btn-ghost">
               Batal
             </Link>
           </div>

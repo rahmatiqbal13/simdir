@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { friendlyDbError } from '@/lib/db-errors'
+import { slugToNomor } from '@/lib/utils/format'
 
 const SELECT_COLUMNS = '*, invoice:invoice_id(id, nomor_invoice)'
 
@@ -11,7 +12,10 @@ function getServiceClient() {
   )
 }
 
-// GET /api/kwitansi/[id] — satu kwitansi (dipakai halaman detail/edit/print)
+// GET /api/kwitansi/[id] — satu kwitansi (dipakai halaman detail/edit/print).
+// Meski parameter route masih bernama "id", nilainya sekarang slug dari
+// nomor_kwitansi (mis. "KW-2026-08-0001", lihat lib/utils/format.js
+// nomorToSlug/slugToNomor) — bukan UUID mentah, supaya URL-nya bisa dikenali.
 export async function GET(request, { params }) {
   try {
     const { id } = await params
@@ -19,7 +23,7 @@ export async function GET(request, { params }) {
     const { data, error } = await supabase
       .from('kwitansi')
       .select(SELECT_COLUMNS)
-      .eq('id', id)
+      .eq('nomor_kwitansi', slugToNomor(id))
       .single()
     if (error) throw error
     return NextResponse.json(data)
@@ -56,7 +60,7 @@ export async function PUT(request, { params }) {
         untuk_pembayaran: untukPembayaran,
         penerima: (body.penerima || '').trim() || null,
       })
-      .eq('id', id)
+      .eq('nomor_kwitansi', slugToNomor(id))
       .select(SELECT_COLUMNS)
       .single()
 
@@ -72,7 +76,7 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = await params
     const supabase = getServiceClient()
-    const { error } = await supabase.from('kwitansi').delete().eq('id', id)
+    const { error } = await supabase.from('kwitansi').delete().eq('nomor_kwitansi', slugToNomor(id))
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (err) {

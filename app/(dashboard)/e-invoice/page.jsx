@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
 import { useToast } from '@/app/components/Toast';
-import { formatRupiah, formatDate, formatDateShort } from '@/lib/utils/format';
+import { formatRupiah, formatDate, formatDateShort, nomorToSlug } from '@/lib/utils/format';
 import { INVOICE_STATUS as STATUS_CONFIG } from '@/lib/invoiceStatus';
 
 // ============ KOMPONEN STAMP/STAMPEL ============
@@ -456,8 +456,8 @@ export default function EInvoicePage() {
                       </td>
                       <td>
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <Link 
-                            href={`/e-invoice/${invoice.id}`}
+                          <Link
+                            href={`/e-invoice/${nomorToSlug(invoice.nomor_invoice)}`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Lihat Detail"
                             aria-label="Lihat detail invoice"
@@ -466,8 +466,8 @@ export default function EInvoicePage() {
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                           </Link>
-                          <Link 
-                            href={`/e-invoice/${invoice.id}/print`}
+                          <Link
+                            href={`/e-invoice/${nomorToSlug(invoice.nomor_invoice)}/print`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Cetak Invoice"
                             aria-label="Cetak invoice"
@@ -478,8 +478,8 @@ export default function EInvoicePage() {
                             </svg>
                           </Link>
                           {/* Edit button - available for all authenticated users */}
-                          <Link 
-                            href={`/e-invoice/${invoice.id}/edit`}
+                          <Link
+                            href={`/e-invoice/${nomorToSlug(invoice.nomor_invoice)}/edit`}
                             className="btn btn-ghost btn-sm btn-icon"
                             title="Edit Invoice"
                             aria-label="Edit invoice"

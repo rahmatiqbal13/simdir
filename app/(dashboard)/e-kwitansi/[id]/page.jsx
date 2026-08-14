@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { useToast } from '@/app/components/Toast';
-import { formatRupiah, formatDate, terbilang } from '@/lib/utils/format';
+import { formatRupiah, formatDate, terbilang, nomorToSlug } from '@/lib/utils/format';
 
 export default function KwitansiDetailPage() {
   const params = useParams();
@@ -114,7 +114,7 @@ export default function KwitansiDetailPage() {
             {item.penerima && <Field label="Penerima" value={item.penerima} />}
             <Field label="Invoice Terkait" value={item.invoice ? null : '-'}>
               {item.invoice && (
-                <Link href={`/e-invoice/${item.invoice.id}`} className="badge" style={{ textDecoration: 'none' }}>
+                <Link href={`/e-invoice/${nomorToSlug(item.invoice.nomor_invoice)}`} className="badge" style={{ textDecoration: 'none' }}>
                   {item.invoice.nomor_invoice}
                 </Link>
               )}

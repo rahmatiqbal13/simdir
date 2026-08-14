@@ -37,6 +37,11 @@ const ROLE_RULES = [
   // saja). Tidak diubah di sini supaya tidak mengubah perilaku e-invoice
   // yang sudah ada sebagai efek samping dari menambah e-kwitansi.
   { prefix: '/e-kwitansi', roles: ['super_admin'] },
+  // Pemasukan Unit Usaha (eks-sistem terpisah "SIREKAP", digabung ke sini) —
+  // data finansial per unit usaha, jadi pakai role 'admin_keuangan' yang
+  // memang sudah ada untuk urusan keuangan (lihat navConfig.jsx), plus
+  // super_admin.
+  { prefix: '/pemasukan-unit-usaha', roles: ['super_admin', 'admin_keuangan'] },
 ]
 
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
@@ -69,6 +74,11 @@ const KWITANSI_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/e-kwitansi').ro
 // walau yang menghasilkan log-nya (tambah/hapus pertanyaan) adalah admin.
 const PERTANYAAN_LOG_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-penilaian/pertanyaan/log').roles
 
+// Endpoint unit-usaha/target-unit-usaha/pemasukan-unit-usaha lewat
+// service-role key dan tidak punya pengecekan role sendiri — harus ikut
+// aturan role halaman /pemasukan-unit-usaha.
+const PEMASUKAN_UNIT_USAHA_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pemasukan-unit-usaha').roles
+
 function isPublicPath(pathname, method) {
   if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
     return true
@@ -85,6 +95,12 @@ function isPublicPath(pathname, method) {
   if (pathname === '/daftar-tamu' || pathname.startsWith('/daftar-tamu?')) {
     return true
   }
+  // Halaman transparansi publik pendapatan unit usaha (path SENGAJA beda
+  // dari prefix '/pemasukan-unit-usaha' yang mensyaratkan login, supaya
+  // tidak ketiban aturan role modul admin-nya).
+  if (pathname === '/pendapatan-unit-usaha' || pathname.startsWith('/pendapatan-unit-usaha?')) {
+    return true
+  }
   if (pathname.startsWith('/api/auth/')) return true
   // Dipakai oleh tampilan TV publik (/agenda/tv) — hanya method baca yang publik.
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
@@ -96,6 +112,10 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/tamu' && method === 'POST') return true
   // Public questions endpoint (for feedback form)
   if (pathname === '/api/pertanyaan-kritik-saran' && method === 'GET') return true
+  // Ringkasan pendapatan unit usaha untuk halaman transparansi publik —
+  // hanya total per unit (bukan breakdown bulanan), lihat komentar di
+  // app/api/pendapatan-publik/route.js.
+  if (pathname === '/api/pendapatan-publik' && method === 'GET') return true
   return false
 }
 
@@ -243,6 +263,15 @@ export async function middleware(request) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
   if (pathname.startsWith('/api/pertanyaan-kritik-saran') && !['super_admin', 'admin'].includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (
+    (pathname.startsWith('/api/unit-usaha') ||
+      pathname.startsWith('/api/target-unit-usaha') ||
+      pathname.startsWith('/api/pemasukan-unit-usaha')) &&
+    !PEMASUKAN_UNIT_USAHA_API_ROLES.includes(role)
+  ) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
