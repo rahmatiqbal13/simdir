@@ -96,16 +96,25 @@ export async function PUT(request, { params }) {
       .eq('id', existing.id)
     if (updateError) throw updateError
 
-    const { error: deleteItemsError } = await supabase
+    const { data: oldItems, error: oldItemsError } = await supabase
       .from('rab_items')
-      .delete()
+      .select('id')
       .eq('rab_id', existing.id)
-    if (deleteItemsError) throw deleteItemsError
+    if (oldItemsError) throw oldItemsError
 
     const { error: insertItemsError } = await supabase
       .from('rab_items')
       .insert(validated.items.map((it) => ({ ...it, rab_id: existing.id })))
     if (insertItemsError) throw insertItemsError
+
+    const oldItemIds = (oldItems || []).map((it) => it.id)
+    if (oldItemIds.length > 0) {
+      const { error: deleteItemsError } = await supabase
+        .from('rab_items')
+        .delete()
+        .in('id', oldItemIds)
+      if (deleteItemsError) throw deleteItemsError
+    }
 
     const { data: full, error: fetchError } = await supabase
       .from('rab')
@@ -132,6 +141,6 @@ export async function DELETE(request, { params }) {
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (err) {
-    return NextResponse.json({ error: err.message || 'Gagal menghapus RAB' }, { status: 500 })
+    return NextResponse.json({ error: friendlyDbError(err) }, { status: 500 })
   }
 }
