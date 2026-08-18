@@ -209,6 +209,13 @@ export default function AgendaTVInternalPage() {
             <ProgramKerjaTvPanel items={programKerja} t={t} scale={scale} />
           </div>
         </main>
+
+        {/* ── FOOTER ── */}
+        <footer style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.4vh 1.5vw', borderTop: `1px solid ${t.border}`, flexShrink: 0 }}>
+          <div style={{ fontSize: '0.65vw', color: t.text3, padding: '0.3vh 0.7vw', background: t.card, borderRadius: '0.5vw' }}>
+            Made by <strong style={{ color: t.accent }}>Rahmat Iqbal R.P</strong>
+          </div>
+        </footer>
       </div>
 
       <style>{`
