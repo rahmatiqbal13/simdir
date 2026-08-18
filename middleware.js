@@ -42,6 +42,7 @@ const ROLE_RULES = [
   // memang sudah ada untuk urusan keuangan (lihat navConfig.jsx), plus
   // super_admin.
   { prefix: '/pemasukan-unit-usaha', roles: ['super_admin', 'admin_keuangan'] },
+  // RAB (Rencana Anggaran Biaya) — dokumen perencanaan anggaran, super_admin saja.
   { prefix: '/rab', roles: ['super_admin'] },
 ]
 
@@ -79,6 +80,10 @@ const PERTANYAAN_LOG_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-pe
 // service-role key dan tidak punya pengecekan role sendiri — harus ikut
 // aturan role halaman /pemasukan-unit-usaha.
 const PEMASUKAN_UNIT_USAHA_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pemasukan-unit-usaha').roles
+
+// Endpoint RAB lewat service-role key dan tidak punya pengecekan role
+// sendiri — harus ikut aturan role halaman /rab.
+const RAB_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/rab').roles
 
 function isPublicPath(pathname, method) {
   if (pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/agenda')) {
@@ -273,6 +278,10 @@ export async function middleware(request) {
       pathname.startsWith('/api/pemasukan-unit-usaha')) &&
     !PEMASUKAN_UNIT_USAHA_API_ROLES.includes(role)
   ) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/rab') && !RAB_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
