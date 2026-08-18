@@ -11,6 +11,7 @@ export default function RabListPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [filterTahun, setFilterTahun] = useState('');
   const [deleteItem, setDeleteItem] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
@@ -32,7 +33,10 @@ export default function RabListPage() {
 
   const totalOf = (item) => (item.rab_items || []).reduce((sum, it) => sum + Number(it.total || 0), 0);
 
+  const tahunOptions = [...new Set(items.map((it) => it.tahun_anggaran))].sort((a, b) => b - a);
+
   const filtered = items.filter((it) => {
+    if (filterTahun && String(it.tahun_anggaran) !== filterTahun) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return `${it.nomor_rab} ${it.nama_kegiatan}`.toLowerCase().includes(q);
@@ -80,8 +84,19 @@ export default function RabListPage() {
           className="input"
           style={{ flex: 1, minWidth: 240 }}
         />
-        {search && (
-          <button onClick={() => setSearch('')} className="btn btn-ghost">Reset</button>
+        <select
+          value={filterTahun}
+          onChange={(e) => setFilterTahun(e.target.value)}
+          className="input"
+          style={{ minWidth: 160 }}
+        >
+          <option value="">Semua Tahun Anggaran</option>
+          {tahunOptions.map((tahun) => (
+            <option key={tahun} value={String(tahun)}>{tahun}</option>
+          ))}
+        </select>
+        {(search || filterTahun) && (
+          <button onClick={() => { setSearch(''); setFilterTahun(''); }} className="btn btn-ghost">Reset</button>
         )}
       </div>
 
