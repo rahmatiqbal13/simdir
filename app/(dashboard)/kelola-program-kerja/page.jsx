@@ -303,7 +303,7 @@ export default function KelolaProgramKerjaPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
                   <div className="field">
                     <label className="field-label" htmlFor="anggaran">Anggaran (Rp) *</label>
-                    <input id="anggaran" name="anggaran" type="number" min="0" step="1000" className="input" value={form.anggaran} onChange={(e) => set('anggaran', e.target.value)} placeholder="0" />
+                    <input id="anggaran" name="anggaran" type="number" min="0" step="0.01" className="input" value={form.anggaran} onChange={(e) => set('anggaran', e.target.value)} placeholder="0" />
                   </div>
                   <div className="field">
                     <label className="field-label" htmlFor="status">Status *</label>
@@ -326,7 +326,7 @@ export default function KelolaProgramKerjaPage() {
 
                 <div className="field">
                   <label className="field-label" htmlFor="nominal_spj">Nominal SPJ (Rp) <span className="muted">(opsional — isi kalau program sudah selesai)</span></label>
-                  <input id="nominal_spj" name="nominal_spj" type="number" min="0" step="1000" className="input" value={form.nominal_spj} onChange={(e) => set('nominal_spj', e.target.value)} placeholder="0" />
+                  <input id="nominal_spj" name="nominal_spj" type="number" min="0" step="0.01" className="input" value={form.nominal_spj} onChange={(e) => set('nominal_spj', e.target.value)} placeholder="0" />
                 </div>
               </div>
               <div className="modal-foot">

@@ -148,7 +148,12 @@ export default function KelolaTamuPage() {
             <thead>
               <tr>
                 {['Tanggal', 'Nama', 'Instansi', 'Keperluan', 'Unit Dituju', 'Rombongan', 'Aksi'].map((h) => (
-                  <th key={h}>{h}</th>
+                  <th
+                    key={h}
+                    style={h === 'Aksi' ? { position: 'sticky', right: 0, background: 'var(--surface-2)', boxShadow: '-4px 0 6px -4px rgba(0,0,0,0.15)' } : undefined}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -169,7 +174,7 @@ export default function KelolaTamuPage() {
                     </td>
                     <td>{item.unit_dituju}</td>
                     <td className="text-center num">{item.jumlah_rombongan}</td>
-                    <td className="text-right">
+                    <td className="text-right" style={{ position: 'sticky', right: 0, background: 'var(--surface)', boxShadow: '-4px 0 6px -4px rgba(0,0,0,0.15)' }}>
                       <div style={{ display: 'inline-flex', gap: 10 }}>
                         <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSelectedItem(item)} title="Detail" aria-label="Lihat detail">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
