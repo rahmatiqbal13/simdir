@@ -58,6 +58,7 @@ export async function GET(request, { params }) {
       .from('rab')
       .select(SELECT_COLUMNS)
       .eq('nomor_rab', slugToNomor(id))
+      .order('urutan', { referencedTable: 'rab_items' })
       .single()
     if (error) throw error
     return NextResponse.json(data)
@@ -120,6 +121,7 @@ export async function PUT(request, { params }) {
       .from('rab')
       .select(SELECT_COLUMNS)
       .eq('id', existing.id)
+      .order('urutan', { referencedTable: 'rab_items' })
       .single()
     if (fetchError) throw fetchError
 

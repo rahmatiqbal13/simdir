@@ -153,7 +153,7 @@ export default function RabForm({ initialHeader, initialCategories, onSubmit, sa
                             <input className="input" value={item.satuan} onChange={(e) => updateItem(catIndex, itemIndex, 'satuan', e.target.value)} placeholder="unit" />
                           </td>
                           <td style={{ padding: '0.375rem', width: 160 }}>
-                            <input className="input" type="number" min="0" step="1000" value={item.harga_satuan} onChange={(e) => updateItem(catIndex, itemIndex, 'harga_satuan', e.target.value)} required />
+                            <input className="input" type="number" min="0" step="0.01" value={item.harga_satuan} onChange={(e) => updateItem(catIndex, itemIndex, 'harga_satuan', e.target.value)} required />
                           </td>
                           <td style={{ padding: '0.375rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{formatRupiah(rowTotal)}</td>
                           <td style={{ padding: '0.375rem' }}>

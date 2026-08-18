@@ -54,6 +54,7 @@ export async function GET() {
       .from('rab')
       .select(SELECT_COLUMNS)
       .order('created_at', { ascending: false })
+      .order('urutan', { referencedTable: 'rab_items' })
     if (error) throw error
     return NextResponse.json(data || [])
   } catch (err) {
@@ -97,6 +98,7 @@ export async function POST(request) {
       .from('rab')
       .select(SELECT_COLUMNS)
       .eq('id', rabRow.id)
+      .order('urutan', { referencedTable: 'rab_items' })
       .single()
     if (fetchError) throw fetchError
 
