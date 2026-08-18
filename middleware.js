@@ -42,6 +42,7 @@ const ROLE_RULES = [
   // memang sudah ada untuk urusan keuangan (lihat navConfig.jsx), plus
   // super_admin.
   { prefix: '/pemasukan-unit-usaha', roles: ['super_admin', 'admin_keuangan'] },
+  { prefix: '/rab', roles: ['super_admin'] },
 ]
 
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
