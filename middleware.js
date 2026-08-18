@@ -8,29 +8,32 @@ import { verifySession } from '@/lib/session'
 const ROLE_RULES = [
   { prefix: '/kelola-agenda', roles: ['super_admin', 'admin', 'pimpinan'] },
   { prefix: '/surat', roles: ['super_admin', 'pimpinan'] },
-  // Laporan sekarang berisi analisis penilaian/kritik-saran (bukan lagi
-  // laporan keuangan) — admin ikut butuh akses, bukan cuma super_admin.
-  { prefix: '/laporan', roles: ['super_admin', 'admin'] },
+  // Laporan berisi analisis penilaian/kritik-saran — admin TIDAK dapat
+  // akses (dibatasi hanya dashboard, kelola-agenda, kelola-tamu).
+  { prefix: '/laporan', roles: ['super_admin'] },
   { prefix: '/pengaturan', roles: ['super_admin'] },
-  { prefix: '/tv-pamflet', roles: ['super_admin', 'admin'] },
+  { prefix: '/tv-pamflet', roles: ['super_admin'] },
   // Urutan di bawah ini SENGAJA dari yang paling spesifik ke paling umum
   // (ROLE_RULES.find() mengambil match pertama untuk pathname.startsWith,
   // jadi prefix yang lebih panjang wajib ditaruh lebih dulu):
   // - Log pertanyaan: super_admin saja.
-  // - Kelola pertanyaan (tambah/ubah/hapus pertanyaan penilaian): sama
-  //   seperti navConfig ('pertanyaan-penilaian'), TIDAK termasuk pimpinan.
+  // - Kelola pertanyaan (tambah/ubah/hapus pertanyaan penilaian): super_admin saja.
   // - Kelola Penilaian (lihat hasil penilaian): boleh pimpinan juga.
+  // admin TIDAK termasuk di ketiganya (dibatasi hanya dashboard,
+  // kelola-agenda, kelola-tamu).
   { prefix: '/kelola-penilaian/pertanyaan/log', roles: ['super_admin'] },
-  { prefix: '/kelola-penilaian/pertanyaan', roles: ['super_admin', 'admin'] },
-  { prefix: '/kelola-penilaian', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { prefix: '/kelola-penilaian/pertanyaan', roles: ['super_admin'] },
+  { prefix: '/kelola-penilaian', roles: ['super_admin', 'pimpinan'] },
   // Prefix asli sebelumnya '/kelola-kritik-saran' tidak pernah cocok
   // dengan path halaman sungguhan ('/kelola-saran') — jadi selama ini
   // halaman itu tidak terlindungi middleware sama sekali (siapa pun yang
-  // login bisa akses, bukan cuma super_admin/admin/pimpinan seperti
-  // maksudnya). Diperbaiki di sini.
-  { prefix: '/kelola-saran', roles: ['super_admin', 'admin', 'pimpinan'] },
+  // login bisa akses, bukan cuma super_admin/pimpinan seperti maksudnya).
+  // Diperbaiki di sini. admin TIDAK termasuk (dibatasi hanya dashboard,
+  // kelola-agenda, kelola-tamu).
+  { prefix: '/kelola-saran', roles: ['super_admin', 'pimpinan'] },
   { prefix: '/kelola-tamu', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { prefix: '/kelola-program-kerja', roles: ['super_admin', 'admin', 'pimpinan'] },
+  // admin TIDAK termasuk (dibatasi hanya dashboard, kelola-agenda, kelola-tamu).
+  { prefix: '/kelola-program-kerja', roles: ['super_admin', 'pimpinan'] },
   // Catatan: /e-invoice sengaja TIDAK didaftarkan di sini — halaman itu
   // sudah ada sebelum konvensi middleware-role ini dan saat ini hanya
   // mensyaratkan login (proteksi role dilakukan di navConfig + client-side
@@ -263,12 +266,13 @@ export async function middleware(request) {
   }
 
   // Urutan spesifik→umum lagi: log dulu (super_admin saja), baru endpoint
-  // CRUD pertanyaan secara umum (super_admin + admin) — endpoint ini pakai
-  // service-role key dan tidak punya pengecekan role sendiri.
+  // CRUD pertanyaan secara umum (super_admin saja — admin dibatasi hanya
+  // dashboard, kelola-agenda, kelola-tamu) — endpoint ini pakai service-role
+  // key dan tidak punya pengecekan role sendiri.
   if (pathname.startsWith('/api/pertanyaan-kritik-saran/log') && !PERTANYAAN_LOG_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
-  if (pathname.startsWith('/api/pertanyaan-kritik-saran') && !['super_admin', 'admin'].includes(role)) {
+  if (pathname.startsWith('/api/pertanyaan-kritik-saran') && role !== 'super_admin') {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 

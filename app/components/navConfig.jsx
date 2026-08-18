@@ -149,12 +149,12 @@ export const NAV_ICONS = {
 export const ALL_NAV_ITEMS = [
   { key: 'dashboard', href: '/dashboard', label: 'Dashboard', shortLabel: 'Home', icon: 'dashboard', roles: ['super_admin', 'admin_keuangan', 'admin', 'pimpinan'] },
   { key: 'kelola-agenda', href: '/kelola-agenda', label: 'Kelola Agenda', shortLabel: 'Agenda', icon: 'calendar', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { key: 'tv-pamflet', href: '/tv-pamflet', label: 'TV Pamflet', shortLabel: 'TV', icon: 'tv', roles: ['super_admin', 'admin'] },
-  { key: 'kelola-penilaian', href: '/kelola-penilaian', label: 'Penilaian Fasilitas', shortLabel: 'Penilaian', icon: 'star', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin', 'admin'] },
-  { key: 'kelola-saran', href: '/kelola-saran', label: 'Kritik & Saran', shortLabel: 'Saran', icon: 'message', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { key: 'tv-pamflet', href: '/tv-pamflet', label: 'TV Pamflet', shortLabel: 'TV', icon: 'tv', roles: ['super_admin'] },
+  { key: 'kelola-penilaian', href: '/kelola-penilaian', label: 'Penilaian Fasilitas', shortLabel: 'Penilaian', icon: 'star', roles: ['super_admin', 'pimpinan'] },
+  { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin'] },
+  { key: 'kelola-saran', href: '/kelola-saran', label: 'Kritik & Saran', shortLabel: 'Saran', icon: 'message', roles: ['super_admin', 'pimpinan'] },
   { key: 'kelola-tamu', href: '/kelola-tamu', label: 'Daftar Tamu', shortLabel: 'Tamu', icon: 'guests', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'admin', 'pimpinan'] },
+  { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'pimpinan'] },
   { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'] },
   { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'] },
   { key: 'rab', href: '/rab', label: 'RAB', shortLabel: 'RAB', icon: 'clipboard', roles: ['super_admin'] },
@@ -169,7 +169,7 @@ export const ALL_NAV_ITEMS = [
 export const SIDEBAR_ORDER = {
   super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
   admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
-  admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui'],
+  admin: ['dashboard', 'kelola-agenda', 'kelola-tamu'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'laporan'],
 }
 
@@ -177,7 +177,7 @@ export const SIDEBAR_ORDER = {
 export const BOTTOM_NAV_ORDER = {
   super_admin: ['dashboard', 'kelola-agenda', 'laporan'],
   admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
-  admin: ['dashboard', 'kelola-agenda', 'tv-pamflet'],
+  admin: ['dashboard', 'kelola-agenda', 'kelola-tamu'],
   pimpinan: ['dashboard', 'kelola-agenda', 'laporan'],
 }
 
