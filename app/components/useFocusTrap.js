@@ -16,6 +16,14 @@ import { useEffect, useRef } from 'react'
 export function useFocusTrap(isOpen, onClose) {
   const ref = useRef(null)
   const previouslyFocused = useRef(null)
+  // onClose disimpan lewat ref, bukan dependency effect di bawah — kalau
+  // tidak, tiap kali parent re-render dengan inline arrow function baru
+  // (pola paling umum dipakai di semua caller hook ini), seluruh effect
+  // restart: scroll lock dipasang ulang, "elemen sebelumnya" ditulis ulang
+  // ke document.activeElement SAAT ITU (bisa jadi elemen di dalam modal
+  // yang sedang difocus user), dan timer autofocus 50ms diulang dari nol.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   useEffect(() => {
     if (!isOpen) return
@@ -66,9 +74,9 @@ export function useFocusTrap(isOpen, onClose) {
     const handleKeyDown = (e) => {
       if (e.key !== 'Tab') {
         // Handle Escape untuk menutup modal
-        if (e.key === 'Escape' && onClose) {
+        if (e.key === 'Escape' && onCloseRef.current) {
           e.preventDefault()
-          onClose()
+          onCloseRef.current()
         }
         return
       }
@@ -108,7 +116,7 @@ export function useFocusTrap(isOpen, onClose) {
         previouslyFocused.current.focus()
       }
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
   return ref
 }

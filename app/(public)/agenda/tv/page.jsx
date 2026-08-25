@@ -286,7 +286,11 @@ const MediaRotator = ({ t }) => {
     return () => clearInterval(id)
   }, [cur?.type])
 
-  // Network recovery: re-init player saat koneksi kembali
+  // Network recovery: re-init player saat koneksi kembali. Cuma
+  // menghancurkan player lama tidak cukup — effect di bawah baru jalan lagi
+  // kalau cur?.url/cur?.type berubah, yang tidak terjadi cuma karena koneksi
+  // pulih. reinitNonce dipakai supaya effect itu ikut re-run walau URL sama.
+  const [reinitNonce, setReinitNonce] = useState(0)
   useEffect(() => {
     if (typeof window === 'undefined') return
     const handleOnline = () => {
@@ -296,6 +300,7 @@ const MediaRotator = ({ t }) => {
         playerRef.current = null
       }
       ytUrlRef.current = null
+      setReinitNonce((n) => n + 1)
     }
     window.addEventListener('online', handleOnline)
     return () => window.removeEventListener('online', handleOnline)
@@ -406,7 +411,7 @@ const MediaRotator = ({ t }) => {
         }
       } 
     }
-  }, [cur?.url, cur?.type])
+  }, [cur?.url, cur?.type, reinitNonce])
 
   const total = playlist.length
 

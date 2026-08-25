@@ -65,7 +65,7 @@ CREATE POLICY "Users can update own profile" ON profiles
 CREATE TABLE IF NOT EXISTS agenda (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     judul VARCHAR(255) NOT NULL,
-    jenis VARCHAR(20) NOT NULL CHECK (jenis IN ('internal', 'eksternal', 'pimpinan')),
+    jenis VARCHAR(20) NOT NULL CHECK (jenis IN ('internal', 'eksternal')),
     tanggal_mulai DATE NOT NULL,
     tanggal_selesai DATE NOT NULL,
     waktu_mulai TIME,
@@ -75,6 +75,11 @@ CREATE TABLE IF NOT EXISTS agenda (
     penyelenggara VARCHAR(255) NOT NULL,
     unit_kerja VARCHAR(100),
     deskripsi TEXT,
+    -- Kehadiran pimpinan independen dari `jenis` (lihat migrasi
+    -- 20260825000000_decouple_agenda_pimpinan.sql) — event internal
+    -- ATAU eksternal bisa sama-sama dihadiri pimpinan.
+    dihadiri_pimpinan BOOLEAN NOT NULL DEFAULT false,
+    nama_pimpinan VARCHAR(255),
     disposisi VARCHAR(255),
     pic VARCHAR(100),
     status VARCHAR(20) DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'upcoming_soon', 'ongoing', 'completed')),

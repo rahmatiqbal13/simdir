@@ -145,24 +145,36 @@ export const NAV_ICONS = {
   ),
 }
 
+// Kelompok fungsional untuk sidebar desktop — urutan array ini menentukan
+// urutan tampil grup. Section kosong (tidak ada item yang cocok untuk role
+// yang sedang login) otomatis disembunyikan, lihat getGroupedSidebarItems().
+export const NAV_GROUPS = [
+  { key: 'utama', label: 'Utama' },
+  { key: 'agenda-publikasi', label: 'Agenda & Publikasi' },
+  { key: 'layanan-publik', label: 'Layanan Publik' },
+  { key: 'keuangan-dokumen', label: 'Keuangan & Dokumen' },
+  { key: 'laporan', label: 'Laporan' },
+  { key: 'pengaturan', label: 'Pengaturan' },
+]
+
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.
 export const ALL_NAV_ITEMS = [
-  { key: 'dashboard', href: '/dashboard', label: 'Dashboard', shortLabel: 'Home', icon: 'dashboard', roles: ['super_admin', 'admin_keuangan', 'admin', 'pimpinan'] },
-  { key: 'kelola-agenda', href: '/kelola-agenda', label: 'Kelola Agenda', shortLabel: 'Agenda', icon: 'calendar', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { key: 'tv-pamflet', href: '/tv-pamflet', label: 'TV Pamflet', shortLabel: 'TV', icon: 'tv', roles: ['super_admin'] },
-  { key: 'kelola-penilaian', href: '/kelola-penilaian', label: 'Penilaian Fasilitas', shortLabel: 'Penilaian', icon: 'star', roles: ['super_admin', 'pimpinan'] },
-  { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin'] },
-  { key: 'kelola-saran', href: '/kelola-saran', label: 'Kritik & Saran', shortLabel: 'Saran', icon: 'message', roles: ['super_admin', 'pimpinan'] },
-  { key: 'kelola-tamu', href: '/kelola-tamu', label: 'Daftar Tamu', shortLabel: 'Tamu', icon: 'guests', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'pimpinan'] },
-  { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'] },
-  { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'] },
-  { key: 'rab', href: '/rab', label: 'RAB', shortLabel: 'RAB', icon: 'clipboard', roles: ['super_admin'] },
-  { key: 'pemasukan-unit-usaha', href: '/pemasukan-unit-usaha', label: 'Pemasukan Unit Usaha', shortLabel: 'Unit Usaha', icon: 'wallet', roles: ['super_admin', 'admin_keuangan'] },
-  { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'] },
-  { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'] },
-  { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'] },
-  { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'] },
+  { key: 'dashboard', href: '/dashboard', label: 'Dashboard', shortLabel: 'Home', icon: 'dashboard', roles: ['super_admin', 'admin_keuangan', 'admin', 'pimpinan'], group: 'utama' },
+  { key: 'kelola-agenda', href: '/kelola-agenda', label: 'Kelola Agenda', shortLabel: 'Agenda', icon: 'calendar', roles: ['super_admin', 'admin', 'pimpinan'], group: 'agenda-publikasi' },
+  { key: 'tv-pamflet', href: '/tv-pamflet', label: 'TV Pamflet', shortLabel: 'TV', icon: 'tv', roles: ['super_admin'], group: 'agenda-publikasi' },
+  { key: 'kelola-penilaian', href: '/kelola-penilaian', label: 'Penilaian Fasilitas', shortLabel: 'Penilaian', icon: 'star', roles: ['super_admin', 'pimpinan'], group: 'layanan-publik' },
+  { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin'], group: 'layanan-publik' },
+  { key: 'kelola-saran', href: '/kelola-saran', label: 'Kritik & Saran', shortLabel: 'Saran', icon: 'message', roles: ['super_admin', 'pimpinan'], group: 'layanan-publik' },
+  { key: 'kelola-tamu', href: '/kelola-tamu', label: 'Daftar Tamu', shortLabel: 'Tamu', icon: 'guests', roles: ['super_admin', 'admin', 'pimpinan'], group: 'layanan-publik' },
+  { key: 'program-kerja-pui', href: '/kelola-program-kerja', label: 'Program Kerja PUI', shortLabel: 'Prog. Kerja', icon: 'building', roles: ['super_admin', 'pimpinan'], group: 'keuangan-dokumen' },
+  { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'], group: 'keuangan-dokumen' },
+  { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'], group: 'keuangan-dokumen' },
+  { key: 'rab', href: '/rab', label: 'RAB', shortLabel: 'RAB', icon: 'clipboard', roles: ['super_admin'], group: 'keuangan-dokumen' },
+  { key: 'pemasukan-unit-usaha', href: '/pemasukan-unit-usaha', label: 'Pemasukan Unit Usaha', shortLabel: 'Unit Usaha', icon: 'wallet', roles: ['super_admin', 'admin_keuangan'], group: 'keuangan-dokumen' },
+  { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'], group: 'laporan' },
+  { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'], group: 'pengaturan' },
+  { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'], group: 'pengaturan' },
+  { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'], group: 'pengaturan' },
 ]
 
 // Urutan tampil di sidebar desktop, per role.
@@ -184,6 +196,17 @@ export const BOTTOM_NAV_ORDER = {
 export function getSidebarItems(role) {
   const order = SIDEBAR_ORDER[role] || SIDEBAR_ORDER.admin
   return order.map((key) => ALL_NAV_ITEMS.find((i) => i.key === key)).filter(Boolean)
+}
+
+// Item sidebar untuk role, dikelompokkan sesuai fungsinya (lihat NAV_GROUPS)
+// untuk ditampilkan dengan section label terpisah — bukan daftar rata semua
+// menu. Urutan dalam tiap grup tetap ikut SIDEBAR_ORDER per role; grup yang
+// tidak punya item untuk role itu tidak dikembalikan sama sekali.
+export function getGroupedSidebarItems(role) {
+  const items = getSidebarItems(role)
+  return NAV_GROUPS
+    .map((g) => ({ ...g, items: items.filter((i) => i.group === g.key) }))
+    .filter((g) => g.items.length > 0)
 }
 
 export function getPaletteItems(role) {

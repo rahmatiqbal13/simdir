@@ -3,6 +3,7 @@
 // komponen tabel bersama (./AgendaTvTable.jsx).
 
 import { useState, useEffect, useCallback } from 'react'
+import { safeLocalStorage } from '@/lib/localStorage'
 
 export const MONTHS   = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
 export const MONTHS_L = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember']
@@ -91,18 +92,13 @@ export function useStageScale() {
 export function useTheme() {
   const [isDark, setIsDark] = useState(true)
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    try {
-      const s = localStorage.getItem('simdir-tv-theme')
-      if (s === 'light') setIsDark(false)
-      else if (s === 'dark') setIsDark(true)
-    } catch {}
+    const s = safeLocalStorage.getItem('simdir-tv-theme')
+    if (s === 'light') setIsDark(false)
+    else if (s === 'dark') setIsDark(true)
   }, [])
   const toggle = useCallback(() => setIsDark(p => {
     const next = !p
-    if (typeof window !== 'undefined') {
-      try { localStorage.setItem('simdir-tv-theme', next ? 'dark' : 'light') } catch {}
-    }
+    safeLocalStorage.setItem('simdir-tv-theme', next ? 'dark' : 'light')
     return next
   }), [])
   return { isDark, t: isDark ? DARK : LIGHT, toggle }

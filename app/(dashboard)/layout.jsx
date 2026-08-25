@@ -8,7 +8,7 @@ import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
 import MobileBottomNav from '@/app/components/MobileBottomNav'
 import ThemeToggle from '@/app/components/ThemeToggle'
-import { NAV_ICONS as icons, getSidebarItems, getPaletteItems } from '@/app/components/navConfig'
+import { NAV_ICONS as icons, getSidebarItems, getGroupedSidebarItems, getPaletteItems } from '@/app/components/navConfig'
 
 function CommandPalette({ open, onClose, items, icons }) {
   const [query, setQuery] = useState('')
@@ -240,6 +240,7 @@ export default function DashboardLayout({ children }) {
   const userName = profile?.full_name || profile?.nama || user?.email?.split('@')[0] || 'User'
   const userInitial = userName.charAt(0).toUpperCase()
   const items = getSidebarItems(userRole)
+  const groupedItems = getGroupedSidebarItems(userRole)
   const paletteItems = getPaletteItems(userRole)
 
   return (
@@ -274,23 +275,25 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        {/* Section Label */}
-        <div className="sidebar-section-label">Menu Utama</div>
-
-        {/* Navigation */}
+        {/* Navigation — dikelompokkan per fungsi (lihat NAV_GROUPS di navConfig.jsx) */}
         <div className="sidebar-nav">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${pathname === item.href ? 'active' : ''}`}
-              onClick={() => setSidebarOpen(false)}
-              aria-current={pathname === item.href ? 'page' : undefined}
-              title={item.label}
-            >
-              <span className="nav-icon">{icons[item.icon]}</span>
-              <span className="nav-label">{item.label}</span>
-            </Link>
+          {groupedItems.map((group) => (
+            <div className="sidebar-group" key={group.key}>
+              <div className="sidebar-section-label">{group.label}</div>
+              {group.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-item ${pathname === item.href ? 'active' : ''}`}
+                  onClick={() => setSidebarOpen(false)}
+                  aria-current={pathname === item.href ? 'page' : undefined}
+                  title={item.label}
+                >
+                  <span className="nav-icon">{icons[item.icon]}</span>
+                  <span className="nav-label">{item.label}</span>
+                </Link>
+              ))}
+            </div>
           ))}
         </div>
 

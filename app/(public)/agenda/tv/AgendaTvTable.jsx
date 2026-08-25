@@ -18,17 +18,28 @@ const ROTATE_MS = 15000
 function AgendaTableRow({ item, num, t, rowH }) {
   const st        = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
   const d         = new Date(item.tanggal_mulai)
-  const unitColor = getUnitColor(item.jenis, item.penyelenggara)
+  const unitColor = getUnitColor(item.jenis, item.penyelenggara, item.dihadiri_pimpinan)
 
-  // Status (ongoing/upcoming_soon) masih dipakai untuk mewarnai baris —
-  // hanya badge teks "Status" yang tidak ditampilkan lagi.
-  const rowBg   = st === 'ongoing' ? t.rowOngoing : st === 'upcoming_soon' ? t.rowSoon : unitColor.bg
+  // Dua sinyal warna dipisah supaya tidak bercampur jadi satu arti yang
+  // ambigu: border kiri + background tipis = identitas UNIT KERJA (selalu
+  // konsisten warnanya per unit), badge di kolom Status = URGENSI waktu
+  // (Berlangsung/Segera). Sebelumnya upcoming_soon ikut menimpa background
+  // dengan warna kuning, jadi warna unit hilang persis di baris yang justru
+  // paling perlu diperhatikan — sekarang cuma "ongoing" (sedang berlangsung
+  // sekarang) yang menimpa background, karena itu satu-satunya status yang
+  // butuh sinyal se-kuat itu; upcoming_soon cukup lewat badge.
+  const rowBg   = st === 'ongoing' ? t.rowOngoing : unitColor.bg
   const borderL = `3px solid ${st === 'ongoing' ? t.success : unitColor.border}`
+
+  const statusBadge =
+    st === 'ongoing'      ? { label: 'Berlangsung', bg: t.statusOngoingBg, fg: t.statusOngoingFg } :
+    st === 'upcoming_soon' ? { label: 'Segera',       bg: t.statusSoonBg,    fg: t.statusSoonFg }    :
+    null
 
   return (
     <div className="agenda-tv-row" style={{
       display: 'grid',
-      gridTemplateColumns: '1fr 3fr 8fr',
+      gridTemplateColumns: '1fr 3fr 7fr 2fr',
       gap: '1cqw',
       padding: `${Math.round(rowH * 0.1)}px 1.5cqw`,
       alignItems: 'center',
@@ -74,6 +85,21 @@ function AgendaTableRow({ item, num, t, rowH }) {
           }}>
             <svg viewBox="0 0 24 24" fill="none" stroke={t.text3} strokeWidth="2" style={{ width: '1em', height: '1em', flexShrink: 0 }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             {item.lokasi}
+          </span>
+        )}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+        {statusBadge && (
+          <span style={{
+            fontSize: `${rowH * 0.13}px`,
+            fontWeight: 700,
+            padding: `${Math.round(rowH * 0.06)}px ${Math.round(rowH * 0.11)}px`,
+            borderRadius: 999,
+            background: statusBadge.bg,
+            color: statusBadge.fg,
+            whiteSpace: 'nowrap',
+          }}>
+            {statusBadge.label}
           </span>
         )}
       </div>
@@ -160,7 +186,7 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
       {/* Table head */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 3fr 8fr',
+        gridTemplateColumns: '1fr 3fr 7fr 2fr',
         gap: '1cqw',
         padding: '1.2vh 1.5cqw',
         background: t.theadBg,
@@ -172,7 +198,7 @@ export default function AgendaTvTable({ agenda, t, scale, maxRows }) {
         color: t.text2,
         flexShrink: 0
       }}>
-        {['No', 'Tanggal', 'Judul Kegiatan'].map(col => (
+        {['No', 'Tanggal', 'Judul Kegiatan', 'Status'].map(col => (
           <div key={col}>{col}</div>
         ))}
       </div>

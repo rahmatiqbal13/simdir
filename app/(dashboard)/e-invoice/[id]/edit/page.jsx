@@ -209,126 +209,65 @@ export default function EditInvoicePage() {
           .eq('nomor_invoice', slugToNomor(invoiceSlug))
           .single();
 
-        let resolvedId = null;
+        if (invoiceError) throw invoiceError;
 
-        if (invoiceError) {
-          console.error('Error fetching invoice:', invoiceError);
-          // Fallback to invoice_summary view
-          const { data: fallbackData, error: fallbackError } = await supabase
-            .from('invoices')
-            .select('*')
-            .eq('nomor_invoice', slugToNomor(invoiceSlug))
-            .single();
+        const resolvedId = invoiceData.id;
+        setRealId(invoiceData.id);
+        setFormData({
+          customer_id: invoiceData.customer_id || '',
+          tanggal_invoice: invoiceData.tanggal_invoice || '',
+          tanggal_jatuh_tempo: invoiceData.tanggal_jatuh_tempo || '',
+          catatan: invoiceData.catatan || '',
+        });
 
-          if (fallbackError) throw fallbackError;
-
-          resolvedId = fallbackData.id;
-          setRealId(fallbackData.id);
-          setFormData({
-            customer_id: fallbackData.customer_id || '',
-            tanggal_invoice: fallbackData.tanggal_invoice || '',
-            tanggal_jatuh_tempo: fallbackData.tanggal_jatuh_tempo || '',
-            catatan: fallbackData.catatan || '',
-          });
-          
-          // Set pajak from invoice data
-          if (fallbackData.ppn_nilai > 0) {
-            if (fallbackData.ppn_persen > 0) {
-              setPajak({
-                aktif: true,
-                mode: 'persen',
-                persen: fallbackData.ppn_persen,
-                nominal: fallbackData.ppn_nilai
-              });
-            } else {
-              setPajak({
-                aktif: true,
-                mode: 'nominal',
-                persen: 11,
-                nominal: fallbackData.ppn_nilai
-              });
-            }
-          }
-          
-          // Set stempel from status
-          const status = fallbackData.status;
-          setStempel({
-            lunas: status === 'lunas',
-            segera: status === 'segera',
-            jatuh_tempo: status === 'jatuh_tempo',
-            final: status === 'final',
-            dikirim: status === 'dikirim',
-            disetujui: status === 'disetujui',
-          });
-          
-          // Set diskon & pengiriman from invoice data
-          setDiskon({
-            aktif: (fallbackData.diskon_nilai || 0) > 0,
-            nominal: fallbackData.diskon_nilai || 0,
-          });
-          setBiayaPengiriman({
-            aktif: (fallbackData.biaya_pengiriman || 0) > 0,
-            nominal: fallbackData.biaya_pengiriman || 0,
-          });
-        } else {
-          resolvedId = invoiceData.id;
-          setRealId(invoiceData.id);
-          setFormData({
-            customer_id: invoiceData.customer_id || '',
-            tanggal_invoice: invoiceData.tanggal_invoice || '',
-            tanggal_jatuh_tempo: invoiceData.tanggal_jatuh_tempo || '',
-            catatan: invoiceData.catatan || '',
-          });
-          
-          // Set pajak from invoice data
-          if (invoiceData.ppn_nilai > 0 || invoiceData.ppn_persen > 0) {
-            if (invoiceData.ppn_persen > 0) {
-              setPajak({
-                aktif: true,
-                mode: 'persen',
-                persen: invoiceData.ppn_persen,
-                nominal: invoiceData.ppn_nilai || 0
-              });
-            } else {
-              setPajak({
-                aktif: true,
-                mode: 'nominal',
-                persen: 11,
-                nominal: invoiceData.ppn_nilai || 0
-              });
-            }
-          } else {
-            // Jika tidak ada pajak, set default
+        // Set pajak from invoice data
+        if (invoiceData.ppn_nilai > 0 || invoiceData.ppn_persen > 0) {
+          if (invoiceData.ppn_persen > 0) {
             setPajak({
-              aktif: false,
+              aktif: true,
               mode: 'persen',
+              persen: invoiceData.ppn_persen,
+              nominal: invoiceData.ppn_nilai || 0
+            });
+          } else {
+            setPajak({
+              aktif: true,
+              mode: 'nominal',
               persen: 11,
-              nominal: 0
+              nominal: invoiceData.ppn_nilai || 0
             });
           }
-          
-          // Set stempel from status
-          const status = invoiceData.status;
-          setStempel({
-            lunas: status === 'lunas',
-            segera: status === 'segera',
-            jatuh_tempo: status === 'jatuh_tempo',
-            final: status === 'final',
-            dikirim: status === 'dikirim',
-            disetujui: status === 'disetujui',
-          });
-          
-          // Set diskon & pengiriman from invoice data
-          setDiskon({
-            aktif: (invoiceData.diskon_nilai || 0) > 0,
-            nominal: invoiceData.diskon_nilai || 0,
-          });
-          setBiayaPengiriman({
-            aktif: (invoiceData.biaya_pengiriman || 0) > 0,
-            nominal: invoiceData.biaya_pengiriman || 0,
+        } else {
+          // Jika tidak ada pajak, set default
+          setPajak({
+            aktif: false,
+            mode: 'persen',
+            persen: 11,
+            nominal: 0
           });
         }
-        
+
+        // Set stempel from status
+        const status = invoiceData.status;
+        setStempel({
+          lunas: status === 'lunas',
+          segera: status === 'segera',
+          jatuh_tempo: status === 'jatuh_tempo',
+          final: status === 'final',
+          dikirim: status === 'dikirim',
+          disetujui: status === 'disetujui',
+        });
+
+        // Set diskon & pengiriman from invoice data
+        setDiskon({
+          aktif: (invoiceData.diskon_nilai || 0) > 0,
+          nominal: invoiceData.diskon_nilai || 0,
+        });
+        setBiayaPengiriman({
+          aktif: (invoiceData.biaya_pengiriman || 0) > 0,
+          nominal: invoiceData.biaya_pengiriman || 0,
+        });
+
         // Fetch items — pakai UUID asli (resolvedId) yang baru diambil di
         // atas, bukan invoiceSlug (state realId belum ter-update di render
         // yang sama, jadi tidak bisa dipakai langsung di sini).

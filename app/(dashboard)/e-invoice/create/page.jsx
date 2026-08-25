@@ -9,14 +9,7 @@ import { safeLocalStorage } from '@/lib/localStorage';
 import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { formatRupiah, formatDate } from '@/lib/utils/format';
-
-const generateCustomerCode = () => {
-  const prefix = 'CUST';
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const random2 = Math.random().toString(36).substring(2, 4).toUpperCase();
-  return `${prefix}${timestamp.slice(-6)}${random}${random2}`;
-};
+import { generateCustomerCode } from '@/lib/utils/customerCode';
 
 // ============ KOMPONEN ITEM ROW ============
 function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {

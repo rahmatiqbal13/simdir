@@ -32,12 +32,19 @@ function statusColor(status, t) {
   }
 }
 
-const COLS = '1fr 6fr 3fr 2.6fr 3fr'
+const COLS = '1fr 5fr 2.3fr 2fr 2.3fr 3fr'
 
 // Satu baris tabel — pola sama seperti AgendaTableRow di AgendaTvTable.jsx:
 // warna baris & border kiri mengikuti status, ukuran font dari `unitH` (piksel).
 function ProgramKerjaRow({ item, num, t, unitH }) {
   const color = statusColor(item.status, t)
+  // SPJ (dan % terserap) cuma berarti kalau programnya sudah 'selesai' —
+  // sama seperti aturan kolom SPJ yang sudah ada, supaya konsisten (program
+  // yang masih berjalan belum punya SPJ final untuk dibandingkan).
+  const hasSpj = item.status === 'selesai' && item.nominal_spj !== null && item.nominal_spj !== undefined
+  const pct = hasSpj && item.anggaran > 0 ? Math.round((item.nominal_spj / item.anggaran) * 100) : null
+  const barColor = pct === null ? t.text3 : pct > 100 ? t.danger || '#ef4444' : pct >= 90 ? t.success : t.accent
+
   return (
     <div style={{
       display: 'grid', gridTemplateColumns: COLS, gap: '1cqw',
@@ -62,9 +69,17 @@ function ProgramKerjaRow({ item, num, t, unitH }) {
         {STATUS_LABEL[item.status] || item.status}
       </span>
       <span style={{ fontSize: `${unitH * 0.16}px`, fontWeight: 600, color: t.text2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {item.status === 'selesai'
-          ? (item.nominal_spj !== null && item.nominal_spj !== undefined ? fmtRupiah(item.nominal_spj) : '-')
-          : '-'}
+        {hasSpj ? fmtRupiah(item.nominal_spj) : '-'}
+      </span>
+      <span style={{ display: 'flex', flexDirection: 'column', gap: `${Math.round(unitH * 0.05)}px`, minWidth: 0 }}>
+        <span style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: `${unitH * 0.15}px`, fontWeight: 700, color: barColor }}>
+          {pct !== null ? `${pct}%` : '-'}
+        </span>
+        {pct !== null && (
+          <span style={{ display: 'block', width: '100%', height: Math.max(4, unitH * 0.07), background: t.border, borderRadius: 999, overflow: 'hidden' }}>
+            <span style={{ display: 'block', width: `${Math.min(100, pct)}%`, height: '100%', background: barColor, borderRadius: 999 }} />
+          </span>
+        )}
       </span>
     </div>
   )
@@ -169,6 +184,7 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
 
   const totalAnggaran = puiItems.reduce((sum, it) => sum + Number(it.anggaran || 0), 0)
   const totalSpj = puiItems.reduce((sum, it) => sum + Number(it.nominal_spj || 0), 0)
+  const totalPct = totalAnggaran > 0 ? Math.round((totalSpj / totalAnggaran) * 100) : null
 
   return (
     <div style={{
@@ -207,21 +223,48 @@ export default function ProgramKerjaTvPanel({ items, t, scale }) {
         fontSize: `${unitH * 0.14}px`, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
         color: t.text2, flexShrink: 0,
       }}>
-        {['No', 'Nama Program', 'Anggaran', 'Status', 'SPJ'].map((col) => <div key={col}>{col}</div>)}
+        {['No', 'Nama Program', 'Anggaran', 'Status', 'SPJ', 'Terserap'].map((col) => <div key={col}>{col}</div>)}
       </div>
 
-      {/* Daftar program (halaman aktif) */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: pageItems.length > 0 ? 'flex-start' : 'center', overflow: 'hidden' }}>
-        {pageItems.length === 0 ? (
+      {/* Daftar program (halaman aktif) — tinggi natural, TIDAK diregangkan
+          mengisi sisa ruang lagi (beda dari sebelumnya), supaya ruang sisa
+          dipakai ringkasan "Total Terserap" di bawah, bukan dibiarkan
+          kosong menganggur saat programnya sedikit. */}
+      {pageItems.length === 0 ? (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
           <div style={{ textAlign: 'center', color: t.text3, fontSize: `${unitH * 0.2}px` }}>
             Belum ada program kerja
           </div>
-        ) : (
-          pageItems.map((item, i) => (
-            <ProgramKerjaRow key={item.id} item={item} num={currentPage * ITEMS_PER_PAGE + i + 1} t={t} unitH={unitH} />
-          ))
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {pageItems.map((item, i) => (
+              <ProgramKerjaRow key={item.id} item={item} num={currentPage * ITEMS_PER_PAGE + i + 1} t={t} unitH={unitH} />
+            ))}
+          </div>
+
+          {/* Ringkasan visual "Total Terserap" untuk PUI aktif — mengisi
+              ruang kosong di bawah daftar program alih-alih dibiarkan
+              kosong, sekaligus jadi jawaban langsung untuk "berapa persen
+              anggaran PUI ini sudah terpakai" tanpa mental-math dari dua
+              angka mentah (Total Anggaran vs Total SPJ) di header. */}
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: `${Math.round(unitH * 0.14)}px`, padding: '1cqw 3cqw' }}>
+            <div style={{ fontSize: `${unitH * 0.15}px`, color: t.text3, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+              Total Terserap — {activePui.label}
+            </div>
+            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: `${unitH * 0.55}px`, fontWeight: 800, color: t.accent, lineHeight: 1 }}>
+              {totalPct !== null ? `${totalPct}%` : '—'}
+            </div>
+            <div style={{ width: '80%', maxWidth: 420, height: Math.max(6, unitH * 0.1), background: t.border, borderRadius: 999, overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(100, totalPct || 0)}%`, height: '100%', background: `linear-gradient(90deg, ${t.accent}, #ffd34d)`, borderRadius: 999 }} />
+            </div>
+            <div style={{ fontSize: `${unitH * 0.15}px`, color: t.text2, fontWeight: 600 }}>
+              {fmtRupiah(totalSpj)} dari {fmtRupiah(totalAnggaran)}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Pager */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1cqw', padding: '1.4vh 1.8cqw', borderTop: `1px solid ${t.border}`, flexShrink: 0 }}>

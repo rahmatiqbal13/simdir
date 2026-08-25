@@ -83,6 +83,19 @@ export default function AgendaTVInternalPage() {
     return () => clearInterval(id)
   }, [load])
 
+  // Auto-reload halaman setiap 60 menit untuk mencegah stuck — jaring
+  // pengaman umum yang sama seperti di TV publik (tv/page.jsx), independen
+  // dari fetch-error di atas (yang sudah tertangani dengan tetap
+  // menampilkan data lama).
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const id = setTimeout(() => {
+      console.log('[TV Internal] Auto-reload after 60 minutes')
+      window.location.reload()
+    }, 60 * 60 * 1000)
+    return () => clearTimeout(id)
+  }, [])
+
   const filtered = useMemo(() => sortActiveAgenda(agenda), [agenda])
 
   // Keyboard shortcuts (fullscreen, theme toggle — page navigation is
@@ -112,7 +125,7 @@ export default function AgendaTVInternalPage() {
   const mm        = now ? String(now.getMinutes()).padStart(2, '0') : '--'
   const dateShort = now ? `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS_L[now.getMonth()]} ${now.getFullYear()}` : '—'
 
-  if (loading || error) {
+  if ((loading && agenda.length === 0) || (error && agenda.length === 0)) {
     return (
       <div style={{ height: '100vh', background: '#0a1228', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
         <div style={{ width: 80, height: 80, borderRadius: 16, background: error ? '#7f1d1d' : 'linear-gradient(135deg,#f5b915,#d97706)', display: 'grid', placeItems: 'center', color: error ? '#fca5a5' : '#0f172a', fontWeight: 900, fontSize: 32 }}>

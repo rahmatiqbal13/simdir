@@ -77,11 +77,16 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Selesai', color: 'var(--text-3)' },
 ]
 
+// "Pimpinan" DULU jadi salah satu nilai `jenis` (mutually exclusive dengan
+// internal/eksternal) — bermasalah karena event internal yang dihadiri
+// pimpinan jadi harus kehilangan identitas unit penyelenggaranya, cuma demi
+// menandai kehadiran pimpinan. Sekarang dipisah: `jenis` cuma soal asal
+// penyelenggara (internal/eksternal), kehadiran pimpinan jadi flag terpisah
+// (`dihadiri_pimpinan` + `nama_pimpinan`) yang independen dari `jenis`.
 const JENIS_OPTIONS = [
   { value: 'all', label: 'Semua Jenis' },
   { value: 'internal', label: 'Internal', color: 'var(--primary)' },
   { value: 'eksternal', label: 'Eksternal', color: 'var(--warning)' },
-  { value: 'pimpinan', label: 'Pimpinan', color: 'var(--danger)' },
 ]
 
 const ITEMS_PER_PAGE = 6
@@ -190,21 +195,39 @@ function JenisBadge({ jenis }) {
   const configs = {
     internal: { label: 'Internal', bg: 'var(--primary-bg)', color: 'var(--primary)' },
     eksternal: { label: 'Eksternal', bg: 'var(--warning-bg)', color: 'var(--warning)' },
-    pimpinan: { label: 'Pimpinan', bg: 'var(--danger-bg)', color: 'var(--danger)' },
   }
-  
+
   const config = configs[jenis] || configs.internal
-  
+
   return (
-    <span 
-      className="badge" 
-      style={{ 
+    <span
+      className="badge"
+      style={{
         background: config.bg,
         color: config.color,
         fontSize: '0.625rem'
       }}
     >
       {config.label}
+    </span>
+  )
+}
+
+// ============ KOMPONEN BADGE "DIHADIRI PIMPINAN" ============
+// Terpisah dari JenisBadge — kehadiran pimpinan independen dari jenis
+// (internal/eksternal), jadi keduanya bisa tampil bersamaan.
+function PimpinanBadge() {
+  return (
+    <span
+      className="badge"
+      style={{ background: 'var(--danger-bg)', color: 'var(--danger)', fontSize: '0.625rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.625rem', height: '0.625rem' }}>
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+        <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
+      </svg>
+      Dihadiri Pimpinan
     </span>
   )
 }
@@ -260,20 +283,6 @@ function JenisToggle({ value, onChange }) {
         </svg>
         Eksternal
       </button>
-      <button
-        type="button"
-        onClick={() => onChange('pimpinan')}
-        style={getButtonStyle('pimpinan', 'var(--danger)')}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-          <path d="M12 2v5" />
-          <path d="M12 8l-3-3" />
-          <path d="M12 8l3-3" />
-        </svg>
-        Pimpinan
-      </button>
     </div>
   )
 }
@@ -319,6 +328,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} waktuMulai={item.waktu_mulai} waktuSelesai={item.waktu_selesai} />
                 <JenisBadge jenis={item.jenis} />
+                {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
                 {item.tampil_publik && (
                   <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
                     Publik
@@ -394,15 +404,26 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                 </svg>
                 {item.penyelenggara}
               </span>
-              {item.jenis === 'pimpinan' && item.disposisi ? (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                    <circle cx="8.5" cy="7" r="4" />
-                    <polyline points="17 11 19 13 23 9" />
-                  </svg>
-                  Disposisi ke: {item.disposisi}
-                </span>
+              {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? (
+                item.disposisi ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="8.5" cy="7" r="4" />
+                      <polyline points="17 11 19 13 23 9" />
+                    </svg>
+                    Disposisi ke: {item.disposisi}
+                  </span>
+                ) : (item.nama_pimpinan || item.jenis === 'pimpinan') && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                      <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
+                    </svg>
+                    Pimpinan: {item.nama_pimpinan || item.penyelenggara}
+                  </span>
+                )
               ) : item.pic && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
@@ -413,9 +434,9 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                 </span>
               )}
             </div>
-            
+
             {item.deskripsi && (
-              <p className="muted" style={{ fontSize: '0.75rem', marginTop: item.disposisi && item.jenis === 'pimpinan' ? '0.25rem' : '0.5rem' }}>
+              <p className="muted" style={{ fontSize: '0.75rem', marginTop: item.disposisi && (item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? '0.25rem' : '0.5rem' }}>
                 {item.deskripsi}
               </p>
             )}
@@ -449,7 +470,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
               <td className="text-center text-muted">{index + 1}</td>
               <td>
                 <strong style={{ fontSize: '0.875rem' }}>{item.judul}</strong>
-                {item.jenis === 'pimpinan' && item.disposisi && (
+                {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && item.disposisi && (
                   <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem', color: 'var(--danger)' }}>
                     <strong>Disposisi ke:</strong> {item.disposisi}
                   </p>
@@ -463,6 +484,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
               <td>
                 <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
                   <JenisBadge jenis={item.jenis} />
+                  {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
                   {item.tampil_publik && (
                     <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
                       Publik
@@ -536,7 +558,19 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
 // ============ KOMPONEN MODAL ============
 function AgendaModal({ item, onSave, onClose, isSaving }) {
   const modalRef = useFocusTrap(true, onClose)
-  const [jenis, setJenis] = useState(item?.jenis || 'internal')
+  // Data lama (sebelum dipisahnya "dihadiri pimpinan" dari `jenis`) masih
+  // bisa punya jenis === 'pimpinan' di database sampai migrasi dijalankan.
+  // Diperlakukan di sini sebagai jenis 'internal' + dihadiri pimpinan, nama
+  // pimpinan diambil dari kolom `penyelenggara` lama (satu-satunya tempat
+  // itu tersimpan sebelumnya) — supaya modal edit tetap benar untuk data
+  // lama maupun baru, dengan atau tanpa migrasi database sudah jalan.
+  const isLegacyPimpinan = item?.jenis === 'pimpinan'
+  const namaPimpinanValue = item?.nama_pimpinan || (isLegacyPimpinan ? item.penyelenggara : '')
+
+  const [jenis, setJenis] = useState(isLegacyPimpinan ? 'internal' : (item?.jenis || 'internal'))
+  const [dihadiriPimpinan, setDihadiriPimpinan] = useState(
+    item?.dihadiri_pimpinan != null ? item.dihadiri_pimpinan : isLegacyPimpinan
+  )
   const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
   const [showManualUnitKerja, setShowManualUnitKerja] = useState(false)
@@ -552,18 +586,19 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     unit_kerja: item?.jenis === 'internal' ? (UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : 'lainnya') : '',
     unit_kerja_manual: item?.jenis === 'internal' && !UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : '',
     penyelenggara_eksternal: item?.jenis === 'eksternal' ? item.penyelenggara.replace('External - ', '') : '',
-    pimpinan_select: item?.jenis === 'pimpinan' && PIMPINAN_LIST.some(p => p.value === item.penyelenggara) ? item.penyelenggara : '',
-    pimpinan_manual: item?.jenis === 'pimpinan' && !PIMPINAN_LIST.some(p => p.value === item.penyelenggara) ? item.penyelenggara : '',
+    pimpinan_select: namaPimpinanValue && PIMPINAN_LIST.some(p => p.value === namaPimpinanValue) ? namaPimpinanValue : '',
+    pimpinan_manual: namaPimpinanValue && !PIMPINAN_LIST.some(p => p.value === namaPimpinanValue) ? namaPimpinanValue : '',
     disposisi_staff: item?.disposisi || '',
     pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
     tampil_publik: item?.tampil_publik || false,
   })
   const [error, setError] = useState('')
+  const [showDetail, setShowDetail] = useState(!!item?.link_meeting)
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    
+
     if (!form.judul.trim()) {
       setError('Judul agenda wajib diisi')
       return
@@ -588,6 +623,14 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       setError('Nama unit kerja manual wajib diisi')
       return
     }
+    if (dihadiriPimpinan && !form.pimpinan_select) {
+      setError('Nama pimpinan wajib dipilih')
+      return
+    }
+    if (dihadiriPimpinan && form.pimpinan_select === 'lainnya' && !form.pimpinan_manual.trim()) {
+      setError('Nama pimpinan manual wajib diisi')
+      return
+    }
 
     const picValue = form.pic_select === 'lainnya'
       ? `Manual: ${form.pic_manual}`
@@ -597,12 +640,12 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       if (jenis === 'internal') {
         return form.unit_kerja === 'lainnya' ? form.unit_kerja_manual : form.unit_kerja
       }
-      if (jenis === 'eksternal') return `External - ${form.penyelenggara_eksternal}`
-      if (jenis === 'pimpinan') {
-        return form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select
-      }
-      return ''
+      return `External - ${form.penyelenggara_eksternal}`
     }
+
+    const namaPimpinan = dihadiriPimpinan
+      ? (form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select)
+      : null
 
     const newItem = {
       ...(item?.id && { id: item.id }), // Hanya sertakan ID jika edit
@@ -616,8 +659,10 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       jenis,
       penyelenggara: getPenyelenggara(),
       deskripsi: form.deskripsi,
-      disposisi: jenis === 'pimpinan' && form.disposisi_staff ? form.disposisi_staff : null,
-      pic: jenis === 'pimpinan' ? null : picValue,
+      dihadiri_pimpinan: dihadiriPimpinan,
+      nama_pimpinan: namaPimpinan,
+      disposisi: dihadiriPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
+      pic: dihadiriPimpinan ? null : picValue,
       tampil_publik: form.tampil_publik,
     }
     onSave(newItem)
@@ -625,7 +670,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
 
   return (
     <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
         <div className="modal-head">
           <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h3>
           <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
@@ -648,34 +693,20 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               <JenisToggle value={jenis} onChange={setJenis} />
             </div>
 
-            <div className="form-section">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <div className="form-grid">
+              <div className="full">
+                <label>Judul Agenda</label>
                 <input
-                  type="checkbox"
-                  checked={form.tampil_publik}
-                  onChange={e => setForm({ ...form, tampil_publik: e.target.checked })}
+                  value={form.judul}
+                  onChange={e => setForm({ ...form, judul: e.target.value })}
+                  placeholder="Masukkan judul agenda kegiatan"
+                  required
                 />
-                Tampilkan di TV Publik
-              </label>
-              <p className="muted">
-                Jika dicentang, agenda ini akan muncul di layar TV lobby publik. Jika tidak, agenda hanya terlihat di layar TV internal.
-              </p>
-            </div>
+              </div>
 
-            <div className="form-section">
-              <label>Judul Agenda</label>
-              <input 
-                value={form.judul}
-                onChange={e => setForm({ ...form, judul: e.target.value })}
-                placeholder="Masukkan judul agenda kegiatan"
-                required
-              />
-            </div>
-
-            <div className="form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label>Tanggal Mulai <span className="muted">*</span></label>
-                <input 
+                <input
                   type="date"
                   value={form.tanggal_mulai}
                   onChange={e => setForm({ ...form, tanggal_mulai: e.target.value })}
@@ -684,19 +715,17 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </div>
               <div>
                 <label>Tanggal Selesai <span className="muted">*</span></label>
-                <input 
+                <input
                   type="date"
                   value={form.tanggal_selesai}
                   onChange={e => setForm({ ...form, tanggal_selesai: e.target.value })}
                   required
                 />
               </div>
-            </div>
 
-            <div className="form-section" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label>Jam Mulai <span className="muted">(Opsional)</span></label>
-                <input 
+                <input
                   type="time"
                   value={form.waktu_mulai}
                   onChange={e => setForm({ ...form, waktu_mulai: e.target.value })}
@@ -704,164 +733,206 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </div>
               <div>
                 <label>Jam Selesai <span className="muted">(Opsional)</span></label>
-                <input 
+                <input
                   type="time"
                   value={form.waktu_selesai}
                   onChange={e => setForm({ ...form, waktu_selesai: e.target.value })}
                 />
               </div>
-            </div>
 
-            <div className="form-section">
-              <label>Lokasi Kegiatan</label>
-              <input 
-                value={form.lokasi}
-                onChange={e => setForm({ ...form, lokasi: e.target.value })}
-                placeholder="Contoh: Ruang Rapat USC, Aula Utama"
-              />
-            </div>
-
-            <div className="form-section">
-              <label>Link Meeting <span className="muted">(Zoom/Google Meet - Opsional)</span></label>
-              <input 
-                type="url"
-                value={form.link_meeting}
-                onChange={e => setForm({ ...form, link_meeting: e.target.value })}
-                placeholder="https://zoom.us/j/... atau https://meet.google.com/..."
-              />
-              <p className="muted">Isi jika kegiatan dilakukan secara online</p>
-            </div>
-
-            <div className="form-section">
-              <label>
-                {jenis === 'internal' ? 'Unit Kerja Penyelenggara' : 
-                 jenis === 'pimpinan' ? 'Nama Pimpinan/Instansi' : 'Nama Penyelenggara'}
-              </label>
-              {jenis === 'internal' ? (
-                <>
-                  <select 
-                    value={form.unit_kerja}
-                    onChange={(e) => {
-                      setForm({ ...form, unit_kerja: e.target.value })
-                      setShowManualUnitKerja(e.target.value === 'lainnya')
-                    }}
-                    required
-                  >
-                    <option value="">-- Pilih Unit Kerja --</option>
-                    {UNIT_KERJA_LIST.map(unit => (
-                      <option key={unit.value} value={unit.value}>{unit.label}</option>
-                    ))}
-                  </select>
-                  {showManualUnitKerja && (
-                    <input 
-                      style={{ marginTop: '0.5rem' }}
-                      value={form.unit_kerja_manual}
-                      onChange={e => setForm({ ...form, unit_kerja_manual: e.target.value })}
-                      placeholder="Masukkan nama unit kerja"
-                      required
-                    />
-                  )}
-                </>
-              ) : jenis === 'pimpinan' ? (
-                <>
-                  <select 
-                    value={form.pimpinan_select}
-                    onChange={(e) => {
-                      setForm({ ...form, pimpinan_select: e.target.value })
-                      setShowManualPimpinan(e.target.value === 'lainnya')
-                    }}
-                    required
-                  >
-                    <option value="">-- Pilih Pimpinan --</option>
-                    {PIMPINAN_LIST.map(p => (
-                      <option key={p.value} value={p.value}>{p.label}</option>
-                    ))}
-                  </select>
-                  {showManualPimpinan && (
-                    <input 
-                      style={{ marginTop: '0.5rem' }}
-                      value={form.pimpinan_manual}
-                      onChange={e => setForm({ ...form, pimpinan_manual: e.target.value })}
-                      placeholder="Masukkan nama pimpinan"
-                      required
-                    />
-                  )}
-                </>
-              ) : (
-                <input 
-                  value={form.penyelenggara_eksternal}
-                  onChange={e => setForm({ ...form, penyelenggara_eksternal: e.target.value })}
-                  placeholder="Masukkan nama penyelenggara external"
-                  required
+              <div>
+                <label>Lokasi Kegiatan</label>
+                <input
+                  value={form.lokasi}
+                  onChange={e => setForm({ ...form, lokasi: e.target.value })}
+                  placeholder="Contoh: Ruang Rapat USC, Aula Utama"
                 />
-              )}
-            </div>
-
-            {jenis === 'pimpinan' && (
-              <div className="form-section">
-                <label>Disposisi ke Staff (jika pimpinan berhalangan)</label>
-                <select 
-                  value={form.disposisi_staff}
-                  onChange={e => setForm({ ...form, disposisi_staff: e.target.value })}
-                >
-                  <option value="">-- Tidak Ada Disposisi --</option>
-                  {PIC_LIST.map(staff => (
-                    <option key={staff.value} value={staff.value}>{staff.label}</option>
-                  ))}
-                </select>
-                <p className="muted">Pilih staff yang mewakili pimpinan jika berhalangan hadir</p>
               </div>
-            )}
-
-            <div className="form-section">
-              <label>Deskripsi <span className="muted">(Opsional)</span></label>
-              <textarea 
-                value={form.deskripsi}
-                onChange={e => setForm({ ...form, deskripsi: e.target.value })}
-                placeholder="Tambahkan deskripsi atau catatan tambahan..."
-                rows={3}
-              />
-            </div>
-
-            {jenis !== 'pimpinan' && (
-              <div className="form-section" style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  <span>Penanggung Jawab (PIC)</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Pilih PIC</label>
+              <div>
+                <label>{jenis === 'internal' ? 'Unit Kerja Penyelenggara' : 'Nama Penyelenggara'}</label>
+                {jenis === 'internal' ? (
+                  <>
                     <select
-                      value={form.pic_select}
+                      value={form.unit_kerja}
                       onChange={(e) => {
-                        setForm({ ...form, pic_select: e.target.value })
-                        setShowManualPic(e.target.value === 'lainnya')
+                        setForm({ ...form, unit_kerja: e.target.value })
+                        setShowManualUnitKerja(e.target.value === 'lainnya')
                       }}
+                      required
                     >
-                      <option value="">-- Pilih --</option>
-                      {PIC_LIST.map(pic => (
-                        <option key={pic.value} value={pic.value}>{pic.label}</option>
+                      <option value="">-- Pilih Unit Kerja --</option>
+                      {UNIT_KERJA_LIST.map(unit => (
+                        <option key={unit.value} value={unit.value}>{unit.label}</option>
                       ))}
                     </select>
-                  </div>
-                  {showManualPic && (
-                    <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama PIC Manual</label>
-                      <input 
-                        type="text" 
-                        value={form.pic_manual}
-                        onChange={e => setForm({ ...form, pic_manual: e.target.value })}
-                        placeholder="Masukkan nama PIC"
+                    {showManualUnitKerja && (
+                      <input
+                        style={{ marginTop: '0.5rem' }}
+                        value={form.unit_kerja_manual}
+                        onChange={e => setForm({ ...form, unit_kerja_manual: e.target.value })}
+                        placeholder="Masukkan nama unit kerja"
+                        required
                       />
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </>
+                ) : (
+                  <input
+                    value={form.penyelenggara_eksternal}
+                    onChange={e => setForm({ ...form, penyelenggara_eksternal: e.target.value })}
+                    placeholder="Masukkan nama penyelenggara external"
+                    required
+                  />
+                )}
               </div>
-            )}
+
+              <div className="full">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.tampil_publik}
+                    onChange={e => setForm({ ...form, tampil_publik: e.target.checked })}
+                  />
+                  Tampilkan di TV Publik
+                </label>
+                <p className="muted" style={{ fontSize: '0.75rem' }}>
+                  Kalau dicentang, tampil di layar TV lobi publik. Kalau tidak, cuma di TV internal.
+                </p>
+              </div>
+
+              {/* "Dihadiri Pimpinan" independen dari Jenis Kegiatan — event
+                  internal ATAU eksternal bisa sama-sama dihadiri pimpinan,
+                  jadi ini flag terpisah, bukan pilihan ketiga di toggle
+                  Jenis (yang dulu membuat identitas unit kerja penyelenggara
+                  hilang begitu jenisnya dipilih "Pimpinan"). */}
+              <div className="full">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={dihadiriPimpinan}
+                    onChange={e => setDihadiriPimpinan(e.target.checked)}
+                  />
+                  Dihadiri Pimpinan
+                </label>
+                {dihadiriPimpinan && (
+                  <div style={{ marginTop: '0.75rem', padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
+                    <div className="form-grid" style={{ gap: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama Pimpinan</label>
+                        <select
+                          value={form.pimpinan_select}
+                          onChange={(e) => {
+                            setForm({ ...form, pimpinan_select: e.target.value })
+                            setShowManualPimpinan(e.target.value === 'lainnya')
+                          }}
+                          required
+                        >
+                          <option value="">-- Pilih Pimpinan --</option>
+                          {PIMPINAN_LIST.map(p => (
+                            <option key={p.value} value={p.value}>{p.label}</option>
+                          ))}
+                        </select>
+                        {showManualPimpinan && (
+                          <input
+                            style={{ marginTop: '0.5rem' }}
+                            value={form.pimpinan_manual}
+                            onChange={e => setForm({ ...form, pimpinan_manual: e.target.value })}
+                            placeholder="Masukkan nama pimpinan"
+                            required
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Disposisi ke Staff (jika berhalangan)</label>
+                        <select
+                          value={form.disposisi_staff}
+                          onChange={e => setForm({ ...form, disposisi_staff: e.target.value })}
+                        >
+                          <option value="">-- Tidak Ada Disposisi --</option>
+                          {PIC_LIST.map(staff => (
+                            <option key={staff.value} value={staff.value}>{staff.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {!dihadiriPimpinan && (
+                <div className="full" style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span>Penanggung Jawab (PIC)</span>
+                  </div>
+                  <div className="form-grid" style={{ gap: '1rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Pilih PIC</label>
+                      <select
+                        value={form.pic_select}
+                        onChange={(e) => {
+                          setForm({ ...form, pic_select: e.target.value })
+                          setShowManualPic(e.target.value === 'lainnya')
+                        }}
+                      >
+                        <option value="">-- Pilih --</option>
+                        {PIC_LIST.map(pic => (
+                          <option key={pic.value} value={pic.value}>{pic.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {showManualPic && (
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama PIC Manual</label>
+                        <input
+                          type="text"
+                          value={form.pic_manual}
+                          onChange={e => setForm({ ...form, pic_manual: e.target.value })}
+                          placeholder="Masukkan nama PIC"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="full">
+                <label>Deskripsi <span className="muted">(Opsional)</span></label>
+                <textarea
+                  value={form.deskripsi}
+                  onChange={e => setForm({ ...form, deskripsi: e.target.value })}
+                  placeholder="Tambahkan deskripsi atau catatan tambahan..."
+                  rows={3}
+                />
+              </div>
+
+              {/* Field yang jarang dipakai (kebanyakan agenda offline) —
+                  disembunyikan di balik <details> supaya tidak ikut
+                  memanjangkan form secara default. */}
+              <div className="full">
+                <details
+                  open={showDetail}
+                  onToggle={(e) => setShowDetail(e.currentTarget.open)}
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '0.625rem 0.875rem' }}
+                >
+                  <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-2)' }}>
+                    Detail Tambahan (Link Meeting)
+                  </summary>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label>Link Meeting <span className="muted">(Zoom/Google Meet - Opsional)</span></label>
+                    <input
+                      type="url"
+                      value={form.link_meeting}
+                      onChange={e => setForm({ ...form, link_meeting: e.target.value })}
+                      placeholder="https://zoom.us/j/... atau https://meet.google.com/..."
+                    />
+                    <p className="muted">Isi jika kegiatan dilakukan secara online</p>
+                  </div>
+                </details>
+              </div>
+            </div>
           </div>
 
           <div className="card-form-footer">
@@ -948,6 +1019,7 @@ export default function AgendaManagePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [jenisFilter, setJenisFilter] = useState('all')
+  const [pimpinanOnlyFilter, setPimpinanOnlyFilter] = useState(false)
   const [viewMode, setViewMode] = useState('card')
   const [currentPage, setCurrentPage] = useState(1)
   const [userRole, setUserRole] = useState('admin')
@@ -999,15 +1071,17 @@ export default function AgendaManagePage() {
         item.pic?.toLowerCase().includes(searchQuery.toLowerCase())
       
       const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter
-      
+
+      const matchesPimpinan = !pimpinanOnlyFilter || item.dihadiri_pimpinan || item.jenis === 'pimpinan'
+
       const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         (statusFilter === 'upcoming' && (status === 'upcoming' || status === 'upcoming_soon')) ||
         status === statusFilter
-      
-      return matchesSearch && matchesJenis && matchesStatus
+
+      return matchesSearch && matchesJenis && matchesPimpinan && matchesStatus
     }).sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
-  }, [agenda, searchQuery, jenisFilter, statusFilter])
+  }, [agenda, searchQuery, jenisFilter, pimpinanOnlyFilter, statusFilter])
 
   // Pagination
   const totalPages = Math.ceil(filteredAgenda.length / ITEMS_PER_PAGE)
@@ -1038,7 +1112,6 @@ export default function AgendaManagePage() {
     try {
       await deleteAgenda(confirmDeleteId)
       success('Agenda berhasil dihapus')
-      await refreshAgenda()
     } catch (err) {
       showError('Gagal menghapus agenda: ' + err.message)
     } finally {
@@ -1057,7 +1130,6 @@ export default function AgendaManagePage() {
         await addAgenda(item)
         success('Agenda baru berhasil ditambahkan')
       }
-      await refreshAgenda()
       setShowModal(false)
       setEditingItem(null)
     } catch (err) {
@@ -1071,10 +1143,11 @@ export default function AgendaManagePage() {
     setSearchQuery('')
     setStatusFilter('all')
     setJenisFilter('all')
+    setPimpinanOnlyFilter(false)
     setCurrentPage(1)
   }
 
-  const hasFilters = searchQuery || statusFilter !== 'all' || jenisFilter !== 'all'
+  const hasFilters = searchQuery || statusFilter !== 'all' || jenisFilter !== 'all' || pimpinanOnlyFilter
 
   if (agendaLoading) {
     const { SkeletonStatGrid, SkeletonCardList, SkeletonStyles } = require('@/app/components/Skeleton');
@@ -1208,6 +1281,29 @@ export default function AgendaManagePage() {
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
+
+              <button
+                type="button"
+                onClick={() => setPimpinanOnlyFilter(v => !v)}
+                className="btn btn-sm"
+                aria-pressed={pimpinanOnlyFilter}
+                style={{
+                  height: 40,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  background: pimpinanOnlyFilter ? 'var(--danger-bg)' : 'var(--surface-2)',
+                  color: pimpinanOnlyFilter ? 'var(--danger)' : 'var(--text-2)',
+                  border: '1px solid var(--border)',
+                }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                  <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
+                </svg>
+                Dihadiri Pimpinan
+              </button>
 
               <div className="flex" style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '0.25rem' }}>
                 <button

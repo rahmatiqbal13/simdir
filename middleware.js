@@ -79,6 +79,26 @@ const KWITANSI_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/e-kwitansi').ro
 // walau yang menghasilkan log-nya (tambah/hapus pertanyaan) adalah admin.
 const PERTANYAAN_LOG_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-penilaian/pertanyaan/log').roles
 
+// Endpoint /api/kritik-saran lewat service-role key dan tidak punya
+// pengecekan role sendiri (cuma cek header Authorization tidak kosong, yang
+// bisa dipalsukan bebas dari client) — halaman yang memakainya adalah
+// /kelola-penilaian (bukan /kelola-saran, meski namanya mirip), jadi ikut
+// aturan role halaman itu. GET/PATCH/DELETE saja yang dibatasi — POST
+// (submit publik) tetap publik lewat isPublicPath().
+const KRITIK_SARAN_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-penilaian').roles
+
+// Endpoint /api/saran (kritik/saran/permohonan) lewat service-role key dan
+// tidak punya pengecekan role sendiri — dipakai oleh halaman /kelola-saran.
+// GET/PATCH/DELETE saja yang dibatasi — POST (submit publik dari halaman
+// publik /kritik-saran) tetap publik lewat isPublicPath().
+const SARAN_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-saran').roles
+
+// Endpoint /api/tamu (buku tamu) lewat service-role key dan tidak punya
+// pengecekan role sendiri — dipakai oleh halaman /kelola-tamu. GET/DELETE
+// saja yang dibatasi — POST (isi buku tamu dari kiosk publik) tetap publik
+// lewat isPublicPath().
+const TAMU_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-tamu').roles
+
 // Endpoint unit-usaha/target-unit-usaha/pemasukan-unit-usaha lewat
 // service-role key dan tidak punya pengecekan role sendiri — harus ikut
 // aturan role halaman /pemasukan-unit-usaha.
@@ -117,6 +137,9 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/app-settings' && method === 'GET') return true
   // Public feedback submission endpoint
   if (pathname === '/api/kritik-saran' && method === 'POST') return true
+  // Public kritik/saran/permohonan submission endpoint (dipakai oleh
+  // halaman publik /kritik-saran)
+  if (pathname === '/api/saran' && method === 'POST') return true
   // Public guest book submission endpoint
   if (pathname === '/api/tamu' && method === 'POST') return true
   // Public questions endpoint (for feedback form)
@@ -286,6 +309,23 @@ export async function middleware(request) {
   }
 
   if (pathname.startsWith('/api/rab') && !RAB_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  // DELETE lebih ketat dari GET/PATCH (super_admin saja) untuk /api/kritik-saran
+  // dan /api/saran — cocok dengan tombol Hapus di UI (/kelola-penilaian,
+  // /kelola-saran) yang memang cuma ditampilkan untuk isSuperAdmin.
+  if (pathname.startsWith('/api/kritik-saran')) {
+    const allowed = request.method === 'DELETE' ? ['super_admin'] : KRITIK_SARAN_API_ROLES
+    if (!allowed.includes(role)) return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/saran')) {
+    const allowed = request.method === 'DELETE' ? ['super_admin'] : SARAN_API_ROLES
+    if (!allowed.includes(role)) return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/tamu') && !TAMU_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 

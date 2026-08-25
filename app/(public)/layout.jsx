@@ -1,6 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
@@ -8,6 +5,6 @@ export const viewport = {
   userScalable: false,
 }
 
-export default async function PublicLayout({ children }) {
+export default function PublicLayout({ children }) {
   return children
 }

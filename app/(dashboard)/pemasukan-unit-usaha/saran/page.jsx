@@ -24,10 +24,16 @@ export default function SaranAnggaranPage() {
   const amountFocused = useRef(false)
 
   useEffect(() => {
+    let cancelled = false
     setLoading(true)
     fetch(`/api/pemasukan-unit-usaha/dashboard?tahun=${year}`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { setData(d); setLoading(false) })
+      .then((d) => {
+        if (cancelled) return
+        setData(d)
+        setLoading(false)
+      })
+    return () => { cancelled = true }
   }, [year])
 
   const totalIncome = data?.grandTotal.totalIncome ?? 0

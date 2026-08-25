@@ -125,7 +125,7 @@ export default function EditKwitansiPage() {
 
           <div className="field">
             <label className="field-label" htmlFor="jumlah">Jumlah Uang (Rp) *</label>
-            <input id="jumlah" type="number" min="0" step="0.01" className="input" value={form.jumlah} onChange={(e) => set('jumlah', e.target.value)} required />
+            <input id="jumlah" type="number" min="0" step="1" className="input" value={form.jumlah} onChange={(e) => set('jumlah', e.target.value)} required />
             {terbilangPreview && (
               <p className="muted" style={{ fontSize: '0.75rem', marginTop: 4, fontStyle: 'italic' }}>{terbilangPreview}</p>
             )}

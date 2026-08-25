@@ -146,20 +146,24 @@ export function getUnitCodeFromPenyelenggara(penyelenggara) {
   return 'unesa'
 }
 
-// Ambil warna berdasarkan jenis dan penyelenggara
-export function getUnitColor(jenis, penyelenggara) {
-  // Kegiatan pimpinan prioritas
-  if (jenis === 'pimpinan') return UNIT_COLORS['pimpinan']
-  
+// Ambil warna berdasarkan jenis, penyelenggara, dan kehadiran pimpinan.
+// `dihadiriPimpinan` sekarang independen dari `jenis` (internal/eksternal
+// bisa sama-sama dihadiri pimpinan) — tapi tetap diberi warna prioritas
+// merah di TV, karena itu memang sinyal paling penting untuk ditonjolkan.
+// `jenis === 'pimpinan'` dipertahankan sebagai fallback untuk data lama
+// yang belum melewati migrasi `dihadiri_pimpinan`.
+export function getUnitColor(jenis, penyelenggara, dihadiriPimpinan) {
+  if (dihadiriPimpinan || jenis === 'pimpinan') return UNIT_COLORS['pimpinan']
+
   // Kegiatan eksternal
   if (jenis === 'eksternal') return UNIT_COLORS['eksternal']
-  
+
   // Kegiatan internal - cek unit kerja
   if (jenis === 'internal') {
     const code = getUnitCodeFromPenyelenggara(penyelenggara)
     return UNIT_COLORS[code] || UNIT_COLORS['usc']
   }
-  
+
   return UNIT_COLORS['unesa']
 }
 

@@ -3,39 +3,15 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import ThemeToggle from '@/app/components/ThemeToggle'
+import { formatTime, getAgendaStatus } from './tv/shared'
 
 // Helper functions
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
+  return new Date(date).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
   })
-}
-
-const getAgendaStatus = (mulai, selesai) => {
-  // Reset waktu ke 00:00:00 untuk perbandingan tanggal saja
-  const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  
-  const start = new Date(mulai)
-  const startDate = new Date(start.getFullYear(), start.getMonth(), start.getDate())
-  
-  const end = new Date(selesai)
-  const endDate = new Date(end.getFullYear(), end.getMonth(), end.getDate())
-  
-  // Cek apakah hari ini sudah lewat dari tanggal selesai (hari berikutnya atau lebih)
-  if (today > endDate) return 'completed'
-  
-  // Cek apakah hari ini dalam rentang tanggal mulai sampai selesai
-  if (today >= startDate && today <= endDate) return 'ongoing'
-  
-  // Hitung selisih hari untuk status upcoming
-  const diffTime = startDate - today
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays <= 3) return 'upcoming_soon'
-  return 'upcoming'
 }
 
 // Helper function untuk countdown
@@ -57,6 +33,86 @@ const getCountdown = (tanggalMulai) => {
   } else {
     return { value: diffMinutes, unit: 'menit', label: `${diffMinutes} menit lagi` }
   }
+}
+
+// ============ ICS EXPORT ("Tambah ke Kalender") ============
+// WIB = UTC+7 sepanjang tahun (tanpa DST), jadi konversi ke UTC cukup
+// dikurangi 7 jam — tidak perlu VTIMEZONE penuh, dan hasilnya tetap
+// ditampilkan benar di kalender pengunjung apa pun zona waktunya.
+function wibToUtcDate(dateStr, timeStr) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const [hh = 0, mm = 0, ss = 0] = (timeStr || '00:00:00').split(':').map(Number)
+  return new Date(Date.UTC(y, m - 1, d, hh, mm, ss) - 7 * 60 * 60 * 1000)
+}
+
+function toIcsUtcStamp(date) {
+  const p = (n) => String(n).padStart(2, '0')
+  return `${date.getUTCFullYear()}${p(date.getUTCMonth() + 1)}${p(date.getUTCDate())}T${p(date.getUTCHours())}${p(date.getUTCMinutes())}${p(date.getUTCSeconds())}Z`
+}
+
+function addDaysToDateStr(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + days)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${dt.getUTCFullYear()}${p(dt.getUTCMonth() + 1)}${p(dt.getUTCDate())}`
+}
+
+function escapeIcsText(str) {
+  return String(str || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n')
+}
+
+function buildIcsContent(item) {
+  const hasTime = !!(item.waktu_mulai || item.waktu_selesai)
+  let dtStart, dtEnd
+
+  if (hasTime) {
+    const start = wibToUtcDate(item.tanggal_mulai, item.waktu_mulai || '00:00:00')
+    const end = wibToUtcDate(item.tanggal_selesai || item.tanggal_mulai, item.waktu_selesai || item.waktu_mulai || '23:59:00')
+    dtStart = `DTSTART:${toIcsUtcStamp(start)}`
+    dtEnd = `DTEND:${toIcsUtcStamp(end)}`
+  } else {
+    // Event tanpa jam spesifik -> all-day. DTEND all-day bersifat exclusive
+    // di iCalendar, jadi harus +1 hari dari tanggal selesai sebenarnya.
+    dtStart = `DTSTART;VALUE=DATE:${item.tanggal_mulai.replace(/-/g, '')}`
+    dtEnd = `DTEND;VALUE=DATE:${addDaysToDateStr(item.tanggal_selesai || item.tanggal_mulai, 1)}`
+  }
+
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//SIMDIR//Agenda Direktorat//ID',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    `UID:simdir-agenda-${item.id}@usc.ac.id`,
+    `DTSTAMP:${toIcsUtcStamp(new Date())}`,
+    dtStart,
+    dtEnd,
+    `SUMMARY:${escapeIcsText(item.judul)}`,
+    item.lokasi ? `LOCATION:${escapeIcsText(item.lokasi)}` : null,
+    item.deskripsi ? `DESCRIPTION:${escapeIcsText(item.deskripsi)}` : null,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].filter(Boolean)
+
+  return lines.join('\r\n')
+}
+
+function downloadIcs(item) {
+  const blob = new Blob([buildIcsContent(item)], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `agenda-${item.id}.ics`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 
 // Data akan di-fetch dari Supabase
@@ -109,11 +165,10 @@ function JenisBadge({ jenis }) {
   const configs = {
     internal: { label: 'Internal', bg: 'var(--primary-50)', color: 'var(--primary)', border: 'var(--primary-100)' },
     eksternal: { label: 'Eksternal', bg: 'var(--warning-50)', color: 'var(--warning)', border: 'var(--warning-100)' },
-    pimpinan: { label: 'Pimpinan', bg: 'var(--danger-50)', color: 'var(--danger)', border: 'var(--danger-100)' },
   }
-  
+
   const config = configs[jenis] || configs.internal
-  
+
   return (
     <span style={{
       display: 'inline-flex',
@@ -128,6 +183,27 @@ function JenisBadge({ jenis }) {
       border: `1px solid ${config.border}`
     }}>
       {config.label}
+    </span>
+  )
+}
+
+// ============ KOMPONEN BADGE "DIHADIRI PIMPINAN" ============
+// Terpisah dari JenisBadge — kehadiran pimpinan independen dari jenis.
+function PimpinanBadge() {
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.25rem',
+      padding: '0.25rem 0.625rem',
+      borderRadius: '9999px',
+      fontSize: '0.6875rem',
+      fontWeight: 500,
+      background: 'var(--danger-50)',
+      color: 'var(--danger)',
+      border: '1px solid var(--danger-100)'
+    }}>
+      Dihadiri Pimpinan
     </span>
   )
 }
@@ -282,6 +358,7 @@ function AgendaCard({ item }) {
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
             <JenisBadge jenis={item.jenis} />
+            {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
           </div>
           <h3 className="card-title" style={{
             fontSize: '1rem',
@@ -332,7 +409,7 @@ function AgendaCard({ item }) {
                 <polyline points="12 6 12 12 16 14" />
               </svg>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.waktu_mulai || '--:--'} - {item.waktu_selesai || '--:--'} WIB
+                {formatTime(item.waktu_mulai)} - {formatTime(item.waktu_selesai)} WIB
               </span>
             </div>
           )}
@@ -383,18 +460,31 @@ function AgendaCard({ item }) {
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.penyelenggara}</span>
           </div>
 
-          {/* PIC atau Disposisi */}
-          {item.jenis === 'pimpinan' && item.disposisi ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--danger)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--danger)', flexShrink: 0 }}>
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="8.5" cy="7" r="4" />
-                <polyline points="17 11 19 13 23 9" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                Disposisi ke: {item.disposisi}
-              </span>
-            </div>
+          {/* PIC, Disposisi, atau nama Pimpinan */}
+          {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? (
+            item.disposisi ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--danger)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--danger)', flexShrink: 0 }}>
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="8.5" cy="7" r="4" />
+                  <polyline points="17 11 19 13 23 9" />
+                </svg>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                  Disposisi ke: {item.disposisi}
+                </span>
+              </div>
+            ) : (item.nama_pimpinan || item.jenis === 'pimpinan') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--danger)' }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--danger)', flexShrink: 0 }}>
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                  <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
+                </svg>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+                  Pimpinan: {item.nama_pimpinan || item.penyelenggara}
+                </span>
+              </div>
+            )
           ) : item.pic && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
@@ -426,6 +516,38 @@ function AgendaCard({ item }) {
             {item.deskripsi}
           </p>
         )}
+
+        {/* Tambah ke Kalender — unduh .ics, kompatibel dengan Google/Apple/Outlook */}
+        <button
+          type="button"
+          onClick={() => downloadIcs(item)}
+          className="agenda-press-btn"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+            alignSelf: 'flex-start',
+            marginTop: '0.75rem',
+            padding: '0.5rem 0.875rem',
+            background: 'var(--surface-2)',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--text-2)',
+            cursor: 'pointer'
+          }}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.9375rem', height: '0.9375rem', flexShrink: 0 }}>
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+            <line x1="12" y1="14" x2="12" y2="18" />
+            <line x1="10" y1="16" x2="14" y2="16" />
+          </svg>
+          Tambah ke Kalender
+        </button>
       </div>
     </div>
   )

@@ -5,14 +5,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useFocusTrap } from '@/app/components/useFocusTrap';
 import { useToast } from '@/app/components/Toast';
-
-// ============ HELPERS ============
-const generateCustomerCode = () => {
-  const prefix = 'CUST';
-  const timestamp = Date.now().toString(36).toUpperCase().slice(-4);
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `${prefix}${timestamp}${random}`;
-};
+import { generateCustomerCode } from '@/lib/utils/customerCode';
 
 // ============ MODAL FORM CUSTOMER ============
 function CustomerFormModal({ show, onClose, onSubmit, customer, isEditing }) {

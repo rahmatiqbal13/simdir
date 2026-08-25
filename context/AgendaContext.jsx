@@ -66,6 +66,8 @@ export function AgendaProvider({ children }) {
         link_meeting: item.link_meeting || null,
         penyelenggara: item.penyelenggara || '',
         deskripsi: item.deskripsi || '',
+        dihadiri_pimpinan: item.dihadiri_pimpinan ?? false,
+        nama_pimpinan: item.nama_pimpinan || null,
         disposisi: item.disposisi || null,
         pic: item.pic || null,
         status: item.status || 'upcoming',

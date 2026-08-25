@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, Fragment } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Fragment } from 'react'
 import Link from 'next/link'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -45,17 +45,25 @@ export default function PemasukanUnitUsahaPage() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [expandedUnit, setExpandedUnit] = useState(null)
+  const requestedYearRef = useRef(year)
 
   const load = useCallback(async () => {
+    const requestYear = year
+    requestedYearRef.current = requestYear
     setLoading(true)
     try {
-      const res = await fetch(`/api/pemasukan-unit-usaha/dashboard?tahun=${year}`)
+      const res = await fetch(`/api/pemasukan-unit-usaha/dashboard?tahun=${requestYear}`)
+      // Kalau tahun sudah berganti lagi sebelum response ini tiba, buang —
+      // supaya response lambat untuk tahun lama tidak menimpa data tahun
+      // yang sedang ditampilkan sekarang.
+      if (requestedYearRef.current !== requestYear) return
       if (res.ok) setData(await res.json())
       else toastError('Gagal memuat data dashboard')
     } catch {
+      if (requestedYearRef.current !== requestYear) return
       toastError('Gagal terhubung ke server')
     } finally {
-      setLoading(false)
+      if (requestedYearRef.current === requestYear) setLoading(false)
     }
   }, [year, toastError])
 
