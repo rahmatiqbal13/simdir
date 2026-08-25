@@ -30,6 +30,20 @@ CREATE INDEX IF NOT EXISTS saran_status_idx  ON saran (status);
 CREATE INDEX IF NOT EXISTS saran_jenis_idx   ON saran (jenis);
 CREATE INDEX IF NOT EXISTS saran_created_idx ON saran (created_at DESC);
 
+-- Trigger auto-update updated_at
+CREATE OR REPLACE FUNCTION update_saran_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS saran_updated_at_trigger ON saran;
+CREATE TRIGGER saran_updated_at_trigger
+  BEFORE UPDATE ON saran
+  FOR EACH ROW EXECUTE FUNCTION update_saran_updated_at();
+
 -- RLS: public boleh INSERT, hanya service role yang boleh SELECT/UPDATE/DELETE
 ALTER TABLE saran ENABLE ROW LEVEL SECURITY;
 
