@@ -1,9 +1,13 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
 import { useAgenda } from '@/lib/hooks/useSupabase';
 import { OnboardingFlow, useOnboarding, RestartOnboardingButton } from '@/app/components/Onboarding';
 import { SkeletonDashboard } from '@/app/components/Skeleton';
+
+gsap.registerPlugin(useGSAP);
 
 const MONTHS     = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
 const MONTH_FULL = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -112,10 +116,22 @@ export default function DashboardPage() {
     [agendaData]
   );
 
+  const containerRef = useRef(null);
+
+  useGSAP(() => {
+    if (agendaLoading) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+    tl.from('.db-hero', { opacity: 0, y: 16, duration: 0.4 })
+      .from('.db-kpi', { opacity: 0, y: 20, scale: 0.97, duration: 0.35, stagger: 0.07 }, '-=0.15')
+      .from('.db-agenda-row', { opacity: 0, y: 16, duration: 0.3, stagger: 0.06 }, '-=0.15');
+  }, { scope: containerRef, dependencies: [agendaLoading] });
+
   if (agendaLoading) return <SkeletonDashboard />;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <OnboardingFlow pageKey="dashboard" isOpen={showOnboarding} onComplete={completeOnboarding} onSkip={skipOnboarding} />
       {!showOnboarding && (
         <div style={{ position: 'fixed', bottom: 80, right: 20, zIndex: 20 }}>
@@ -124,7 +140,7 @@ export default function DashboardPage() {
       )}
 
       {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
-      <div style={{
+      <div className="db-hero" style={{
         borderRadius: 'var(--r-xl)',
         background: 'linear-gradient(135deg, var(--usc-blue) 0%, #1d4ed8 55%, #2563eb 100%)',
         padding: '28px 32px',
@@ -356,7 +372,7 @@ function SectionCard({ title, subtitle, action, icon, accentColor, children }) {
 // ─── KPI Card ────────────────────────────────────────────────────────────────
 function KpiCard({ label, value, sub, icon, accent, accentBg, href, badge }) {
   return (
-    <a href={href} style={{ textDecoration: 'none' }}>
+    <a href={href} className="db-kpi" style={{ textDecoration: 'none' }}>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12, transition: 'box-shadow .15s, transform .15s, border-color .15s', cursor: 'pointer', position: 'relative' }}
         onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow-md)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.borderColor = accent + '50'; }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = ''; e.currentTarget.style.transform = ''; e.currentTarget.style.borderColor = 'var(--border)'; }}
@@ -393,7 +409,7 @@ function AgendaRow({ a }) {
   const isOngoing = status === 'ongoing';
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? 'var(--success-50)' : 'transparent' }}
+    <div className="db-agenda-row" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px', borderBottom: '1px solid var(--border)', transition: 'background .12s', background: isOngoing ? 'var(--success-50)' : 'transparent' }}
       onMouseEnter={e => e.currentTarget.style.background = isOngoing ? 'var(--success-50)' : 'var(--surface-2)'}
       onMouseLeave={e => e.currentTarget.style.background = isOngoing ? 'var(--success-50)' : 'transparent'}
     >
