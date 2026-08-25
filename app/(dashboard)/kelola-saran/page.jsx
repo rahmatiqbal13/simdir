@@ -218,7 +218,7 @@ export default function KelolaSaranPage() {
                             } catch {}
                           }
                         }}
-                        style={{ padding: '0.375rem 0.875rem', borderRadius: 6, border: '1px solid #3b82f6', background: 'var(--surface)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
+                        style={{ padding: '0.375rem 0.875rem', minHeight: '44px', borderRadius: 6, border: '1px solid #3b82f6', background: 'var(--surface)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
                       >Detail</button>
                     </td>
                   </tr>

@@ -164,7 +164,6 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 onClick={() => onEdit(user)}
                 title="Edit User"
                 aria-label="Edit User"
-                style={{ minWidth: '36px', height: '36px' }}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -176,7 +175,7 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 onClick={() => onToggleStatus(user.id)}
                 title={user.is_active ? 'Nonaktifkan' : 'Aktifkan'}
                 aria-label={user.is_active ? 'Nonaktifkan user' : 'Aktifkan user'}
-                style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)', minWidth: '36px', height: '36px' }}
+                style={{ color: user.is_active ? 'var(--warning)' : 'var(--success)' }}
               >
                 {user.is_active ? (
                   <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
@@ -193,7 +192,7 @@ function UserCard({ user, index, canEdit, onEdit, onToggleStatus, onDelete }) {
                 onClick={() => onDelete(user.id)}
                 title="Hapus User"
                 aria-label="Hapus User"
-                style={{ color: 'var(--danger)', minWidth: '36px', height: '36px' }}
+                style={{ color: 'var(--danger)' }}
               >
                 <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
                   <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -505,8 +504,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
                 key={p}
                 onClick={() => onPageChange(p)}
                 className="btn icon-only"
-                style={{ 
-                  minWidth: '2.25rem',
+                style={{
                   background: currentPage === p ? 'var(--primary)' : 'var(--surface)',
                   color: currentPage === p ? 'white' : 'var(--text)',
                   border: currentPage === p ? 'none' : '1px solid var(--border)'
@@ -804,7 +802,7 @@ export default function UsersPage() {
               <select 
                 value={filterRole} 
                 onChange={(e) => setFilterRole(e.target.value)}
-                style={{ minWidth: '7rem', flex: '1 1 auto', height: '40px', fontSize: '0.875rem' }}
+                style={{ minWidth: '7rem', flex: '1 1 auto' }}
               >
                 <option value="">Semua Role</option>
                 {Object.entries(ROLE_CONFIGS).map(([key, config]) => (
@@ -815,7 +813,7 @@ export default function UsersPage() {
               <select 
                 value={filterStatus} 
                 onChange={(e) => setFilterStatus(e.target.value)}
-                style={{ minWidth: '7rem', flex: '1 1 auto', height: '40px', fontSize: '0.875rem' }}
+                style={{ minWidth: '7rem', flex: '1 1 auto' }}
               >
                 <option value="">Semua Status</option>
                 <option value="active">Aktif</option>

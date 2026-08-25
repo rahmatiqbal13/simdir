@@ -603,15 +603,18 @@ export default function CreateInvoicePage() {
             Draft invoice tersimpan ditemukan.
           </span>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button 
-              type="button" 
-              className="btn btn-sm" 
-              onClick={restoreDraft} 
-              style={{ 
-                backgroundColor: '#f59e0b', 
-                color: 'white', 
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={restoreDraft}
+              style={{
+                backgroundColor: '#f59e0b',
+                color: 'white',
                 border: '1px solid #f59e0b',
-                padding: '0.375rem 0.75rem',
+                padding: '0.5rem 0.75rem',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '0.875rem'
@@ -619,15 +622,18 @@ export default function CreateInvoicePage() {
             >
               Lanjutkan
             </button>
-            <button 
-              type="button" 
-              className="btn btn-sm" 
+            <button
+              type="button"
+              className="btn btn-sm"
               onClick={clearDraftAndReset}
               style={{
                 backgroundColor: 'var(--surface)',
                 color: 'var(--text-2)',
                 border: '1px solid var(--border-strong)',
-                padding: '0.375rem 0.75rem',
+                padding: '0.5rem 0.75rem',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '0.875rem'
@@ -817,7 +823,7 @@ export default function CreateInvoicePage() {
                       style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                     />
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxWidth: '400px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', maxWidth: '400px' }}>
                     <div>
                       <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Telepon</label>
                       <input

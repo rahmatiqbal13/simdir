@@ -390,7 +390,7 @@ export default function KritikSaranAdminPage() {
                             }
                           }}
                           style={{
-                            padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #3b82f6',
+                            padding: '0.375rem 0.75rem', minHeight: '44px', borderRadius: '6px', border: '1px solid #3b82f6',
                             background: 'var(--surface)', color: '#3b82f6', fontSize: '0.75rem', fontWeight: 600,
                             cursor: 'pointer',
                           }}
@@ -401,7 +401,7 @@ export default function KritikSaranAdminPage() {
                           <button
                             onClick={() => { setDeleteItem(item); setDeleteStep(1) }}
                             style={{
-                              padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #dc2626',
+                              padding: '0.375rem 0.75rem', minHeight: '44px', borderRadius: '6px', border: '1px solid #dc2626',
                               background: 'var(--surface)', color: '#dc2626', fontSize: '0.75rem', fontWeight: 600,
                               cursor: 'pointer',
                             }}

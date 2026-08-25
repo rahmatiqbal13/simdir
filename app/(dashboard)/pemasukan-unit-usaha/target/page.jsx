@@ -125,7 +125,7 @@ export default function KelolaTargetPage() {
                       <td className="num muted">{formatRupiahShort(monthly)}</td>
                       <td>
                         {isDirty && (
-                          <button className="btn btn-primary btn-sm" onClick={() => saveTarget(unit.id)} disabled={saving[unit.id]}>
+                          <button className="btn btn-primary" onClick={() => saveTarget(unit.id)} disabled={saving[unit.id]}>
                             {saving[unit.id] ? 'Menyimpan...' : 'Simpan'}
                           </button>
                         )}

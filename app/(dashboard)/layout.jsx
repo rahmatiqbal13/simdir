@@ -36,15 +36,15 @@ function CommandPalette({ open, onClose, items, icons }) {
 
   return (
     <div
-      style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'80px 20px 20px' }}
+      style={{ position:'fixed', inset:0, background:'rgba(15,23,42,0.5)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'flex-start', justifyContent:'center', overflowY:'auto', padding:'calc(clamp(20px, 8vh, 80px) + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left))' }}
       onClick={onClose}
     >
       <div
-        style={{ background:'var(--surface)', borderRadius:16, width:'100%', maxWidth:560, boxShadow:'0 20px 40px rgba(15,23,42,0.18)', overflow:'hidden', animation:'modalIn .18s ease' }}
+        style={{ background:'var(--surface)', borderRadius:16, width:'100%', maxWidth:560, maxHeight:'calc(100vh - 40px)', display:'flex', flexDirection:'column', boxShadow:'0 20px 40px rgba(15,23,42,0.18)', overflow:'hidden', animation:'modalIn .18s ease' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Search input */}
-        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 18px', borderBottom:'1px solid var(--border)' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 18px', borderBottom:'1px solid var(--border)', flexShrink:0 }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width:18, height:18, color:'var(--text-3)', flexShrink:0 }}>
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
@@ -58,7 +58,7 @@ function CommandPalette({ open, onClose, items, icons }) {
           <kbd style={{ fontSize:'0.6875rem', padding:'2px 6px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text-3)', fontFamily:'monospace' }}>ESC</kbd>
         </div>
         {/* Results */}
-        <div style={{ maxHeight:360, overflowY:'auto' }}>
+        <div style={{ flex:'1 1 auto', minHeight:0, maxHeight:360, overflowY:'auto' }}>
           {filtered.length === 0 ? (
             <div style={{ padding:'32px 20px', textAlign:'center', color:'var(--text-3)', fontSize:'0.875rem' }}>
               Tidak ada hasil untuk "{query}"
@@ -86,7 +86,7 @@ function CommandPalette({ open, onClose, items, icons }) {
             </>
           )}
         </div>
-        <div style={{ padding:'8px 18px', borderTop:'1px solid var(--border)', background:'var(--surface-2)', display:'flex', gap:16, fontSize:'0.75rem', color:'var(--text-3)' }}>
+        <div style={{ padding:'8px 18px', borderTop:'1px solid var(--border)', background:'var(--surface-2)', display:'flex', gap:16, fontSize:'0.75rem', color:'var(--text-3)', flexShrink:0 }}>
           <span>↵ untuk buka</span>
           <span>ESC untuk tutup</span>
         </div>

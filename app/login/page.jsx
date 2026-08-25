@@ -91,7 +91,7 @@ export default function LoginPage() {
 
   return (
     <div className="login-shell">
-      <ThemeToggle style={{ position: 'fixed', top: 16, right: 16, zIndex: 10 }} />
+      <ThemeToggle style={{ position: 'fixed', top: 'calc(16px + env(safe-area-inset-top))', right: 'calc(16px + env(safe-area-inset-right))', zIndex: 10 }} />
       {/* Left Side - Branding (hidden on mobile) */}
       <div className="login-aside">
         <div className="login-aside-content">

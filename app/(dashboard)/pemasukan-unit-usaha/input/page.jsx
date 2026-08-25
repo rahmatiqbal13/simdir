@@ -224,12 +224,12 @@ export default function InputPemasukanPage() {
                     <td className="text-right">
                       <div style={{ display: 'inline-flex', gap: 4 }}>
                         {r.locked ? (
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleUnlock(r.id)} title="Buka Kunci">Buka</button>
+                          <button className="btn btn-ghost" onClick={() => handleUnlock(r.id)} title="Buka Kunci">Buka</button>
                         ) : (
-                          <button className="btn btn-ghost btn-sm" onClick={() => handleLock(r.id)} title="Kunci" disabled={locked}>Kunci</button>
+                          <button className="btn btn-ghost" onClick={() => handleLock(r.id)} title="Kunci" disabled={locked}>Kunci</button>
                         )}
-                        <button className="btn btn-ghost btn-sm" onClick={() => openEdit(r)} disabled={locked}>Edit</button>
-                        <button className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }} onClick={() => setDeleteItem(r)} disabled={locked}>Hapus</button>
+                        <button className="btn btn-ghost" onClick={() => openEdit(r)} disabled={locked}>Edit</button>
+                        <button className="btn btn-ghost" style={{ color: 'var(--danger)' }} onClick={() => setDeleteItem(r)} disabled={locked}>Hapus</button>
                       </div>
                     </td>
                   </tr>

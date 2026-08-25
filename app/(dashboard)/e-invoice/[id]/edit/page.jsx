@@ -561,7 +561,10 @@ export default function EditInvoicePage() {
                 backgroundColor: '#f59e0b',
                 color: 'white',
                 border: '1px solid #f59e0b',
-                padding: '0.375rem 0.75rem',
+                padding: '0.5rem 0.75rem',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '0.875rem'
@@ -574,7 +577,10 @@ export default function EditInvoicePage() {
               className="btn btn-sm btn-ghost"
               onClick={dismissDraft}
               style={{
-                padding: '0.375rem 0.75rem',
+                padding: '0.5rem 0.75rem',
+                minHeight: '44px',
+                display: 'inline-flex',
+                alignItems: 'center',
                 borderRadius: '4px',
                 cursor: 'pointer',
                 fontSize: '0.875rem'

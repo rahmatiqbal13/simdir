@@ -92,7 +92,7 @@ function CustomerFormModal({ show, onClose, onSubmit, customer, isEditing }) {
                 required
               />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
               <div className="form-group">
                 <label className="form-label">Email</label>
                 <input

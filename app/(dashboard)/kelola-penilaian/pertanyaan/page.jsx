@@ -512,13 +512,13 @@ export default function PertanyaanKritikSaranPage() {
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {editingId === q.id ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                         <input
                           type="text"
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           style={{
-                            flex: 1, padding: '8px 10px', border: '1.5px solid #3b82f6',
+                            flex: 1, minWidth: '160px', padding: '8px 10px', border: '1.5px solid #3b82f6',
                             borderRadius: '6px', fontSize: '14px', color: 'var(--text)', outline: 'none',
                             fontFamily: "'Segoe UI', system-ui, sans-serif",
                           }}

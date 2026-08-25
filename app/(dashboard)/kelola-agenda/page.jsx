@@ -338,7 +338,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
               {canEdit && (
                 <div style={{ display: 'flex', gap: '0.25rem' }}>
                   <button
-                    className="btn btn-ghost btn-sm btn-icon"
+                    className="btn btn-ghost icon-only"
                     onClick={() => onEdit(item)}
                     title="Edit"
                     aria-label="Edit agenda"
@@ -349,7 +349,7 @@ function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
                     </svg>
                   </button>
                   <button
-                    className="btn btn-ghost btn-sm btn-icon"
+                    className="btn btn-ghost icon-only"
                     onClick={() => onDelete(item.id)}
                     title="Hapus"
                     aria-label="Hapus agenda"
@@ -963,7 +963,6 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
           aria-label="Halaman sebelumnya"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
@@ -978,8 +977,6 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
               onClick={() => onPageChange(page)}
               className="btn icon-only"
               style={{
-                minWidth: '2.25rem',
-                minHeight: '2.25rem',
                 background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
                 color: currentPage === page ? 'white' : 'var(--text)',
                 border: currentPage === page ? 'none' : '1px solid var(--border)'
@@ -996,7 +993,6 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
           className="btn ghost icon-only"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          style={{ minWidth: '2.5rem', minHeight: '2.5rem' }}
           aria-label="Halaman berikutnya"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
@@ -1264,7 +1260,7 @@ export default function AgendaManagePage() {
                 className="select"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ height: 40, width: 'auto' }}
+                style={{ width: 'auto' }}
               >
                 {STATUS_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1275,7 +1271,7 @@ export default function AgendaManagePage() {
                 className="select"
                 value={jenisFilter}
                 onChange={(e) => setJenisFilter(e.target.value)}
-                style={{ height: 40, width: 'auto' }}
+                style={{ width: 'auto' }}
               >
                 {JENIS_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -1288,7 +1284,7 @@ export default function AgendaManagePage() {
                 className="btn btn-sm"
                 aria-pressed={pimpinanOnlyFilter}
                 style={{
-                  height: 40,
+                  height: 44,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.375rem',

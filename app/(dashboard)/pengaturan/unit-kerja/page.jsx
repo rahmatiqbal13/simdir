@@ -444,8 +444,7 @@ function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPe
               key={page}
               onClick={() => onPageChange(page)}
               className="btn icon-only"
-              style={{ 
-                minWidth: '2.25rem',
+              style={{
                 background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
                 color: currentPage === page ? 'white' : 'var(--text)',
                 border: currentPage === page ? 'none' : '1px solid var(--border)'

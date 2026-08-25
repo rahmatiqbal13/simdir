@@ -525,6 +525,8 @@ function AgendaCard({ item }) {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
+            minHeight: '2.75rem',
+            boxSizing: 'border-box',
             gap: '0.375rem',
             alignSelf: 'flex-start',
             marginTop: '0.75rem',
@@ -561,19 +563,33 @@ function NavigationDots({ total, current, onSelect }) {
         <button
           key={i}
           onClick={() => onSelect(i)}
-          className="agenda-nav-dot"
           aria-label={`Halaman ${i + 1}`}
           aria-current={i === current ? 'true' : undefined}
           style={{
-            width: i === current ? '2rem' : '0.75rem',
-            height: '0.75rem',
-            borderRadius: '9999px',
-            background: i === current ? 'var(--primary)' : '#cbd5e1',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '2.75rem',
+            height: '2.75rem',
+            padding: 0,
+            background: 'none',
             border: 'none',
-            cursor: 'pointer',
-            transition: 'width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease'
+            cursor: 'pointer'
           }}
-        />
+        >
+          <span
+            className="agenda-nav-dot"
+            aria-hidden="true"
+            style={{
+              display: 'block',
+              width: i === current ? '2rem' : '0.75rem',
+              height: '0.75rem',
+              borderRadius: '9999px',
+              background: i === current ? 'var(--primary)' : '#cbd5e1',
+              transition: 'width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease'
+            }}
+          />
+        </button>
       ))}
     </div>
   )
@@ -850,6 +866,8 @@ export default function AgendaPage() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  minHeight: '2.75rem',
+                  boxSizing: 'border-box',
                   gap: '0.5rem',
                   padding: '0.625rem 1.25rem',
                   background: '#0f172a',
@@ -872,6 +890,8 @@ export default function AgendaPage() {
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  minHeight: '2.75rem',
+                  boxSizing: 'border-box',
                   gap: '0.5rem',
                   padding: '0.625rem 1.25rem',
                   background: 'var(--primary)',
@@ -947,6 +967,8 @@ export default function AgendaPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
+                minHeight: '2.75rem',
+                boxSizing: 'border-box',
                 gap: '0.5rem',
                 padding: '0.625rem 1.25rem',
                 background: showCompleted ? 'var(--surface-3)' : 'var(--surface)',
@@ -1035,6 +1057,8 @@ export default function AgendaPage() {
                         style={{
                           display: 'flex',
                           alignItems: 'center',
+                          minHeight: '2.75rem',
+                          boxSizing: 'border-box',
                           gap: '0.375rem',
                           padding: '0.25rem 0.625rem',
                           background: 'var(--surface-3)',
@@ -1073,6 +1097,7 @@ export default function AgendaPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    flexWrap: 'wrap',
                     gap: '1rem'
                   }}>
                     <button
@@ -1084,6 +1109,8 @@ export default function AgendaPage() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
+                        minHeight: '2.75rem',
+                        boxSizing: 'border-box',
                         gap: '0.5rem',
                         padding: '0.75rem 1.25rem',
                         background: 'var(--surface-3)',
@@ -1119,6 +1146,8 @@ export default function AgendaPage() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
+                        minHeight: '2.75rem',
+                        boxSizing: 'border-box',
                         gap: '0.5rem',
                         padding: '0.75rem 1.25rem',
                         background: 'var(--primary)',
@@ -1218,6 +1247,12 @@ export default function AgendaPage() {
         }
         .agenda-nav-dot:active {
           transform: scale(0.9);
+        }
+
+        @media (max-width: 640px) {
+          .agenda-public-grid {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
     </div>

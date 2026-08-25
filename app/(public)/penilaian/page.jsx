@@ -291,7 +291,7 @@ export default function PenilaianPage() {
                       <button key={jk} type="button"
                         onClick={() => setProfile(p => ({ ...p, jenis_kelamin: jk }))}
                         style={{
-                          flex: 1, padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                          flex: 1, minHeight: 44, padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
                           border: `2px solid ${profile.jenis_kelamin === jk ? '#3b82f6' : 'var(--border)'}`,
                           background: profile.jenis_kelamin === jk ? '#eff6ff' : 'var(--surface)',
                           fontWeight: 600, fontSize: '0.875rem',
@@ -506,8 +506,8 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {item.opsi_pilihan.map((opsi, idx) => (
           <label key={idx} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-            borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+            display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '10px 14px',
+            borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s', boxSizing: 'border-box',
             background: item.jawaban_pilihan === opsi ? '#eff6ff' : 'var(--surface)',
             border: `2px solid ${item.jawaban_pilihan === opsi ? '#3b82f6' : 'var(--border)'}`,
           }}>
@@ -531,8 +531,8 @@ function QuestionInput({ item, updateItem, parseCheckbox }) {
           const checked = selected.includes(opsi)
           return (
             <label key={idx} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s',
+              display: 'flex', alignItems: 'center', gap: 10, minHeight: 44, padding: '10px 14px',
+              borderRadius: 10, cursor: 'pointer', transition: 'all 0.15s', boxSizing: 'border-box',
               background: checked ? '#eff6ff' : 'var(--surface)',
               border: `2px solid ${checked ? '#3b82f6' : 'var(--border)'}`,
             }}>
@@ -622,6 +622,7 @@ function PublicHeader({ brandName, logoUrl }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <ThemeToggle />
           <a href="/kritik-saran" style={{
+            display: 'inline-flex', alignItems: 'center', minHeight: 44, boxSizing: 'border-box',
             fontSize: '0.8125rem', fontWeight: 600, color: '#2563eb',
             textDecoration: 'none', padding: '6px 12px', borderRadius: 8,
             border: '1px solid #bfdbfe', background: '#eff6ff',
@@ -676,14 +677,15 @@ const anonLabelStyle = {
 }
 
 const primaryBtnStyle = {
-  display: 'block', width: '100%', padding: '12px', borderRadius: 12, border: 'none',
+  display: 'block', width: '100%', minHeight: 44, padding: '12px', borderRadius: 12, border: 'none',
   background: '#1e3a8a', color: 'white', fontWeight: 700, fontSize: '0.9375rem',
-  cursor: 'pointer', textAlign: 'center', textDecoration: 'none',
+  cursor: 'pointer', textAlign: 'center', textDecoration: 'none', boxSizing: 'border-box',
 }
 
 const backBtnStyle = {
-  flex: 1, padding: '12px', borderRadius: 12, border: '1.5px solid var(--border)',
+  flex: 1, minHeight: 44, padding: '12px', borderRadius: 12, border: '1.5px solid var(--border)',
   background: 'var(--surface)', color: 'var(--text-2)', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer',
+  boxSizing: 'border-box',
 }
 
 const linkStyle = {

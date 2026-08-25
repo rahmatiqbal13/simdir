@@ -95,7 +95,7 @@ export default function KelolaUnitUsahaPage() {
                     <span className={`badge ${unit.aktif ? 'badge-success' : 'badge-neutral'}`}>{unit.aktif ? 'Aktif' : 'Nonaktif'}</span>
                   </td>
                   <td>
-                    <button className="btn btn-ghost btn-sm" onClick={() => toggleActive(unit)}>
+                    <button className="btn btn-ghost" onClick={() => toggleActive(unit)}>
                       {unit.aktif ? 'Nonaktifkan' : 'Aktifkan'}
                     </button>
                   </td>

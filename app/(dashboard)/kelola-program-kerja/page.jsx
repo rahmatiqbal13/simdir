@@ -258,8 +258,8 @@ export default function KelolaProgramKerjaPage() {
                         : '-'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem', whiteSpace: 'nowrap' }}>
-                      <button onClick={() => openEdit(item)} className="btn btn-ghost btn-sm" style={{ marginRight: 6 }}>Edit</button>
-                      <button onClick={() => setDeleteItem(item)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)' }}>Hapus</button>
+                      <button onClick={() => openEdit(item)} className="btn btn-ghost" style={{ marginRight: 6 }}>Edit</button>
+                      <button onClick={() => setDeleteItem(item)} className="btn btn-ghost" style={{ color: 'var(--danger)' }}>Hapus</button>
                     </td>
                   </tr>
                 )
