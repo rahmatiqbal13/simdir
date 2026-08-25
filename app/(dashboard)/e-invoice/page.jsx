@@ -429,6 +429,7 @@ export default function EInvoicePage() {
                         </div>
                         <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>
                           {invoice.kode_pelanggan}
+                          {invoice.created_by_name && ` · oleh ${invoice.created_by_name}`}
                         </div>
                       </td>
                       <td>

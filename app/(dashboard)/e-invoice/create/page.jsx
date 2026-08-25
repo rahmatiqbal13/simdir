@@ -10,6 +10,7 @@ import { useToast } from '@/app/components/Toast';
 import ConfirmModal from '@/app/components/ConfirmModal';
 import { formatRupiah, formatDate } from '@/lib/utils/format';
 import { generateCustomerCode } from '@/lib/utils/customerCode';
+import { useCurrentUser } from '@/lib/hooks/useCurrentUser';
 
 // ============ KOMPONEN ITEM ROW ============
 function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
@@ -100,6 +101,7 @@ function Checkbox({ checked, onChange, label }) {
 // ============ HALAMAN UTAMA ============
 export default function CreateInvoicePage() {
   const router = useRouter();
+  const { displayName } = useCurrentUser();
   const { error } = useToast();
   const [confirmResetOpen, setConfirmResetOpen] = useState(false);
   const [customers, setCustomers] = useState([]);
@@ -490,6 +492,7 @@ export default function CreateInvoicePage() {
         total: total,
         catatan: formData.catatan || null,
         terms_conditions: '',
+        created_by_name: displayName || null,
       };
 
       const { data: invoiceData, error: invoiceError } = await supabase

@@ -261,6 +261,12 @@ export default function InvoiceDetailPage() {
                   </div>
                 </div>
               </div>
+              {invoice.created_by_name && (
+                <div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Dibuat oleh</div>
+                  <div>{invoice.created_by_name}</div>
+                </div>
+              )}
             </div>
 
             {/* Stamp */}
