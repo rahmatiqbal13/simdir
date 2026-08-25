@@ -298,7 +298,7 @@ export default function KritikSaranPage() {
                           placeholder={form.jenis === 'permohonan_kelas' ? 'Contoh: Kelas Yoga Pagi, Renang Tingkat Lanjut...' : 'Contoh: Turnamen Futsal, Workshop Fitness...'}
                           style={fullInputStyle} maxLength={200} />
                       </div>
-                      <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                         <div>
                           <label style={labelStyle}>Tanggal yang Diinginkan <Req /></label>
                           <input type="date" value={form.tanggal_diinginkan}
@@ -414,7 +414,7 @@ export default function KritikSaranPage() {
                             onChange={e => set('nama', e.target.value)}
                             placeholder="Nama Anda" style={fullInputStyle} maxLength={100} />
                         </div>
-                        <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div className="contact-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12 }}>
                           <div>
                             <label style={labelStyle}>No. WhatsApp / Telepon</label>
                             <input type="tel" value={form.telepon}

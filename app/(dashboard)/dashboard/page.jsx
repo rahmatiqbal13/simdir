@@ -237,7 +237,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── MAIN GRID ───────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="db-main-grid">
+      <div className="db-main-grid">
 
         {/* LEFT — Agenda */}
         <SectionCard
@@ -268,7 +268,7 @@ export default function DashboardPage() {
           </SectionCard>
 
           {/* Quick links */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
             {[
               { href: '/kelola-agenda',   label: 'Kelola Agenda',    desc: `${agendaStats.total} agenda`,           icon: <IconCalendar />,   accent: 'var(--info)', bg: 'var(--info-50)' },
               { href: '/kelola-penilaian',label: 'Penilaian',        desc: `${penilaianStats.total} penilaian`,     icon: <IconStar />,       accent: 'var(--warning)', bg: 'var(--warning-50)' },

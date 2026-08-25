@@ -222,7 +222,7 @@ export function SkeletonDashboard() {
       </div>
 
       {/* Main Grid */}
-      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+      <div className="dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
         <div>
           <div className="card mb-4">
             <div className="card-header">
