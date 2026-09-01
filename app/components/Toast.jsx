@@ -172,6 +172,7 @@ function ToastContainer({ toasts, removeToast }) {
     <div
       role="region"
       aria-label="Notifikasi"
+      className="toast-container"
       style={{
         position: 'fixed',
         top: '1rem',
