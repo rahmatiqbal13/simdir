@@ -7,7 +7,11 @@ import { verifySession } from '@/lib/session'
 // pathname sungguhan, jadi prefix di sini harus berupa path asli (tanpa tanda kurung).
 const ROLE_RULES = [
   { prefix: '/kelola-agenda', roles: ['super_admin', 'admin', 'pimpinan'] },
-  { prefix: '/surat', roles: ['super_admin', 'pimpinan'] },
+  // Memo Pimpinan — halaman /memo bisa dibaca super_admin & pimpinan;
+  // tulis (POST/PUT/DELETE /api/memo) dibatasi ke super_admin di blok
+  // API-gate di bawah. Menggantikan aturan '/surat' lama yang route-nya
+  // tidak pernah dibuat.
+  { prefix: '/memo', roles: ['super_admin', 'pimpinan'] },
   // Laporan berisi analisis penilaian/kritik-saran — admin TIDAK dapat
   // akses (dibatasi hanya dashboard, kelola-agenda, kelola-tamu).
   { prefix: '/laporan', roles: ['super_admin'] },
@@ -98,6 +102,11 @@ const SARAN_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-saran').rol
 // saja yang dibatasi — POST (isi buku tamu dari kiosk publik) tetap publik
 // lewat isPublicPath().
 const TAMU_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-tamu').roles
+
+// Endpoint /api/memo lewat service-role key. GET boleh super_admin +
+// pimpinan (ikut halaman /memo); POST/PUT/DELETE cuma super_admin —
+// tombol Tambah/Edit/Hapus di UI /memo juga cuma untuk super_admin.
+const MEMO_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/memo').roles
 
 // Endpoint unit-usaha/target-unit-usaha/pemasukan-unit-usaha lewat
 // service-role key dan tidak punya pengecekan role sendiri — harus ikut
@@ -327,6 +336,12 @@ export async function middleware(request) {
 
   if (pathname.startsWith('/api/tamu') && !TAMU_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  // GET /api/memo → super_admin + pimpinan. Non-GET → super_admin saja.
+  if (pathname.startsWith('/api/memo')) {
+    const allowed = request.method === 'GET' ? MEMO_API_ROLES : ['super_admin']
+    if (!allowed.includes(role)) return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
   if (isLocalMode) {

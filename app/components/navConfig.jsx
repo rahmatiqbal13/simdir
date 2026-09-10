@@ -143,6 +143,14 @@ export const NAV_ICONS = {
       <line x1="8" y1="19" x2="13" y2="19"/>
     </svg>
   ),
+  memo: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="13" x2="15" y2="13"/>
+      <line x1="9" y1="17" x2="13" y2="17"/>
+    </svg>
+  ),
 }
 
 // Kelompok fungsional untuk sidebar desktop — urutan array ini menentukan
@@ -170,6 +178,7 @@ export const ALL_NAV_ITEMS = [
   { key: 'e-invoice', href: '/e-invoice', label: 'E-Invoice', shortLabel: 'Invoice', icon: 'invoice', roles: ['super_admin'], group: 'keuangan-dokumen' },
   { key: 'e-kwitansi', href: '/e-kwitansi', label: 'E-Kwitansi', shortLabel: 'Kwitansi', icon: 'receipt', roles: ['super_admin'], group: 'keuangan-dokumen' },
   { key: 'rab', href: '/rab', label: 'RAB', shortLabel: 'RAB', icon: 'clipboard', roles: ['super_admin'], group: 'keuangan-dokumen' },
+  { key: 'memo', href: '/memo', label: 'Memo Pimpinan', shortLabel: 'Memo', icon: 'memo', roles: ['super_admin', 'pimpinan'], group: 'keuangan-dokumen' },
   { key: 'pemasukan-unit-usaha', href: '/pemasukan-unit-usaha', label: 'Pemasukan Unit Usaha', shortLabel: 'Unit Usaha', icon: 'wallet', roles: ['super_admin', 'admin_keuangan'], group: 'keuangan-dokumen' },
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'], group: 'laporan' },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'], group: 'pengaturan' },
@@ -179,10 +188,10 @@ export const ALL_NAV_ITEMS = [
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'memo', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
   admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'kelola-tamu'],
-  pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'laporan'],
+  pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'memo', 'laporan'],
 }
 
 // Item terpilih untuk bottom nav mobile (maks. 3 + tombol "Menu" statis), per role.
