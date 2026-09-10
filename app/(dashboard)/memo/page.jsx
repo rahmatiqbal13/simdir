@@ -55,8 +55,6 @@ export default function MemoListPage() {
     }
   };
 
-  const colCount = isSuperAdmin ? 6 : 5;
-
   return (
     <div>
       <div className="page-header">
@@ -98,9 +96,9 @@ export default function MemoListPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={colCount} className="text-center muted" style={{ padding: '2rem' }}>Memuat...</td></tr>
+                <tr><td colSpan={6} className="text-center muted" style={{ padding: '2rem' }}>Memuat...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={colCount} className="text-center muted" style={{ padding: '2rem' }}>Belum ada memo</td></tr>
+                <tr><td colSpan={6} className="text-center muted" style={{ padding: '2rem' }}>Belum ada memo</td></tr>
               ) : filtered.map((item) => (
                 <tr key={item.id}>
                   <td style={{ fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{item.nomor}</td>
