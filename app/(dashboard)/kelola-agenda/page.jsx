@@ -7,6 +7,7 @@ import { useFocusTrap } from '@/app/components/useFocusTrap'
 import ConfirmModal from '@/app/components/ConfirmModal'
 import { SearchInput } from '@/app/components/Search'
 import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
+import { PIMPINAN_LIST } from '@/lib/constants/pimpinan'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -56,18 +57,6 @@ const PIC_LIST = [
   { value: 'Adi', label: 'Adi' },
   { value: 'Yusuf', label: 'Yusuf' },
   { value: 'lainnya', label: 'Lainnya (Input Manual)' }
-]
-
-const PIMPINAN_LIST = [
-  { value: 'Rektor Unesa', label: 'Rektor Unesa' },
-  { value: 'Wakil Rektor I', label: 'Wakil Rektor I' },
-  { value: 'Wakil Rektor II', label: 'Wakil Rektor II' },
-  { value: 'Wakil Rektor III', label: 'Wakil Rektor III' },
-  { value: 'Direktur USC', label: 'Direktur USC' },
-  { value: 'Gubernur Jawa Timur', label: 'Gubernur Jawa Timur' },
-  { value: 'Walikota Surabaya', label: 'Walikota Surabaya' },
-  { value: 'Kepala Dinas', label: 'Kepala Dinas' },
-  { value: 'lainnya', label: 'Lainnya (Input Manual)' },
 ]
 
 const STATUS_OPTIONS = [
