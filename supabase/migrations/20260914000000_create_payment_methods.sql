@@ -49,6 +49,13 @@ CREATE POLICY "Service role manage payment_methods"
 ALTER TABLE invoices
   ADD COLUMN IF NOT EXISTS payment_method_id uuid REFERENCES payment_methods(id) ON DELETE SET NULL;
 
+-- Defensif: migrasi 20260825010000_add_invoice_created_by_name.sql yang
+-- menambahkan kolom ini mungkin belum pernah dijalankan di database ini —
+-- pastikan ada dulu sebelum dipakai di invoice_summary di bawah, supaya
+-- migrasi ini tidak gagal gara-gara migrasi lama yang terlewat.
+ALTER TABLE invoices
+  ADD COLUMN IF NOT EXISTS created_by_name TEXT;
+
 -- Redefinisi penuh invoice_summary (mengikuti definisi terakhir di
 -- 20260825010000_add_invoice_created_by_name.sql) + kolom metode
 -- pembayaran. Semua caller yang sudah ada pakai `select('*')` jadi tidak
