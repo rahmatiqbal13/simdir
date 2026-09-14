@@ -5,7 +5,7 @@ import { compressImage } from '@/lib/image'
 const BUCKET = 'app-settings'
 const ALLOWED_QR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_QR_SIZE = 2 * 1024 * 1024
-const SAFE_COLUMNS = 'id, type, label, image_url, bank_name, va_number, is_active, created_at'
+const SAFE_COLUMNS = 'id, type, label, image_url, bank_name, va_number, whatsapp_number, whatsapp_name, is_active, created_at'
 
 function getServiceClient() {
   return createClient(
@@ -87,6 +87,8 @@ export async function PUT(request, { params }) {
       }
       update.bank_name = bankName
       update.va_number = vaNumber
+      update.whatsapp_number = (formData.get('whatsapp_number') || '').toString().trim() || null
+      update.whatsapp_name = (formData.get('whatsapp_name') || '').toString().trim() || null
     }
 
     const { data, error } = await supabase

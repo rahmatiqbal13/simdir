@@ -481,6 +481,13 @@ export default function PrintInvoicePage() {
               <div style={{ fontSize: '0.875rem', color: '#475569' }}>
                 Virtual Account {invoice.payment_method_bank_name}<br/>
                 No. <strong>{invoice.payment_method_va_number}</strong> ({invoice.payment_method_label})
+                {invoice.payment_method_whatsapp_number && (
+                  <>
+                    <br/>
+                    Bukti transfer dapat dikirim ke WhatsApp: <strong>{invoice.payment_method_whatsapp_number}</strong>
+                    {invoice.payment_method_whatsapp_name ? ` (${invoice.payment_method_whatsapp_name})` : ''}
+                  </>
+                )}
               </div>
             )}
           </div>

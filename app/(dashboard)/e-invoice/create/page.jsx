@@ -257,7 +257,13 @@ export default function CreateInvoicePage() {
       ? null
       : method.type === 'qr'
         ? `Pembayaran dapat dilakukan dengan scan QRIS "${method.label}" (QR terlampir di bawah).`
-        : `Pembayaran dapat dilakukan melalui Virtual Account ${method.bank_name} No. ${method.va_number} (${method.label}).`;
+        : [
+            `Pembayaran dilakukan dengan m-banking melalui menu pembayaran Virtual Akun ke bank lain dan pilih Bank ${method.bank_name}.`,
+            `Pembayaran dapat dilakukan pada Nomor Virtual Account: ${method.va_number} , Atas Nama : ${method.label}`,
+            method.whatsapp_number
+              ? `Bukti Transfer dapat dikirim ke nomor Whatsapp : ${method.whatsapp_number}${method.whatsapp_name ? ` (${method.whatsapp_name})` : ''}`
+              : null,
+          ].filter(Boolean).join('\n');
     setFormData((prev) => ({
       ...prev,
       payment_method_id: id,

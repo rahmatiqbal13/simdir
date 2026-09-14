@@ -15,6 +15,8 @@ function PaymentMethodModal({ item, onSave, onClose, saving }) {
   const [label, setLabel] = useState(item?.label || '');
   const [bankName, setBankName] = useState(item?.bank_name || '');
   const [vaNumber, setVaNumber] = useState(item?.va_number || '');
+  const [whatsappNumber, setWhatsappNumber] = useState(item?.whatsapp_number || '');
+  const [whatsappName, setWhatsappName] = useState(item?.whatsapp_name || '');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(item?.image_url || null);
   const [error, setError] = useState('');
@@ -57,6 +59,8 @@ function PaymentMethodModal({ item, onSave, onClose, saving }) {
     if (type === 'va') {
       fd.append('bank_name', bankName.trim());
       fd.append('va_number', vaNumber.trim());
+      fd.append('whatsapp_number', whatsappNumber.trim());
+      fd.append('whatsapp_name', whatsappName.trim());
     }
     onSave(fd);
   };
@@ -120,7 +124,18 @@ function PaymentMethodModal({ item, onSave, onClose, saving }) {
                 </div>
                 <div className="field" style={{ marginTop: 16 }}>
                   <label className="field-label" htmlFor="va_number">Nomor VA *</label>
-                  <input id="va_number" className="input" value={vaNumber} onChange={(e) => setVaNumber(e.target.value)} placeholder="Contoh: 1234567890123" required />
+                  <input id="va_number" className="input" value={vaNumber} onChange={(e) => setVaNumber(e.target.value)} placeholder="Contoh: 9-4221-91417422191401" required />
+                </div>
+                <div className="field" style={{ marginTop: 16 }}>
+                  <label className="field-label" htmlFor="whatsapp_number">Nomor WhatsApp Konfirmasi <span className="muted">(opsional)</span></label>
+                  <input id="whatsapp_number" className="input" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="Contoh: 085230572845" />
+                  <p className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>
+                    Ditampilkan sebagai nomor tujuan kirim bukti transfer di catatan &amp; cetak invoice.
+                  </p>
+                </div>
+                <div className="field" style={{ marginTop: 16 }}>
+                  <label className="field-label" htmlFor="whatsapp_name">Nama Penerima Konfirmasi <span className="muted">(opsional)</span></label>
+                  <input id="whatsapp_name" className="input" value={whatsappName} onChange={(e) => setWhatsappName(e.target.value)} placeholder="Contoh: Alfina" />
                 </div>
               </>
             )}
@@ -192,6 +207,8 @@ export default function PaymentMethodsSettingsPage() {
       if (item.type === 'va') {
         fd.append('bank_name', item.bank_name || '');
         fd.append('va_number', item.va_number || '');
+        fd.append('whatsapp_number', item.whatsapp_number || '');
+        fd.append('whatsapp_name', item.whatsapp_name || '');
       }
       const res = await fetch(`/api/payment-methods/${item.id}`, { method: 'PUT', body: fd });
       const data = await res.json();
@@ -253,7 +270,12 @@ export default function PaymentMethodsSettingsPage() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600 }}>{item.label}</div>
                   {item.type === 'va' && (
-                    <div className="muted" style={{ fontSize: '0.8125rem' }}>{item.bank_name} — {item.va_number}</div>
+                    <>
+                      <div className="muted" style={{ fontSize: '0.8125rem' }}>{item.bank_name} — {item.va_number}</div>
+                      {item.whatsapp_number && (
+                        <div className="muted" style={{ fontSize: '0.75rem' }}>WA konfirmasi: {item.whatsapp_number}{item.whatsapp_name ? ` (${item.whatsapp_name})` : ''}</div>
+                      )}
+                    </>
                   )}
                 </div>
                 <span className="badge" style={{ background: item.is_active ? 'var(--success-bg)' : 'var(--surface-3)', color: item.is_active ? 'var(--success)' : 'var(--text-3)', fontSize: '0.6875rem' }}>

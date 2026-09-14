@@ -5,7 +5,7 @@ import { compressImage } from '@/lib/image'
 const BUCKET = 'app-settings'
 const ALLOWED_QR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_QR_SIZE = 2 * 1024 * 1024
-const SAFE_COLUMNS = 'id, type, label, image_url, bank_name, va_number, is_active, created_at'
+const SAFE_COLUMNS = 'id, type, label, image_url, bank_name, va_number, whatsapp_number, whatsapp_name, is_active, created_at'
 
 function getServiceClient() {
   return createClient(
@@ -83,6 +83,10 @@ export async function POST(request) {
       }
       record.bank_name = bankName
       record.va_number = vaNumber
+      // Opsional — nomor WhatsApp tujuan kirim bukti transfer. Boleh
+      // kosong untuk metode yang tidak butuh konfirmasi manual.
+      record.whatsapp_number = (formData.get('whatsapp_number') || '').toString().trim() || null
+      record.whatsapp_name = (formData.get('whatsapp_name') || '').toString().trim() || null
     }
 
     const { data, error } = await supabase

@@ -409,7 +409,15 @@ export default function InvoiceDetailPage() {
                   <span>{invoice.payment_method_label}</span>
                 </>
               ) : (
-                <span>{invoice.payment_method_bank_name} — {invoice.payment_method_va_number} ({invoice.payment_method_label})</span>
+                <div>
+                  <div>{invoice.payment_method_bank_name} — {invoice.payment_method_va_number} ({invoice.payment_method_label})</div>
+                  {invoice.payment_method_whatsapp_number && (
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-2)' }}>
+                      Bukti transfer ke WhatsApp: {invoice.payment_method_whatsapp_number}
+                      {invoice.payment_method_whatsapp_name ? ` (${invoice.payment_method_whatsapp_name})` : ''}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
