@@ -98,6 +98,7 @@ export default function EditInvoicePage() {
   const { error } = useToast();
 
   const [customers, setCustomers] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const [realId, setRealId] = useState(null);
@@ -108,6 +109,7 @@ export default function EditInvoicePage() {
     tanggal_invoice: '',
     tanggal_jatuh_tempo: '',
     catatan: '',
+    payment_method_id: '',
   });
   
   // Items
@@ -218,6 +220,7 @@ export default function EditInvoicePage() {
           tanggal_invoice: invoiceData.tanggal_invoice || '',
           tanggal_jatuh_tempo: invoiceData.tanggal_jatuh_tempo || '',
           catatan: invoiceData.catatan || '',
+          payment_method_id: invoiceData.payment_method_id || '',
         });
 
         // Set pajak from invoice data
@@ -309,6 +312,21 @@ export default function EditInvoicePage() {
     fetchData();
   }, [supabase, invoiceSlug]);
 
+  // Fetch daftar metode pembayaran untuk dropdown (terpisah dari fetchData
+  // di atas karena tidak bergantung pada invoiceSlug).
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
+        const res = await fetch('/api/payment-methods');
+        const data = await res.json();
+        if (res.ok) setPaymentMethods(data || []);
+      } catch (err) {
+        console.error('Error fetching payment methods:', err);
+      }
+    };
+    fetchPaymentMethods();
+  }, []);
+
   // Cek draft tersimpan SETELAH data asli selesai dimuat — supaya kalau
   // ditemukan, banner menawarkan "Lanjutkan" yang menimpa data asli dengan
   // draft (bukan sebaliknya, race dengan fetchData di atas).
@@ -368,6 +386,28 @@ export default function EditInvoicePage() {
 
   // Get selected customer info
   const selectedCustomer = customers.find(c => c.id === formData.customer_id);
+
+  // Metode aktif + metode yang sudah terpasang di invoice ini meski sudah
+  // dinonaktifkan (supaya dropdown tidak diam-diam menghilangkan pilihan
+  // yang sudah ada saat invoice dibuka untuk diedit).
+  const selectablePaymentMethods = paymentMethods.filter(
+    (m) => m.is_active || m.id === formData.payment_method_id
+  );
+  const selectedPaymentMethod = paymentMethods.find(m => m.id === formData.payment_method_id);
+
+  const handlePaymentMethodChange = (id) => {
+    const method = paymentMethods.find((m) => m.id === id);
+    const line = !method
+      ? null
+      : method.type === 'qr'
+        ? `Pembayaran dapat dilakukan dengan scan QRIS "${method.label}" (QR terlampir di bawah).`
+        : `Pembayaran dapat dilakukan melalui Virtual Account ${method.bank_name} No. ${method.va_number} (${method.label}).`;
+    setFormData((prev) => ({
+      ...prev,
+      payment_method_id: id,
+      catatan: line ? (prev.catatan ? `${prev.catatan}\n\n${line}` : line) : prev.catatan,
+    }));
+  };
 
   // Handle item update
   const updateItem = (index, field, value) => {
@@ -465,6 +505,7 @@ export default function EditInvoicePage() {
           total: total,
           catatan: formData.catatan || null,
           terms_conditions: '',
+          payment_method_id: formData.payment_method_id || null,
         })
         .eq('id', realId);
 
@@ -742,6 +783,33 @@ export default function EditInvoicePage() {
                     rows={4}
 
                   />
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Metode Pembayaran (opsional)</label>
+                    <select
+                      value={formData.payment_method_id || ''}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                    >
+                      <option value="">-- Pilih metode (opsional) --</option>
+                      {selectablePaymentMethods.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.type === 'qr' ? `[QR] ${m.label}` : `[VA] ${m.label}`}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedPaymentMethod && (
+                      <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'var(--surface-2)', borderRadius: '8px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {selectedPaymentMethod.type === 'qr' ? (
+                          <>
+                            <img src={selectedPaymentMethod.image_url} alt={selectedPaymentMethod.label} style={{ width: 48, height: 48, objectFit: 'contain', background: 'white', borderRadius: 4 }} />
+                            <span>{selectedPaymentMethod.label}</span>
+                          </>
+                        ) : (
+                          <span>{selectedPaymentMethod.bank_name} — {selectedPaymentMethod.va_number}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right - Summary */}
