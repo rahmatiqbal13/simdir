@@ -393,6 +393,28 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
 
+        {invoice.payment_method_id && (
+          <div className="card" style={{ gridColumn: '1 / -1' }}>
+            <div className="card-header">
+              <h3 style={{ margin: 0, fontSize: '1rem' }}>Metode Pembayaran</h3>
+            </div>
+            <div className="card-body" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {invoice.payment_method_type === 'qr' ? (
+                <>
+                  <img
+                    src={invoice.payment_method_qr_url}
+                    alt={invoice.payment_method_label}
+                    style={{ width: 64, height: 64, objectFit: 'contain', background: 'white', border: '1px solid var(--border)', borderRadius: 8 }}
+                  />
+                  <span>{invoice.payment_method_label}</span>
+                </>
+              ) : (
+                <span>{invoice.payment_method_bank_name} — {invoice.payment_method_va_number} ({invoice.payment_method_label})</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Status Update */}
         {isSuperAdmin && (
           <div className="card" style={{ gridColumn: '1 / -1' }}>
