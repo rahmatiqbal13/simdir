@@ -460,6 +460,32 @@ export default function PrintInvoicePage() {
           </div>
         </div>
 
+        {invoice.payment_method_id && (
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#64748b', marginBottom: '0.5rem' }}>
+              Info Pembayaran:
+            </div>
+            {invoice.payment_method_type === 'qr' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <img
+                  src={invoice.payment_method_qr_url}
+                  alt={invoice.payment_method_label}
+                  style={{ width: 120, height: 120, objectFit: 'contain' }}
+                />
+                <div style={{ fontSize: '0.875rem', color: '#475569' }}>
+                  Scan QRIS untuk pembayaran<br/>
+                  <strong>{invoice.payment_method_label}</strong>
+                </div>
+              </div>
+            ) : (
+              <div style={{ fontSize: '0.875rem', color: '#475569' }}>
+                Virtual Account {invoice.payment_method_bank_name}<br/>
+                No. <strong>{invoice.payment_method_va_number}</strong> ({invoice.payment_method_label})
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Signatures */}
         {showSignatures && (
           <div style={{ 
