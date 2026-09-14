@@ -151,6 +151,25 @@ export const NAV_ICONS = {
       <line x1="9" y1="17" x2="13" y2="17"/>
     </svg>
   ),
+  person: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21v-1a8 8 0 0 1 16 0v1"/>
+    </svg>
+  ),
+  qr: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <line x1="14" y1="14" x2="14" y2="14.01"/>
+      <line x1="18" y1="14" x2="18" y2="14.01"/>
+      <line x1="14" y1="18" x2="14" y2="18.01"/>
+      <line x1="18" y1="18" x2="18" y2="18.01"/>
+      <line x1="21" y1="14" x2="21" y2="21"/>
+      <line x1="14" y1="21" x2="21" y2="21"/>
+    </svg>
+  ),
 }
 
 // Kelompok fungsional untuk sidebar desktop — urutan array ini menentukan
@@ -183,12 +202,14 @@ export const ALL_NAV_ITEMS = [
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'], group: 'laporan' },
   { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'], group: 'pengaturan' },
   { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'], group: 'pengaturan' },
+  { key: 'pengaturan-pimpinan', href: '/pengaturan/pimpinan', label: 'Data Pimpinan', shortLabel: 'Pimpinan', icon: 'person', roles: ['super_admin'], group: 'pengaturan' },
   { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'], group: 'pengaturan' },
+  { key: 'pengaturan-metode-pembayaran', href: '/pengaturan/metode-pembayaran', label: 'Metode Pembayaran', shortLabel: 'Pembayaran', icon: 'qr', roles: ['super_admin'], group: 'pengaturan' },
 ]
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'memo', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-branding'],
+  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'memo', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-pimpinan', 'pengaturan-branding', 'pengaturan-metode-pembayaran'],
   admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'kelola-tamu'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'memo', 'laporan'],
