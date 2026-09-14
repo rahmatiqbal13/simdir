@@ -108,6 +108,21 @@ const TAMU_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-tamu').roles
 // tombol Tambah/Edit/Hapus di UI /memo juga cuma untuk super_admin.
 const MEMO_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/memo').roles
 
+// Endpoint /api/pimpinan (daftar nama & jabatan pimpinan, dipakai dropdown
+// di form Memo dan Agenda) lewat service-role key. GET dibaca oleh siapa
+// pun yang bisa mengisi salah satu form itu — jadi ikut aturan role
+// /kelola-agenda (paling luas: super_admin, admin, pimpinan). Tulis
+// (POST/PUT/DELETE, dari halaman /pengaturan/pimpinan) dibatasi ke
+// super_admin, mengikuti aturan /pengaturan itu sendiri.
+const PIMPINAN_DATA_READ_ROLES = ROLE_RULES.find((r) => r.prefix === '/kelola-agenda').roles
+const PIMPINAN_DATA_WRITE_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+
+// Endpoint /api/payment-methods (daftar QR/VA yang bisa dipilih saat buat
+// invoice) lewat service-role key. Semua method (termasuk GET) dibatasi
+// super_admin saja — /e-invoice sendiri sudah super_admin-only di
+// navConfig.jsx, jadi tidak ada role lain yang butuh baca daftar ini.
+const PAYMENT_METHODS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/pengaturan').roles
+
 // Endpoint unit-usaha/target-unit-usaha/pemasukan-unit-usaha lewat
 // service-role key dan tidak punya pengecekan role sendiri — harus ikut
 // aturan role halaman /pemasukan-unit-usaha.
@@ -342,6 +357,18 @@ export async function middleware(request) {
   if (pathname.startsWith('/api/memo')) {
     const allowed = request.method === 'GET' ? MEMO_API_ROLES : ['super_admin']
     if (!allowed.includes(role)) return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  // GET /api/pimpinan → siapa pun yang bisa mengisi form agenda/memo.
+  // Non-GET (kelola dari /pengaturan/pimpinan) → super_admin saja.
+  if (pathname.startsWith('/api/pimpinan')) {
+    const allowed = request.method === 'GET' ? PIMPINAN_DATA_READ_ROLES : PIMPINAN_DATA_WRITE_ROLES
+    if (!allowed.includes(role)) return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  // /api/payment-methods → super_admin saja, semua method.
+  if (pathname.startsWith('/api/payment-methods') && !PAYMENT_METHODS_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
   if (isLocalMode) {
