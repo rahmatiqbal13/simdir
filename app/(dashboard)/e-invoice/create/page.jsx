@@ -545,7 +545,7 @@ export default function CreateInvoicePage() {
         console.error('Invoice creation error:', invoiceError);
         // Cek apakah error karena kolom belum ada di database
         if (invoiceError.message && invoiceError.message.includes('Could not find')) {
-          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL di Supabase Dashboard → SQL Editor. Lihat file: supabase/migrations/20260707000000_add_diskon_pengiriman_columns.sql');
+          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL terbaru (lihat folder supabase/migrations/) di Supabase Dashboard → SQL Editor.');
         }
         throw new Error('Gagal membuat invoice: ' + invoiceError.message);
       }

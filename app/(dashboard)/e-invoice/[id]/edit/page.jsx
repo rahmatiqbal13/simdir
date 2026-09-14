@@ -99,6 +99,7 @@ export default function EditInvoicePage() {
 
   const [customers, setCustomers] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
+  const [paymentMethodsLoaded, setPaymentMethodsLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(true);
   const [realId, setRealId] = useState(null);
@@ -319,7 +320,15 @@ export default function EditInvoicePage() {
       try {
         const res = await fetch('/api/payment-methods');
         const data = await res.json();
-        if (res.ok) setPaymentMethods(data || []);
+        // Hanya tandai "loaded" kalau fetch benar-benar berhasil (mis. bukan
+        // 403 dari role selain super_admin yang buka halaman ini lewat URL
+        // langsung) — kalau gagal, dropdown tetap disabled selamanya supaya
+        // payment_method_id yang sudah tersimpan tidak bisa diam-diam
+        // terhapus lewat interaksi pada daftar yang kosong/tidak lengkap.
+        if (res.ok) {
+          setPaymentMethods(data || []);
+          setPaymentMethodsLoaded(true);
+        }
       } catch (err) {
         console.error('Error fetching payment methods:', err);
       }
@@ -512,7 +521,7 @@ export default function EditInvoicePage() {
       if (invoiceError) {
         // Cek apakah error karena kolom belum ada di database
         if (invoiceError.message && invoiceError.message.includes('Could not find')) {
-          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL di Supabase Dashboard → SQL Editor. Lihat file: supabase/migrations/20260707000000_add_diskon_pengiriman_columns.sql');
+          throw new Error('Kolom database belum tersedia. Silakan jalankan migration SQL terbaru (lihat folder supabase/migrations/) di Supabase Dashboard → SQL Editor.');
         }
         throw invoiceError;
       }
@@ -788,9 +797,12 @@ export default function EditInvoicePage() {
                     <select
                       value={formData.payment_method_id || ''}
                       onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      disabled={!paymentMethodsLoaded}
                       style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                     >
-                      <option value="">-- Pilih metode (opsional) --</option>
+                      <option value="">
+                        {paymentMethodsLoaded ? '-- Pilih metode (opsional) --' : 'Memuat metode pembayaran...'}
+                      </option>
                       {selectablePaymentMethods.map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.type === 'qr' ? `[QR] ${m.label}` : `[VA] ${m.label}`}
