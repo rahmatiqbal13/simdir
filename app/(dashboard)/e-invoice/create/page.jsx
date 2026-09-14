@@ -107,6 +107,7 @@ export default function CreateInvoicePage() {
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchingCustomers, setFetchingCustomers] = useState(true);
+  const [paymentMethods, setPaymentMethods] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [draftFound, setDraftFound] = useState(false);
   
@@ -132,6 +133,7 @@ export default function CreateInvoicePage() {
     tanggal_invoice: new Date().toISOString().split('T')[0],
     tanggal_jatuh_tempo: '',
     catatan: '',
+    payment_method_id: '',
   });
   
   // Items
@@ -191,6 +193,20 @@ export default function CreateInvoicePage() {
     fetchCustomers();
   }, [supabase]);
 
+  // Fetch payment methods (untuk dropdown "Metode Pembayaran" opsional)
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      try {
+        const res = await fetch('/api/payment-methods');
+        const data = await res.json();
+        if (res.ok) setPaymentMethods((data || []).filter((m) => m.is_active));
+      } catch (err) {
+        console.error('Error fetching payment methods:', err);
+      }
+    };
+    fetchPaymentMethods();
+  }, []);
+
   // Calculate totals
   const calculateTotals = useCallback(() => {
     // Subtotal dari items
@@ -227,6 +243,27 @@ export default function CreateInvoicePage() {
 
   // Get selected customer info
   const selectedCustomer = customers.find(c => c.id === selectedCustomerId);
+
+  // Get selected payment method info (dipakai untuk preview di bawah select)
+  const selectedPaymentMethod = paymentMethods.find(m => m.id === formData.payment_method_id);
+
+  // Pilih metode pembayaran dari dropdown → tambahkan kalimat otomatis ke
+  // Catatan (tidak menimpa isi yang sudah ada) + simpan id-nya supaya blok
+  // Info Pembayaran di detail/print tetap tampil independen dari teks
+  // Catatan itu sendiri.
+  const handlePaymentMethodChange = (id) => {
+    const method = paymentMethods.find((m) => m.id === id);
+    const line = !method
+      ? null
+      : method.type === 'qr'
+        ? `Pembayaran dapat dilakukan dengan scan QRIS "${method.label}" (QR terlampir di bawah).`
+        : `Pembayaran dapat dilakukan melalui Virtual Account ${method.bank_name} No. ${method.va_number} (${method.label}).`;
+    setFormData((prev) => ({
+      ...prev,
+      payment_method_id: id,
+      catatan: line ? (prev.catatan ? `${prev.catatan}\n\n${line}` : line) : prev.catatan,
+    }));
+  };
 
   // Handle item update
   const updateItem = (index, field, value) => {
@@ -293,6 +330,7 @@ export default function CreateInvoicePage() {
       tanggal_invoice: new Date().toISOString().split('T')[0],
       tanggal_jatuh_tempo: '',
       catatan: '',
+      payment_method_id: '',
     });
     setItems([{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
     setPajak({ aktif: true, mode: 'persen', persen: 11, nominal: 0 });
@@ -360,6 +398,7 @@ export default function CreateInvoicePage() {
             tanggal_invoice: new Date().toISOString().split('T')[0],
             tanggal_jatuh_tempo: '',
             catatan: '',
+            payment_method_id: '',
           });
           setItems(draft.items || [{ deskripsi: '', quantity: 1, harga_satuan: 0, satuan: '' }]);
           setPajak(draft.pajak || { aktif: true, mode: 'persen', persen: 11, nominal: 0 });
@@ -493,6 +532,7 @@ export default function CreateInvoicePage() {
         catatan: formData.catatan || null,
         terms_conditions: '',
         created_by_name: displayName || null,
+        payment_method_id: formData.payment_method_id || null,
       };
 
       const { data: invoiceData, error: invoiceError } = await supabase
@@ -919,6 +959,33 @@ export default function CreateInvoicePage() {
                     rows={4}
 
                   />
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Metode Pembayaran (opsional)</label>
+                    <select
+                      value={formData.payment_method_id || ''}
+                      onChange={(e) => handlePaymentMethodChange(e.target.value)}
+                      style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                    >
+                      <option value="">-- Pilih metode (opsional) --</option>
+                      {paymentMethods.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.type === 'qr' ? `[QR] ${m.label}` : `[VA] ${m.label}`}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedPaymentMethod && (
+                      <div style={{ marginTop: '0.5rem', padding: '0.75rem', backgroundColor: 'var(--surface-2)', borderRadius: '8px', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        {selectedPaymentMethod.type === 'qr' ? (
+                          <>
+                            <img src={selectedPaymentMethod.image_url} alt={selectedPaymentMethod.label} style={{ width: 48, height: 48, objectFit: 'contain', background: 'white', borderRadius: 4 }} />
+                            <span>{selectedPaymentMethod.label}</span>
+                          </>
+                        ) : (
+                          <span>{selectedPaymentMethod.bank_name} — {selectedPaymentMethod.va_number}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right - Summary */}
