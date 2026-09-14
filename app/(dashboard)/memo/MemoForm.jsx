@@ -1,20 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/app/components/Toast';
-import { PIMPINAN_LIST } from '@/lib/constants/pimpinan';
+import { usePimpinanList } from '@/lib/hooks/usePimpinanList';
 
 export default function MemoForm({ initial, submitting, submitLabel, cancelHref, onSubmit }) {
   const { error: toastError } = useToast();
+  const { options: pimpinanOptions, loading: pimpinanLoading } = usePimpinanList();
 
-  // Kalau nilai "kepada" tersimpan bukan salah satu opsi PIMPINAN_LIST
-  // (mis. hasil input manual), pre-select "lainnya" dan isi input manual.
-  const knownKepada = PIMPINAN_LIST.some((p) => p.value === initial.kepada && p.value !== 'lainnya');
-  const [kepadaSelect, setKepadaSelect] = useState(
-    initial.kepada ? (knownKepada ? initial.kepada : 'lainnya') : ''
-  );
-  const [kepadaManual, setKepadaManual] = useState(knownKepada ? '' : (initial.kepada || ''));
+  const [kepadaSelect, setKepadaSelect] = useState('');
+  const [kepadaManual, setKepadaManual] = useState('');
+  // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
+  // konstanta statis — jadi deteksi "value tersimpan dikenal atau tidak"
+  // baru bisa dilakukan setelah daftarnya selesai dimuat, sekali saja.
+  const [kepadaInitialized, setKepadaInitialized] = useState(false);
+  useEffect(() => {
+    if (pimpinanLoading || kepadaInitialized) return;
+    const known = pimpinanOptions.some((p) => p.value === initial.kepada && p.value !== 'lainnya');
+    setKepadaSelect(initial.kepada ? (known ? initial.kepada : 'lainnya') : '');
+    setKepadaManual(known ? '' : (initial.kepada || ''));
+    setKepadaInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pimpinanLoading, pimpinanOptions, kepadaInitialized]);
+
   const [form, setForm] = useState({
     tanggal: initial.tanggal || '',
     dibuat_oleh: initial.dibuat_oleh || '',
@@ -57,11 +66,15 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
             className="select"
             value={kepadaSelect}
             onChange={(e) => setKepadaSelect(e.target.value)}
+            disabled={pimpinanLoading}
             required
           >
-            <option value="">-- Pilih Pimpinan --</option>
-            {PIMPINAN_LIST.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+            <option value="">{pimpinanLoading ? 'Memuat daftar pimpinan…' : '-- Pilih Pimpinan --'}</option>
+            {pimpinanOptions.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
+          <p className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>
+            Tidak ada di daftar? Kelola di <Link href="/pengaturan/pimpinan">Pengaturan &gt; Data Pimpinan</Link>, atau pilih "Lainnya" untuk input manual.
+          </p>
           {kepadaSelect === 'lainnya' && (
             <input
               className="input"

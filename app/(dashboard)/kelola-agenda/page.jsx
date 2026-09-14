@@ -7,7 +7,7 @@ import { useFocusTrap } from '@/app/components/useFocusTrap'
 import ConfirmModal from '@/app/components/ConfirmModal'
 import { SearchInput } from '@/app/components/Search'
 import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
-import { PIMPINAN_LIST } from '@/lib/constants/pimpinan'
+import { usePimpinanList } from '@/lib/hooks/usePimpinanList'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -563,6 +563,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
   const [showManualUnitKerja, setShowManualUnitKerja] = useState(false)
+  const { options: pimpinanOptions, loading: pimpinanLoading } = usePimpinanList()
   const [form, setForm] = useState({
     judul: item?.judul || '',
     tanggal_mulai: item?.tanggal_mulai || '',
@@ -575,8 +576,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     unit_kerja: item?.jenis === 'internal' ? (UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : 'lainnya') : '',
     unit_kerja_manual: item?.jenis === 'internal' && !UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : '',
     penyelenggara_eksternal: item?.jenis === 'eksternal' ? item.penyelenggara.replace('External - ', '') : '',
-    pimpinan_select: namaPimpinanValue && PIMPINAN_LIST.some(p => p.value === namaPimpinanValue) ? namaPimpinanValue : '',
-    pimpinan_manual: namaPimpinanValue && !PIMPINAN_LIST.some(p => p.value === namaPimpinanValue) ? namaPimpinanValue : '',
+    pimpinan_select: '',
+    pimpinan_manual: '',
     disposisi_staff: item?.disposisi || '',
     pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
@@ -584,6 +585,24 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   })
   const [error, setError] = useState('')
   const [showDetail, setShowDetail] = useState(!!item?.link_meeting)
+
+  // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
+  // konstanta statis — jadi pimpinan_select/pimpinan_manual baru bisa
+  // diturunkan dari namaPimpinanValue setelah daftarnya selesai dimuat,
+  // sekali saja (sama seperti MemoForm.jsx).
+  const [pimpinanFieldInitialized, setPimpinanFieldInitialized] = useState(false)
+  useEffect(() => {
+    if (pimpinanLoading || pimpinanFieldInitialized) return
+    const known = namaPimpinanValue && pimpinanOptions.some(p => p.value === namaPimpinanValue && p.value !== 'lainnya')
+    setForm(f => ({
+      ...f,
+      pimpinan_select: known ? namaPimpinanValue : (namaPimpinanValue ? 'lainnya' : ''),
+      pimpinan_manual: known ? '' : (namaPimpinanValue || ''),
+    }))
+    setShowManualPimpinan(!known && !!namaPimpinanValue)
+    setPimpinanFieldInitialized(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pimpinanLoading, pimpinanOptions, pimpinanFieldInitialized])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -813,10 +832,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                             setForm({ ...form, pimpinan_select: e.target.value })
                             setShowManualPimpinan(e.target.value === 'lainnya')
                           }}
+                          disabled={pimpinanLoading}
                           required
                         >
-                          <option value="">-- Pilih Pimpinan --</option>
-                          {PIMPINAN_LIST.map(p => (
+                          <option value="">{pimpinanLoading ? 'Memuat daftar pimpinan…' : '-- Pilih Pimpinan --'}</option>
+                          {pimpinanOptions.map(p => (
                             <option key={p.value} value={p.value}>{p.label}</option>
                           ))}
                         </select>
