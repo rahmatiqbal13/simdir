@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { compressImage } from '@/lib/image'
 
 const BUCKET = 'app-settings'
-const ALLOWED_QR_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const ALLOWED_QR_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_QR_SIZE = 2 * 1024 * 1024
 const SAFE_COLUMNS = 'id, type, label, image_url, bank_name, va_number, is_active, created_at'
 
