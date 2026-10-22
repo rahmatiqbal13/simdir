@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatRupiah } from '@/lib/utils/format'
+import { printWithFilename } from '@/lib/utils/print'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
@@ -66,7 +67,7 @@ function PrintDashboardContent() {
           <Link href="/pemasukan-unit-usaha" className="btn btn-ghost">Kembali</Link>
           <h1 style={{ margin: 0, fontSize: '1.125rem' }}>Preview Laporan Pemasukan Unit Usaha</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => window.print()}>Cetak / Simpan PDF</button>
+        <button className="btn btn-primary" onClick={() => printWithFilename(`Rekap Pemasukan Unit Usaha ${tahun}${unitUsahaId ? ` - ${unitName}` : ''}`)}>Cetak / Simpan PDF</button>
       </div>
 
       <div className="invoice-print-container" style={{ maxWidth: '210mm', margin: '0 auto', padding: '15mm', background: 'white', boxSizing: 'border-box', color: '#1e293b' }}>

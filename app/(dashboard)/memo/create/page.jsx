@@ -61,7 +61,7 @@ export default function CreateMemoPage() {
       </div>
 
       <MemoForm
-        initial={{ tanggal: todayStr(), kepada: '', dibuat_oleh: displayName || '', perihal: '', isi: '' }}
+        initial={{ tanggal: todayStr(), kepada: '', dibuat_oleh: displayName || '', sekretaris: '', perihal: '', isi: '' }}
         submitting={saving}
         submitLabel="Simpan Memo"
         cancelHref="/memo"

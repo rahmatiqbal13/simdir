@@ -36,6 +36,7 @@ export async function PUT(request, { params }) {
     const body = await request.json()
     const kepada = (body.kepada || '').trim()
     const dibuatOleh = (body.dibuat_oleh || '').trim()
+    const sekretaris = (body.sekretaris || '').trim() || null
     const perihal = (body.perihal || '').trim()
     const isi = (body.isi || '').trim()
 
@@ -48,7 +49,7 @@ export async function PUT(request, { params }) {
     const supabase = getServiceClient()
     const { data, error } = await supabase
       .from('memo')
-      .update({ tanggal: body.tanggal, kepada, dibuat_oleh: dibuatOleh, perihal, isi })
+      .update({ tanggal: body.tanggal, kepada, dibuat_oleh: dibuatOleh, sekretaris, perihal, isi })
       .eq('nomor', slugToNomor(id))
       .select('*')
       .single()

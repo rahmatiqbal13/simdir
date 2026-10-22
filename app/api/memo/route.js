@@ -32,6 +32,7 @@ export async function POST(request) {
     const body = await request.json()
     const kepada = (body.kepada || '').trim()
     const dibuatOleh = (body.dibuat_oleh || '').trim()
+    const sekretaris = (body.sekretaris || '').trim() || null
     const perihal = (body.perihal || '').trim()
     const isi = (body.isi || '').trim()
     const tanggal = body.tanggal || new Date().toISOString().split('T')[0]
@@ -44,7 +45,7 @@ export async function POST(request) {
     const supabase = getServiceClient()
     const { data, error } = await supabase
       .from('memo')
-      .insert([{ tanggal, kepada, dibuat_oleh: dibuatOleh, perihal, isi }])
+      .insert([{ tanggal, kepada, dibuat_oleh: dibuatOleh, sekretaris, perihal, isi }])
       .select('*')
       .single()
 

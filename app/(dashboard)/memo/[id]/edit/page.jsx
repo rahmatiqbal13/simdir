@@ -32,6 +32,7 @@ export default function EditMemoPage() {
         tanggal: data.tanggal || '',
         kepada: data.kepada || '',
         dibuat_oleh: data.dibuat_oleh || '',
+        sekretaris: data.sekretaris || '',
         perihal: data.perihal || '',
         isi: data.isi || '',
       });

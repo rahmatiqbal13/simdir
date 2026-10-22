@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { formatRupiah } from '@/lib/utils/format'
+import { printWithFilename } from '@/lib/utils/print'
 
 function SaranPrintContent() {
   const params = useSearchParams()
@@ -49,7 +50,7 @@ function SaranPrintContent() {
           <Link href="/pemasukan-unit-usaha/saran" className="btn btn-ghost">Kembali</Link>
           <h1 style={{ margin: 0, fontSize: '1.125rem' }}>Preview Saran Anggaran</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => window.print()}>Cetak / Simpan PDF</button>
+        <button className="btn btn-primary" onClick={() => printWithFilename(`Saran Anggaran Pemasukan - Referensi ${tahun}`)}>Cetak / Simpan PDF</button>
       </div>
 
       <div className="invoice-print-container" style={{ maxWidth: '210mm', margin: '0 auto', padding: '15mm', background: 'white', boxSizing: 'border-box', color: '#1e293b' }}>

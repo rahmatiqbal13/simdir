@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatRupiah, formatDate, terbilang } from '@/lib/utils/format';
+import { printWithFilename } from '@/lib/utils/print';
 
 export default function PrintKwitansiPage() {
   const params = useParams();
@@ -76,7 +77,7 @@ export default function PrintKwitansiPage() {
           </Link>
           <h1 style={{ margin: 0, fontSize: '1.125rem' }}>Preview Kwitansi</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => window.print()}>
+        <button className="btn btn-primary" onClick={() => printWithFilename(`Kwitansi ${item?.nomor_kwitansi ?? ''}`)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
             <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
             <rect x="6" y="14" width="12" height="8"/>

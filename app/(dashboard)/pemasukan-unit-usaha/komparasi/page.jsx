@@ -114,6 +114,14 @@ export default function KomparasiTahunPage() {
         </div>
         <div className="page-actions">
           <Link href="/pemasukan-unit-usaha" className="btn btn-ghost">Kembali ke Dashboard</Link>
+          {compared && (
+            <Link
+              href={`/pemasukan-unit-usaha/komparasi/print?tahun_a=${yearA}&tahun_b=${yearB}${selectedUnit ? `&unit_usaha_id=${selectedUnit}` : ''}`}
+              className="btn btn-primary"
+            >
+              Cetak Laporan / PDF
+            </Link>
+          )}
         </div>
       </div>
 

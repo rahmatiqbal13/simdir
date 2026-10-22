@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { formatRupiah, formatDate, terbilang, slugToNomor } from '@/lib/utils/format';
+import { printWithFilename } from '@/lib/utils/print';
 import { INVOICE_STATUS } from '@/lib/invoiceStatus';
 
 // Cetak butuh warna sebagai hex mentah (bukan var(--x)), jadi map field
@@ -195,7 +196,7 @@ export default function PrintInvoicePage() {
             />
             Tampilkan Tanda Tangan
           </label>
-          <button className="btn btn-primary" onClick={() => window.print()}>
+          <button className="btn btn-primary" onClick={() => printWithFilename(`Invoice ${invoice?.nomor_invoice ?? ''}`)}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
               <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
               <rect x="6" y="14" width="12" height="8"/>

@@ -9,23 +9,10 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
   const { error: toastError } = useToast();
   const { options: pimpinanOptions, loading: pimpinanLoading } = usePimpinanList();
 
-  const [kepadaSelect, setKepadaSelect] = useState('');
-  const [kepadaManual, setKepadaManual] = useState('');
-  // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
-  // konstanta statis — jadi deteksi "value tersimpan dikenal atau tidak"
-  // baru bisa dilakukan setelah daftarnya selesai dimuat, sekali saja.
-  const [kepadaInitialized, setKepadaInitialized] = useState(false);
-  useEffect(() => {
-    if (pimpinanLoading || kepadaInitialized) return;
-    const known = pimpinanOptions.some((p) => p.value === initial.kepada && p.value !== 'lainnya');
-    setKepadaSelect(initial.kepada ? (known ? initial.kepada : 'lainnya') : '');
-    setKepadaManual(known ? '' : (initial.kepada || ''));
-    setKepadaInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pimpinanLoading, pimpinanOptions, kepadaInitialized]);
-
   const [form, setForm] = useState({
     tanggal: initial.tanggal || '',
+    kepada: initial.kepada || '',
+    sekretaris: initial.sekretaris || '',
     dibuat_oleh: initial.dibuat_oleh || '',
     perihal: initial.perihal || '',
     isi: initial.isi || '',
@@ -35,8 +22,7 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const kepada = (kepadaSelect === 'lainnya' ? kepadaManual : kepadaSelect).trim();
-    if (!kepada) return toastError('Nama pimpinan (Kepada) wajib dipilih atau diisi');
+    if (!form.kepada.trim()) return toastError('Nama pimpinan (Kepada) wajib dipilih atau diisi');
     if (!form.perihal.trim()) return toastError('Perihal wajib diisi');
     if (!form.dibuat_oleh.trim()) return toastError('Nama pembuat wajib diisi');
     if (!form.isi.trim()) return toastError('Isi memo wajib diisi');
@@ -44,7 +30,8 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
 
     onSubmit({
       tanggal: form.tanggal,
-      kepada,
+      kepada: form.kepada.trim(),
+      sekretaris: form.sekretaris.trim(),
       dibuat_oleh: form.dibuat_oleh.trim(),
       perihal: form.perihal.trim(),
       isi: form.isi.trim(),
@@ -59,33 +46,30 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
           <input id="tanggal" type="date" className="input" value={form.tanggal} onChange={(e) => set('tanggal', e.target.value)} required />
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor="kepada">Kepada (Nama Pimpinan) *</label>
-          <select
-            id="kepada"
-            className="select"
-            value={kepadaSelect}
-            onChange={(e) => setKepadaSelect(e.target.value)}
-            disabled={pimpinanLoading}
-            required
-          >
-            <option value="">{pimpinanLoading ? 'Memuat daftar pimpinan…' : '-- Pilih Pimpinan --'}</option>
-            {pimpinanOptions.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-          </select>
-          <p className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>
-            Tidak ada di daftar? Kelola di <Link href="/pengaturan/pimpinan">Pengaturan &gt; Data Pimpinan</Link>, atau pilih "Lainnya" untuk input manual.
-          </p>
-          {kepadaSelect === 'lainnya' && (
-            <input
-              className="input"
-              style={{ marginTop: 8 }}
-              value={kepadaManual}
-              onChange={(e) => setKepadaManual(e.target.value)}
-              placeholder="Tulis nama/jabatan pimpinan"
-              required
-            />
-          )}
-        </div>
+        <PimpinanPicker
+          id="kepada"
+          label="Kepada (Nama Pimpinan) *"
+          placeholder="-- Pilih Pimpinan --"
+          manualPlaceholder="Tulis nama/jabatan pimpinan"
+          value={form.kepada}
+          onChange={(v) => set('kepada', v)}
+          options={pimpinanOptions}
+          loading={pimpinanLoading}
+          required
+          hint={<>Tidak ada di daftar? Kelola di <Link href="/pengaturan/pimpinan">Pengaturan &gt; Data Pimpinan</Link>, atau pilih "Lainnya" untuk input manual. Pimpinan ini juga menandatangani memo.</>}
+        />
+
+        <PimpinanPicker
+          id="sekretaris"
+          label="Sekretaris (Penanda Tangan)"
+          placeholder="-- Pilih Sekretaris --"
+          manualPlaceholder="Tulis nama sekretaris"
+          value={form.sekretaris}
+          onChange={(v) => set('sekretaris', v)}
+          options={pimpinanOptions}
+          loading={pimpinanLoading}
+          hint="Opsional. Kalau kosong, kolom tanda tangan sekretaris dicetak dengan titik-titik."
+        />
 
         <div className="field">
           <label className="field-label" htmlFor="perihal">Perihal *</label>
@@ -109,5 +93,60 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
         </button>
       </div>
     </form>
+  );
+}
+
+// Dropdown nama dari Data Pimpinan + opsi "Lainnya" untuk input manual.
+// `value` selalu berupa nama final (string). Daftar dimuat async dari
+// /api/pimpinan, jadi deteksi "value tersimpan tidak ada di daftar -> mode
+// manual" baru dilakukan sekali setelah daftarnya selesai dimuat.
+function PimpinanPicker({ id, label, placeholder, manualPlaceholder, value, onChange, options, loading, required, hint }) {
+  const [manual, setManual] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (loading || initialized) return;
+    const known = options.some((p) => p.value === value && p.value !== 'lainnya');
+    setManual(!!value && !known);
+    setInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, options, initialized]);
+
+  const handleSelect = (v) => {
+    if (v === 'lainnya') {
+      setManual(true);
+      onChange('');
+    } else {
+      setManual(false);
+      onChange(v);
+    }
+  };
+
+  return (
+    <div className="field">
+      <label className="field-label" htmlFor={id}>{label}</label>
+      <select
+        id={id}
+        className="select"
+        value={manual ? 'lainnya' : value}
+        onChange={(e) => handleSelect(e.target.value)}
+        disabled={loading}
+        required={required}
+      >
+        <option value="">{loading ? 'Memuat daftar…' : placeholder}</option>
+        {options.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+      </select>
+      {hint && <p className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>{hint}</p>}
+      {manual && (
+        <input
+          className="input"
+          style={{ marginTop: 8 }}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={manualPlaceholder}
+          required={required}
+        />
+      )}
+    </div>
   );
 }

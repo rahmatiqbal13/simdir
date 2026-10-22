@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { formatDate } from '@/lib/utils/format';
+import { printWithFilename } from '@/lib/utils/print';
 
 export default function PrintMemoPage() {
   const params = useParams();
@@ -70,7 +71,7 @@ export default function PrintMemoPage() {
           </Link>
           <h1 style={{ margin: 0, fontSize: '1.125rem' }}>Preview Memo</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => window.print()}>
+        <button className="btn btn-primary" onClick={() => printWithFilename(`Memo ${item?.nomor ?? ''}`)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
             <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
             <rect x="6" y="14" width="12" height="8"/>
@@ -135,17 +136,19 @@ export default function PrintMemoPage() {
           </div>
 
           {/* Signatures */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '2rem' }}>
-            <div style={{ textAlign: 'center', minWidth: 200 }}>
-              <div>Dibuat oleh,</div>
-              <div style={{ height: 72 }} />
-              <div style={{ fontWeight: 700 }}>( {item.dibuat_oleh} )</div>
-            </div>
-            <div style={{ textAlign: 'center', minWidth: 200 }}>
-              <div>Menyetujui,</div>
-              <div style={{ height: 72 }} />
-              <div style={{ fontWeight: 700 }}>( {item.kepada} )</div>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', breakInside: 'avoid' }}>
+            {[
+              ['Dibuat oleh,', 'Pembuat Memo', item.dibuat_oleh],
+              ['Mengetahui,', 'Sekretaris', item.sekretaris],
+              ['Menyetujui,', 'Pimpinan', item.kepada],
+            ].map(([caption, role, name]) => (
+              <div key={role} style={{ textAlign: 'center' }}>
+                <div>{caption}</div>
+                <div style={{ fontSize: '0.8125rem', color: '#475569' }}>{role}</div>
+                <div style={{ height: 72 }} />
+                <div style={{ fontWeight: 700 }}>( {name || '.........................'} )</div>
+              </div>
+            ))}
           </div>
 
           {/* Footer */}
