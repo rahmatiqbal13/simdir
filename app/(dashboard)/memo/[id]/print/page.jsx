@@ -13,6 +13,16 @@ export default function PrintMemoPage() {
   const [item, setItem] = useState(null);
   const [loading, setLoading] = useState(true);
   const [branding, setBranding] = useState({ brand_name: 'Direktorat Unesa Science Center', logo_url: null });
+  // nama -> jabatan dari Pengaturan > Data Pimpinan, untuk baris jabatan
+  // di blok tanda tangan (tidak perlu diinput ulang per memo).
+  const [jabatanByNama, setJabatanByNama] = useState({});
+
+  useEffect(() => {
+    fetch('/api/pimpinan')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setJabatanByNama(Object.fromEntries((data || []).map((p) => [p.nama, p.jabatan || '']))))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/app-settings')
@@ -136,19 +146,28 @@ export default function PrintMemoPage() {
           </div>
 
           {/* Signatures */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', breakInside: 'avoid' }}>
-            {[
-              ['Dibuat oleh,', 'Pembuat Memo', item.dibuat_oleh],
-              ['Mengetahui,', 'Sekretaris', item.sekretaris],
-              ['Menyetujui,', 'Pimpinan', item.kepada],
-            ].map(([caption, role, name]) => (
-              <div key={role} style={{ textAlign: 'center' }}>
-                <div>{caption}</div>
-                <div style={{ fontSize: '0.8125rem', color: '#475569' }}>{role}</div>
-                <div style={{ height: 72 }} />
-                <div style={{ fontWeight: 700 }}>( {name || '.........................'} )</div>
-              </div>
-            ))}
+          {/* Grid diisi per baris (bukan per kolom) supaya nama ketiga
+              penanda tangan tetap sejajar walau jabatannya beda panjang. */}
+          <div style={{ breakInside: 'avoid' }}>
+            <div style={{ marginBottom: '0.5rem' }}>Surabaya, {formatDate(item.tanggal)}</div>
+            {(() => {
+              const signers = [
+                { caption: 'Dibuat oleh,', nama: item.dibuat_oleh, jabatan: jabatanByNama[item.dibuat_oleh] || 'Staf Administrasi' },
+                { caption: 'Diperiksa oleh,', nama: item.sekretaris, jabatan: jabatanByNama[item.sekretaris] },
+                { caption: 'Disetujui oleh,', nama: item.kepada, jabatan: jabatanByNama[item.kepada] },
+              ];
+              const row = (key, render, style) => signers.map((s, i) => (
+                <div key={`${key}-${i}`} style={style}>{render(s)}</div>
+              ));
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', columnGap: '1.5rem' }}>
+                  {row('caption', (s) => s.caption)}
+                  {row('jabatan', (s) => s.jabatan || '')}
+                  {row('space', () => null, { height: 80 })}
+                  {row('nama', (s) => s.nama || '.........................', { fontWeight: 700 })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Footer */}

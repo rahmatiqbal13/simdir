@@ -28,14 +28,7 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
     if (!form.isi.trim()) return toastError('Isi memo wajib diisi');
     if (!form.tanggal) return toastError('Tanggal wajib diisi');
 
-    onSubmit({
-      tanggal: form.tanggal,
-      kepada: form.kepada.trim(),
-      sekretaris: form.sekretaris.trim(),
-      dibuat_oleh: form.dibuat_oleh.trim(),
-      perihal: form.perihal.trim(),
-      isi: form.isi.trim(),
-    });
+    onSubmit(Object.fromEntries(Object.entries(form).map(([k, v]) => [k, v.trim()])));
   };
 
   return (
@@ -50,25 +43,13 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
           id="kepada"
           label="Kepada (Nama Pimpinan) *"
           placeholder="-- Pilih Pimpinan --"
-          manualPlaceholder="Tulis nama/jabatan pimpinan"
+          manualPlaceholder="Tulis nama pimpinan"
           value={form.kepada}
           onChange={(v) => set('kepada', v)}
           options={pimpinanOptions}
           loading={pimpinanLoading}
           required
-          hint={<>Tidak ada di daftar? Kelola di <Link href="/pengaturan/pimpinan">Pengaturan &gt; Data Pimpinan</Link>, atau pilih "Lainnya" untuk input manual. Pimpinan ini juga menandatangani memo.</>}
-        />
-
-        <PimpinanPicker
-          id="sekretaris"
-          label="Sekretaris (Penanda Tangan)"
-          placeholder="-- Pilih Sekretaris --"
-          manualPlaceholder="Tulis nama sekretaris"
-          value={form.sekretaris}
-          onChange={(v) => set('sekretaris', v)}
-          options={pimpinanOptions}
-          loading={pimpinanLoading}
-          hint="Opsional. Kalau kosong, kolom tanda tangan sekretaris dicetak dengan titik-titik."
+          hint={<>Tidak ada di daftar? Kelola di <Link href="/pengaturan/pimpinan">Pengaturan &gt; Data Pimpinan</Link>, atau pilih "Lainnya" untuk input manual. Pimpinan ini juga menandatangani memo ("Disetujui oleh").</>}
         />
 
         <div className="field">
@@ -80,6 +61,18 @@ export default function MemoForm({ initial, submitting, submitLabel, cancelHref,
           <label className="field-label" htmlFor="dibuat_oleh">Dibuat Oleh *</label>
           <input id="dibuat_oleh" className="input" value={form.dibuat_oleh} onChange={(e) => set('dibuat_oleh', e.target.value)} placeholder="Nama pembuat memo" required />
         </div>
+
+        <PimpinanPicker
+          id="sekretaris"
+          label="Sekretaris (Diperiksa oleh)"
+          placeholder="-- Pilih Sekretaris --"
+          manualPlaceholder="Tulis nama sekretaris"
+          value={form.sekretaris}
+          onChange={(v) => set('sekretaris', v)}
+          options={pimpinanOptions}
+          loading={pimpinanLoading}
+          hint="Opsional. Kalau kosong, kolom tanda tangan sekretaris dicetak dengan titik-titik."
+        />
 
         <div className="field">
           <label className="field-label" htmlFor="isi">Isi Memo *</label>
@@ -150,3 +143,4 @@ function PimpinanPicker({ id, label, placeholder, manualPlaceholder, value, onCh
     </div>
   );
 }
+

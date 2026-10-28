@@ -110,7 +110,7 @@ export default function MemoDetailPage() {
             <Field label="Kepada" value={item.kepada} />
             <Field label="Perihal" value={item.perihal} />
             <Field label="Dibuat Oleh" value={item.dibuat_oleh} />
-            <Field label="Sekretaris" value={item.sekretaris || '-'} />
+            <Field label="Diperiksa oleh (Sekretaris)" value={item.sekretaris || '-'} />
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginBottom: 4 }}>Isi Memo</div>
               <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{item.isi}</div>
