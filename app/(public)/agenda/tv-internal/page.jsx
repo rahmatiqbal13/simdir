@@ -6,7 +6,6 @@ import { UNIT_COLORS, getUnitColor } from '../tv/unit-colors'
 import { MONTHS, useStageScale, useTheme, useClock, sortActiveAgenda, getAgendaStatus } from '../tv/shared'
 import { useWeather } from '@/app/components/Weather'
 import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvProgress, TvLoading } from '../tv/TvKit'
-import ProgramKerjaTvPanel from './ProgramKerjaTvPanel'
 
 const ROWS_PER_PAGE = 6
 const ROTATE_SEC = 15
@@ -34,7 +33,6 @@ export default function AgendaTVInternalPage() {
   }, [])
 
   const [agenda, setAgenda]           = useState([])
-  const [programKerja, setProgramKerja] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError]     = useState(null)
 
@@ -47,12 +45,6 @@ export default function AgendaTVInternalPage() {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
       } else { setAgenda(data || []); setError(null) }
-
-      const { data: pkData, error: pkErr } = await supabase
-        .from('program_kerja_pui')
-        .select('*, unit_kerja(nama, kode)')
-      if (pkErr) console.error('Gagal memuat program kerja:', pkErr)
-      else setProgramKerja(pkData || [])
     } catch (e) {
       console.error('Load error:', e)
       setError('Terjadi kesalahan')
@@ -147,7 +139,7 @@ export default function AgendaTVInternalPage() {
           <TvClock now={now} p={p} size={50} dateSize={20} short />
           <TvThemeButton isDark={isDark} onToggle={toggle} p={p} size={68} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22, padding: '12px 48px', borderTop: `1px solid ${p.line}`, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 48px', borderTop: `1px solid ${p.line}`, overflow: 'hidden' }}>
           {Object.entries(UNIT_COLORS).map(([key, uc]) => (
             <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: p.ink2, whiteSpace: 'nowrap', flexShrink: 0 }}>
               <span style={{ width: 12, height: 12, borderRadius: 3, background: uc.border }} />{uc.name}
@@ -160,9 +152,9 @@ export default function AgendaTVInternalPage() {
       </header>
 
       {/* ── MAIN: Agenda | Program Kerja PUI ── */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '55fr 45fr', gap: 28, padding: '28px 48px' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr', gap: 28, padding: '28px 48px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 22, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '130px minmax(0,1fr) 170px', gap: 22, padding: '18px 26px', background: p.head, fontFamily: 'var(--font-mono)', fontSize: 16, letterSpacing: '.08em', textTransform: 'uppercase', color: p.ink2 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(0,1fr) 220px', gap: 22, padding: '18px 26px', background: p.head, fontFamily: 'var(--font-mono)', fontSize: 16, letterSpacing: '.08em', textTransform: 'uppercase', color: p.ink2 }}>
             <span>Tanggal</span><span>Kegiatan · Unit · Lokasi</span><span>Status</span>
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -181,7 +173,7 @@ export default function AgendaTVInternalPage() {
               const t2 = a.waktu_selesai ? a.waktu_selesai.slice(0, 5).replace(':', '.') : ''
               return (
                 <div key={a.id} style={{
-                  flex: 1, maxHeight: 150, display: 'grid', gridTemplateColumns: '130px minmax(0,1fr) 170px', gap: 22, alignItems: 'center', padding: '0 26px',
+                  flex: 1, maxHeight: 150, display: 'grid', gridTemplateColumns: '180px minmax(0,1fr) 220px', gap: 22, alignItems: 'center', padding: '0 26px',
                   borderTop: `1px solid ${p.line}`, background: st === 'ongoing' ? p.ongoingRow : uc.border + p.tint, boxShadow: `inset 6px 0 0 ${uc.border}`,
                 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -214,7 +206,6 @@ export default function AgendaTVInternalPage() {
           </div>
         </div>
 
-        <ProgramKerjaTvPanel items={programKerja} p={p} isDark={isDark} />
       </div>
     </TvStage>
   )
