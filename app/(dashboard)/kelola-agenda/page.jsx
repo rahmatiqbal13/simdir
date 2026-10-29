@@ -5,9 +5,9 @@ import { useAgenda } from '@/context/AgendaContext'
 import { useToast } from '@/app/components/Toast'
 import { useFocusTrap } from '@/app/components/useFocusTrap'
 import ConfirmModal from '@/app/components/ConfirmModal'
-import { SearchInput } from '@/app/components/Search'
-import { EmptyStateAgenda, EmptyStateSearch, EmptyStateFilter, EmptyStateError } from '@/app/components/EmptyState'
+import { EmptyStateAgenda, EmptyStateError } from '@/app/components/EmptyState'
 import { usePimpinanList } from '@/lib/hooks/usePimpinanList'
+import { getUnitColor } from '@/app/(public)/agenda/tv/unit-colors'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -59,11 +59,12 @@ const PIC_LIST = [
   { value: 'lainnya', label: 'Lainnya (Input Manual)' }
 ]
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'Semua Status', color: 'var(--text)' },
-  { value: 'upcoming', label: 'Akan Datang', color: 'var(--primary)' },
-  { value: 'ongoing', label: 'Berlangsung', color: 'var(--success)' },
-  { value: 'completed', label: 'Selesai', color: 'var(--text-3)' },
+// Kartu statistik sekaligus jadi filter status (Redesign 03 · 3a)
+const STATUS_TABS = [
+  { value: 'all', label: 'Semua agenda', dot: 'var(--text-3)' },
+  { value: 'ongoing', label: 'Berlangsung', dot: 'var(--success-solid)' },
+  { value: 'upcoming', label: 'Mendatang', dot: 'var(--primary)' },
+  { value: 'completed', label: 'Selesai', dot: 'var(--border-strong)' },
 ]
 
 // "Pimpinan" DULU jadi salah satu nilai `jenis` (mutually exclusive dengan
@@ -73,37 +74,40 @@ const STATUS_OPTIONS = [
 // penyelenggara (internal/eksternal), kehadiran pimpinan jadi flag terpisah
 // (`dihadiri_pimpinan` + `nama_pimpinan`) yang independen dari `jenis`.
 const JENIS_OPTIONS = [
-  { value: 'all', label: 'Semua Jenis' },
-  { value: 'internal', label: 'Internal', color: 'var(--primary)' },
-  { value: 'eksternal', label: 'Eksternal', color: 'var(--warning)' },
+  { value: 'all', label: 'Semua' },
+  { value: 'internal', label: 'Internal' },
+  { value: 'eksternal', label: 'Eksternal' },
 ]
 
-const ITEMS_PER_PAGE = 6
+const STATUS_PILL = {
+  ongoing: { label: 'Berlangsung', cls: 'ongoing' },
+  upcoming_soon: { label: 'Segera', cls: 'soon' },
+  upcoming: { label: 'Mendatang', cls: 'upcoming' },
+  completed: { label: 'Selesai', cls: 'done' },
+}
+
+const ITEMS_PER_PAGE = 10
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+const MONTHS_L = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
 // Helper functions
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('id-ID', { 
-    day: 'numeric', 
-    month: 'short', 
-    year: 'numeric' 
-  })
+const fmtHM = (t) => (t ? t.slice(0, 5).replace(':', '.') : '')
+const timeRange = (a) => {
+  const s = fmtHM(a.waktu_mulai), e = fmtHM(a.waktu_selesai)
+  return s && e ? `${s}–${e}` : s || 'Sepanjang hari'
 }
-
-const formatDateFull = (date) => {
-  return new Date(date).toLocaleDateString('id-ID', { 
-    weekday: 'long',
-    day: 'numeric', 
-    month: 'long', 
-    year: 'numeric' 
-  })
+const parseDay = (iso) => {
+  const [y, m, d] = String(iso).split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
 }
-
-const formatTime = (date) => {
-  return new Date(date).toLocaleTimeString('id-ID', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  })
+const dateShort = (iso) => {
+  const d = parseDay(iso)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
+const cleanPic = (p) => (p ? p.replace(/^Manual: /, '') : '')
+const isPimpinan = (a) => !!(a.dihadiri_pimpinan || a.jenis === 'pimpinan')
+const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : 'USC')
 
 // Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
 // cuma tanggalnya (event 14:00-16:00 sebelumnya sudah "Berlangsung" sejak
@@ -133,418 +137,148 @@ const getAgendaStatus = (mulai, selesai, waktuMulai, waktuSelesai) => {
   return 'upcoming'
 }
 
-// ============ KOMPONEN STAT CARD ============
-function StatCard({ label, value, icon, color, trend }) {
-  const c = (() => {
-    if (!color) return { bg: 'var(--primary-50)', fg: 'var(--primary)' };
-    if (color.includes('--primary')) return { bg: 'var(--primary-50)', fg: 'var(--primary)' };
-    if (color.includes('--success')) return { bg: 'var(--success-50)', fg: 'var(--success)' };
-    if (color.includes('--warning')) return { bg: 'var(--warning-50)', fg: 'var(--warning)' };
-    if (color.includes('--danger'))  return { bg: 'var(--danger-50)',  fg: 'var(--danger)'  };
-    if (color.includes('--text-3'))  return { bg: 'var(--surface-3)',  fg: 'var(--text-3)'  };
-    return { bg: color + '18', fg: color };
-  })();
-  return (
-    <div className="stat-card">
-      <div className="stat-card-top">
-        <div className="stat-icon-wrap" style={{ background: c.bg, color: c.fg }}>{icon}</div>
-        {trend && <span className="stat-trend up">+{trend} hari ini</span>}
-      </div>
-      <div className="stat-label">{label}</div>
-      <div className="stat-value">{value}</div>
-    </div>
-  );
+// Label grup hari: "Hari ini · Selasa, 28 Okt" + tag, atau tanggal lengkap
+const dayGroupLabel = (iso) => {
+  const d = parseDay(iso)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const diff = Math.round((d - today) / 864e5)
+  const base = `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS[d.getMonth()]}`
+  if (diff === 0) return { label: `Hari ini · ${base}`, tag: 'Hari ini', tagBg: 'var(--success-50)', tagFg: 'var(--success)' }
+  if (diff === 1) return { label: `Besok · ${base}`, tag: 'Besok', tagBg: 'var(--warning-50)', tagFg: 'var(--warning)' }
+  return { label: `${DAYS[d.getDay()]}, ${d.getDate()} ${MONTHS_L[d.getMonth()]} ${d.getFullYear()}` }
 }
 
-// ============ KOMPONEN STATUS BADGE ============
-function StatusBadge({ tanggalMulai, tanggalSelesai, waktuMulai, waktuSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai, waktuMulai, waktuSelesai)
-  
-  const configs = {
-    upcoming: { label: 'Akan Datang', class: 'badge-blue' },
-    upcoming_soon: { label: 'Segera', class: 'badge-amber' },
-    ongoing: { label: 'Berlangsung', class: 'badge-green' },
-    completed: { label: 'Selesai', class: 'badge-slate' },
+// Penanggung jawab yang ditampilkan: pimpinan (+ disposisi) atau PIC
+const personInfo = (a) => {
+  if (isPimpinan(a)) {
+    const nama = a.nama_pimpinan || (a.jenis === 'pimpinan' ? a.penyelenggara : '') || 'Pimpinan'
+    return { text: a.disposisi ? `${nama} → ${a.disposisi}` : nama, color: 'var(--danger)' }
   }
-  
-  const config = configs[status]
-  
+  return { text: cleanPic(a.pic) || '—', color: 'var(--text-2)' }
+}
+
+const Icon = {
+  plus: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>,
+  download: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>,
+  search: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>,
+  person: <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>,
+  pin: <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>,
+  list: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="6" rx="1.5" /><rect x="3" y="14" width="18" height="6" rx="1.5" /></svg>,
+  table: <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>,
+  edit: <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>,
+  trash: <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>,
+  close: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+  link: <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>,
+  tv: <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>,
+}
+
+// Badge kecil di samping judul: Pimpinan · Publik · Eksternal
+function AgendaBadges({ a }) {
   return (
-    <span className={`badge ${config.class}`}>
-      {status === 'ongoing' && (
-        <span className="badge-dot" style={{ animation: 'pulse 2s infinite' }} />
-      )}
-      {config.label}
-    </span>
+    <>
+      {isPimpinan(a) && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Pimpinan</span>}
+      {a.tampil_publik && <span className="ka-badge" style={{ background: 'var(--primary-50)', color: 'var(--primary)' }}>TV Publik</span>}
+      {a.jenis === 'eksternal' && <span className="ka-badge" style={{ background: 'var(--warning-50)', color: 'var(--warning)' }}>Eksternal</span>}
+    </>
   )
 }
 
-// ============ KOMPONEN JENIS BADGE ============
-function JenisBadge({ jenis }) {
-  const configs = {
-    internal: { label: 'Internal', bg: 'var(--primary-bg)', color: 'var(--primary)' },
-    eksternal: { label: 'Eksternal', bg: 'var(--warning-bg)', color: 'var(--warning)' },
-  }
-
-  const config = configs[jenis] || configs.internal
-
+function RowActions({ a, onEdit, onDelete }) {
   return (
-    <span
-      className="badge"
-      style={{
-        background: config.bg,
-        color: config.color,
-        fontSize: '0.625rem'
-      }}
-    >
-      {config.label}
-    </span>
-  )
-}
-
-// ============ KOMPONEN BADGE "DIHADIRI PIMPINAN" ============
-// Terpisah dari JenisBadge — kehadiran pimpinan independen dari jenis
-// (internal/eksternal), jadi keduanya bisa tampil bersamaan.
-function PimpinanBadge() {
-  return (
-    <span
-      className="badge"
-      style={{ background: 'var(--danger-bg)', color: 'var(--danger)', fontSize: '0.625rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-    >
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.625rem', height: '0.625rem' }}>
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
-        <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
-      </svg>
-      Dihadiri Pimpinan
-    </span>
-  )
-}
-
-// ============ KOMPONEN JENIS TOGGLE ============
-function JenisToggle({ value, onChange }) {
-  const getButtonStyle = (jenisValue, activeColor) => ({
-    flex: 1,
-    padding: '0.5rem 0.75rem',
-    borderRadius: 'var(--radius)',
-    border: 'none',
-    background: value === jenisValue ? 'var(--surface)' : 'transparent',
-    boxShadow: value === jenisValue ? 'var(--shadow-sm)' : 'none',
-    color: value === jenisValue ? activeColor : 'var(--text-2)',
-    fontSize: '0.8125rem',
-    fontWeight: 500,
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '0.375rem'
-  })
-
-  return (
-    <div style={{ 
-      display: 'flex', 
-      gap: '0.5rem', 
-      padding: '0.25rem', 
-      background: 'var(--surface-2)', 
-      borderRadius: 'var(--radius)'
-    }}>
-      <button
-        type="button"
-        onClick={() => onChange('internal')}
-        style={getButtonStyle('internal', 'var(--primary)')}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-        Internal
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange('eksternal')}
-        style={getButtonStyle('eksternal', 'var(--warning)')}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-        Eksternal
-      </button>
+    <div style={{ display: 'flex', gap: 4 }}>
+      <button type="button" className="ka-act" onClick={() => onEdit(a)} aria-label={`Edit ${a.judul}`}>{Icon.edit}</button>
+      <button type="button" className="ka-act danger" onClick={() => onDelete(a.id)} aria-label={`Hapus ${a.judul}`}>{Icon.trash}</button>
     </div>
   )
 }
 
-// ============ KOMPONEN AGENDA CARD ============
-function AgendaCard({ item, index, canEdit, onEdit, onDelete }) {
-  const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
-  
-  const statusColors = {
-    upcoming: 'var(--primary)',
-    upcoming_soon: 'var(--warning)',
-    ongoing: 'var(--success)',
-    completed: 'var(--text-3)',
+// ============ TAMPILAN DAFTAR (dikelompokkan per hari) ============
+function AgendaList({ items, canEdit, onEdit, onDelete }) {
+  const groups = []
+  for (const a of items) {
+    const last = groups[groups.length - 1]
+    if (last && last.date === a.tanggal_mulai) last.items.push(a)
+    else groups.push({ date: a.tanggal_mulai, items: [a] })
   }
-  
-  return (
-    <div className="card" style={{ marginBottom: '0.75rem' }}>
-      <div className="card-body">
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          {/* Date Column */}
-          <div style={{ 
-            textAlign: 'center',
-            minWidth: '60px',
-            padding: '0.5rem',
-            background: `${statusColors[status]}15`,
-            borderRadius: 'var(--radius)',
-            color: statusColors[status]
-          }}>
-            <div style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase' }}>
-              {new Date(item.tanggal_mulai).toLocaleDateString('id-ID', { month: 'short' })}
-            </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-              {new Date(item.tanggal_mulai).getDate()}
-            </div>
-            <div style={{ fontSize: '0.625rem' }}>
-              {new Date(item.tanggal_mulai).toLocaleDateString('id-ID', { weekday: 'short' })}
-            </div>
-          </div>
-          
-          {/* Content */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} waktuMulai={item.waktu_mulai} waktuSelesai={item.waktu_selesai} />
-                <JenisBadge jenis={item.jenis} />
-                {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
-                {item.tampil_publik && (
-                  <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
-                    Publik
-                  </span>
-                )}
-              </div>
-              {canEdit && (
-                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                  <button
-                    className="btn btn-ghost icon-only"
-                    onClick={() => onEdit(item)}
-                    title="Edit"
-                    aria-label="Edit agenda"
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  </button>
-                  <button
-                    className="btn btn-ghost icon-only"
-                    onClick={() => onDelete(item.id)}
-                    title="Hapus"
-                    aria-label="Hapus agenda"
-                    style={{ color: 'var(--danger)' }}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                      <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                    </svg>
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.5rem' }}>{item.judul}</h4>
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-              {(item.waktu_mulai || item.waktu_selesai) && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {item.waktu_mulai || '--:--'} - {item.waktu_selesai || '--:--'} WIB
-                </span>
-              )}
-              {item.lokasi && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                    <circle cx="12" cy="10" r="3" />
-                  </svg>
-                  {item.lokasi}
-                </span>
-              )}
-              {item.link_meeting && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                  </svg>
-                  <a href={item.link_meeting} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
-                    Link Meeting
-                  </a>
-                </span>
-              )}
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-                {item.penyelenggara}
-              </span>
-              {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? (
-                item.disposisi ? (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="8.5" cy="7" r="4" />
-                      <polyline points="17 11 19 13 23 9" />
-                    </svg>
-                    Disposisi ke: {item.disposisi}
-                  </span>
-                ) : (item.nama_pimpinan || item.jenis === 'pimpinan') && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--danger)' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                      <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
-                    </svg>
-                    Pimpinan: {item.nama_pimpinan || item.penyelenggara}
-                  </span>
-                )
-              ) : item.pic && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  {item.pic.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : item.pic}
-                </span>
-              )}
-            </div>
-
-            {item.deskripsi && (
-              <p className="muted" style={{ fontSize: '0.75rem', marginTop: item.disposisi && (item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? '0.25rem' : '0.5rem' }}>
-                {item.deskripsi}
-              </p>
-            )}
-          </div>
+  return groups.map(g => {
+    const h = dayGroupLabel(g.date)
+    return (
+      <div key={g.date} style={{ display: 'flex', flexDirection: 'column' }}>
+        <div className="ka-group-head">
+          <span style={{ fontSize: 13.5, fontWeight: 700 }}>{h.label}</span>
+          {h.tag && <span className="mono" style={{ fontSize: 11, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 6, background: h.tagBg, color: h.tagFg }}>{h.tag}</span>}
+          <span className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>{g.items.length}</span>
         </div>
+        {g.items.map(a => {
+          const st = a._st
+          const pill = STATUS_PILL[st]
+          const unit = getUnitColor(a.jenis, a.penyelenggara, a.dihadiri_pimpinan)
+          const p = personInfo(a)
+          const multiDay = a.tanggal_selesai && a.tanggal_selesai !== a.tanggal_mulai
+          return (
+            <div key={a.id} className={`ka-row ${canEdit ? '' : 'no-actions'}`} style={{ background: st === 'ongoing' ? 'var(--success-50)' : undefined, opacity: st === 'completed' ? 0.6 : 1 }}>
+              <div className="ka-row-time">
+                <span className="mono" style={{ fontSize: 17, fontWeight: 600 }}>{fmtHM(a.waktu_mulai) || '—'}</span>
+                <span className="mono" style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+                  {multiDay ? `s/d ${dateShort(a.tanggal_selesai).replace(/ \d{4}$/, '')}` : (fmtHM(a.waktu_selesai) || 'Sepanjang hari')}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
+                  <span className="ka-row-title">{a.judul}</span>
+                  <AgendaBadges a={a} />
+                </div>
+                <div className="ka-row-meta">
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: unit.border, flexShrink: 0 }} />{penyelenggaraLabel(a)}</span>
+                  {a.lokasi && <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{Icon.pin}{a.lokasi}</span>}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: p.color }}>{Icon.person}{p.text}</span>
+                </div>
+              </div>
+              <span className={`status-pill ${pill.cls}`}>{pill.label}</span>
+              {canEdit && <RowActions a={a} onEdit={onEdit} onDelete={onDelete} />}
+            </div>
+          )
+        })}
       </div>
-    </div>
-  )
+    )
+  })
 }
 
-// ============ KOMPONEN AGENDA TABLE ============
+// ============ TAMPILAN TABEL ============
 function AgendaTable({ items, canEdit, onEdit, onDelete }) {
   return (
-    <div className="table-wrap">
-      <div className="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th style={{ width: '40px' }}>No</th>
-            <th>Agenda</th>
-            <th style={{ width: '100px' }}>Jenis</th>
-            <th style={{ width: '140px' }}>Waktu</th>
-            <th>Lokasi</th>
-            <th style={{ width: '100px' }}>Status</th>
-            {canEdit && <th style={{ width: '80px' }} className="text-center">Aksi</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={item.id}>
-              <td className="text-center text-muted">{index + 1}</td>
-              <td>
-                <strong style={{ fontSize: '0.875rem' }}>{item.judul}</strong>
-                {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && item.disposisi && (
-                  <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem', color: 'var(--danger)' }}>
-                    <strong>Disposisi ke:</strong> {item.disposisi}
-                  </p>
-                )}
-                {item.deskripsi && (
-                  <p className="muted" style={{ fontSize: '0.6875rem', marginTop: '0.125rem' }}>
-                    {item.deskripsi.substring(0, 50)}{item.deskripsi.length > 50 ? '...' : ''}
-                  </p>
-                )}
-              </td>
-              <td>
-                <div style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-                  <JenisBadge jenis={item.jenis} />
-                  {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
-                  {item.tampil_publik && (
-                    <span className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', fontSize: '0.625rem' }}>
-                      Publik
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td>
-                <div style={{ fontSize: '0.8125rem' }}>{formatDate(item.tanggal_mulai)}</div>
-                {item.tanggal_mulai !== item.tanggal_selesai && (
-                  <div className="muted" style={{ fontSize: '0.6875rem' }}>
-                    s/d {formatDate(item.tanggal_selesai)}
-                  </div>
-                )}
-                {(item.waktu_mulai || item.waktu_selesai) && (
-                  <div style={{ fontSize: '0.75rem', marginTop: '0.25rem', color: 'var(--primary)' }}>
-                    {item.waktu_mulai || '--:--'} - {item.waktu_selesai || '--:--'}
-                  </div>
-                )}
-              </td>
-              <td style={{ fontSize: '0.8125rem' }}>
-                {item.lokasi || '-'}
-                {item.link_meeting && (
-                  <div style={{ marginTop: '0.25rem' }}>
-                    <a href={item.link_meeting} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.6875rem', color: 'var(--primary)' }}>
-                      Link Meeting
-                    </a>
-                  </div>
-                )}
-              </td>
-              <td>
-                <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} waktuMulai={item.waktu_mulai} waktuSelesai={item.waktu_selesai} />
-              </td>
-              {canEdit && (
-                <td className="text-center">
-                  <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                    <button
-                      className="ghost icon-only"
-                      onClick={() => onEdit(item)}
-                      title="Edit"
-                      aria-label="Edit agenda"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                      </svg>
-                    </button>
-                    <button
-                      className="ghost icon-only"
-                      onClick={() => onDelete(item.id)}
-                      title="Hapus"
-                      aria-label="Hapus agenda"
-                      style={{ color: 'var(--danger)' }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="ka-table-wrap">
+      <div className={`ka-trow ka-thead ${canEdit ? '' : 'no-actions'}`}>
+        <span>Agenda</span><span>Jenis</span><span>Waktu</span><span>Lokasi</span><span>Status</span>{canEdit && <span>Aksi</span>}
       </div>
+      {items.map(a => {
+        const pill = STATUS_PILL[a._st]
+        const unit = getUnitColor(a.jenis, a.penyelenggara, a.dihadiri_pimpinan)
+        return (
+          <div key={a.id} className={`ka-trow ${canEdit ? '' : 'no-actions'}`} style={{ background: a._st === 'ongoing' ? 'var(--success-50)' : undefined, opacity: a._st === 'completed' ? 0.6 : 1 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+              <span className="truncate" style={{ fontWeight: 600, fontSize: 14.5 }}>{a.judul}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-3)', fontSize: 12.5 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: unit.border }} />{penyelenggaraLabel(a)}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <span className="ka-badge" style={{ background: a.jenis === 'eksternal' ? 'var(--warning-50)' : 'var(--primary-50)', color: a.jenis === 'eksternal' ? 'var(--warning)' : 'var(--primary)' }}>{a.jenis === 'eksternal' ? 'Eksternal' : 'Internal'}</span>
+              {isPimpinan(a) && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Pimpinan</span>}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span>{dateShort(a.tanggal_mulai)}</span>
+              <span className="mono" style={{ fontSize: 12, color: 'var(--primary)' }}>{timeRange(a)}</span>
+            </div>
+            <span className="truncate" style={{ color: 'var(--text-2)' }}>{a.lokasi || '—'}</span>
+            <span className={`status-pill ${pill.cls}`} style={{ justifySelf: 'start' }}>{pill.label}</span>
+            {canEdit && <RowActions a={a} onEdit={onEdit} onDelete={onDelete} />}
+          </div>
+        )
+      })}
     </div>
   )
 }
 
-// ============ KOMPONEN MODAL ============
+// ============ FORM AGENDA (panel geser kanan · tambah & edit) ============
 function AgendaModal({ item, onSave, onClose, isSaving }) {
   const modalRef = useFocusTrap(true, onClose)
   // Data lama (sebelum dipisahnya "dihadiri pimpinan" dari `jenis`) masih
@@ -560,9 +294,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   const [dihadiriPimpinan, setDihadiriPimpinan] = useState(
     item?.dihadiri_pimpinan != null ? item.dihadiri_pimpinan : isLegacyPimpinan
   )
-  const [showManualPic, setShowManualPic] = useState(false)
+  const [showManualPic, setShowManualPic] = useState(item?.pic?.startsWith('Manual: ') || false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
-  const [showManualUnitKerja, setShowManualUnitKerja] = useState(false)
+  const [showManualUnitKerja, setShowManualUnitKerja] = useState(
+    item?.jenis === 'internal' && !!item?.penyelenggara && !UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara)
+  )
   const { options: pimpinanOptions, loading: pimpinanLoading } = usePimpinanList()
   const [form, setForm] = useState({
     judul: item?.judul || '',
@@ -579,12 +315,13 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     pimpinan_select: '',
     pimpinan_manual: '',
     disposisi_staff: item?.disposisi || '',
-    pic_select: item?.pic && !item?.pic.startsWith('Manual: ') && PIC_LIST.some(p => p.value === item.pic) ? item.pic : '',
+    pic_select: item?.pic?.startsWith('Manual: ') ? 'lainnya' : (item?.pic && PIC_LIST.some(p => p.value === item.pic) ? item.pic : ''),
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
     tampil_publik: item?.tampil_publik || false,
   })
   const [error, setError] = useState('')
-  const [showDetail, setShowDetail] = useState(!!item?.link_meeting)
+  const [showLink, setShowLink] = useState(!!item?.link_meeting)
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
 
   // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
   // konstanta statis — jadi pimpinan_select/pimpinan_manual baru bisa
@@ -603,6 +340,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     setPimpinanFieldInitialized(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pimpinanLoading, pimpinanOptions, pimpinanFieldInitialized])
+
+  const dateError = form.tanggal_mulai && form.tanggal_selesai && new Date(form.tanggal_mulai) > new Date(form.tanggal_selesai)
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -627,8 +366,16 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       setError('Jam selesai harus lebih besar dari jam mulai (untuk agenda di hari yang sama)')
       return
     }
+    if (jenis === 'internal' && !form.unit_kerja) {
+      setError('Unit kerja penyelenggara wajib dipilih')
+      return
+    }
     if (jenis === 'internal' && form.unit_kerja === 'lainnya' && !form.unit_kerja_manual.trim()) {
       setError('Nama unit kerja manual wajib diisi')
+      return
+    }
+    if (jenis === 'eksternal' && !form.penyelenggara_eksternal.trim()) {
+      setError('Nama penyelenggara eksternal wajib diisi')
       return
     }
     if (dihadiriPimpinan && !form.pimpinan_select) {
@@ -663,7 +410,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       waktu_mulai: form.waktu_mulai || null,
       waktu_selesai: form.waktu_selesai || null,
       lokasi: form.lokasi,
-      link_meeting: form.link_meeting || null,
+      link_meeting: showLink && form.link_meeting ? form.link_meeting : null,
       jenis,
       penyelenggara: getPenyelenggara(),
       deskripsi: form.deskripsi,
@@ -676,278 +423,232 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     onSave(newItem)
   }
 
+  // Pratinjau langsung
+  const pvUnitName = jenis === 'internal'
+    ? (form.unit_kerja === 'lainnya' ? form.unit_kerja_manual : form.unit_kerja) || 'Unit kerja'
+    : form.penyelenggara_eksternal || 'Eksternal'
+  const pvColor = getUnitColor(jenis, jenis === 'internal' ? pvUnitName : '', dihadiriPimpinan).border
+  const pvDate = form.tanggal_mulai ? parseDay(form.tanggal_mulai) : null
+  const pv = {
+    title: form.judul || 'Judul agenda',
+    mon: pvDate ? MONTHS[pvDate.getMonth()] : '—',
+    day: pvDate ? pvDate.getDate() : '—',
+    time: timeRange(form),
+    timeStart: fmtHM(form.waktu_mulai) || 'Sepanjang hari',
+    lokasi: form.lokasi || 'Lokasi',
+  }
+
   return (
-    <div className="modal-backdrop" onClick={onClose} ref={modalRef}>
-      <div className="modal-content" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
-        <div className="modal-head">
-          <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{item?.id ? 'Edit Agenda' : 'Tambah Agenda Baru'}</h3>
-          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose} aria-label="Tutup">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+    <div className="ka-panel-backdrop" onClick={onClose}>
+      <div className="ka-panel" ref={modalRef} role="dialog" aria-modal="true" aria-labelledby="ka-form-title" onClick={e => e.stopPropagation()}>
+        <div className="ka-panel-head">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+            <span className="eyebrow" style={{ fontSize: 11.5, letterSpacing: '.1em' }}>{item?.id ? 'Edit agenda' : 'Agenda baru'}</span>
+            <span id="ka-form-title" className="truncate" style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 600, letterSpacing: '-.015em' }}>
+              {item?.id ? form.judul || 'Edit agenda' : 'Buat agenda'}
+            </span>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Tutup">{Icon.close}</button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="card-form-body">
-            {error && (
-              <div className="error-msg" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                {error}
-              </div>
-            )}
 
-            <div className="form-section">
-              <label>Jenis Kegiatan</label>
-              <JenisToggle value={jenis} onChange={setJenis} />
-            </div>
+        <form onSubmit={handleSubmit} noValidate className="ka-panel-form">
+          <div className="ka-panel-body">
+            <div className="ka-form-main">
+              <FormStep n="01" title="Kegiatan">
+                <div className="ka-grid-2">
+                  {[
+                    { v: 'internal', label: 'Internal', desc: 'Diselenggarakan unit kerja USC' },
+                    { v: 'eksternal', label: 'Eksternal', desc: 'Instansi atau penyelenggara luar' },
+                  ].map(j => (
+                    <button key={j.v} type="button" onClick={() => setJenis(j.v)} aria-pressed={jenis === j.v}
+                      className={`ka-choice ${jenis === j.v ? 'active' : ''}`}>
+                      <span className="pub-radio" />
+                      <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 15, fontWeight: 700 }}>{j.label}</span>
+                        <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{j.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="field">
+                  <label htmlFor="ka-judul">Judul agenda <span className="pub-req">*</span></label>
+                  <input id="ka-judul" value={form.judul} onChange={set('judul')} placeholder="Contoh: Rapat Koordinasi Pimpinan USC" required />
+                </div>
+                <div className="field">
+                  <label htmlFor="ka-desk">Deskripsi <span className="pub-opt">· opsional</span></label>
+                  <textarea id="ka-desk" value={form.deskripsi} onChange={set('deskripsi')} rows={2} placeholder="Catatan untuk peserta atau petugas…" style={{ minHeight: 72 }} />
+                </div>
+              </FormStep>
 
-            <div className="form-grid">
-              <div className="full">
-                <label>Judul Agenda</label>
-                <input
-                  value={form.judul}
-                  onChange={e => setForm({ ...form, judul: e.target.value })}
-                  placeholder="Masukkan judul agenda kegiatan"
-                  required
-                />
-              </div>
+              <FormStep n="02" title="Waktu">
+                <div className="ka-grid-4">
+                  <div className="field">
+                    <label htmlFor="ka-tm">Tgl mulai <span className="pub-req">*</span></label>
+                    <input id="ka-tm" type="date" value={form.tanggal_mulai} onChange={set('tanggal_mulai')} required style={dateError ? { borderColor: 'var(--danger)' } : undefined} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="ka-ts">Tgl selesai <span className="pub-req">*</span></label>
+                    <input id="ka-ts" type="date" value={form.tanggal_selesai} min={form.tanggal_mulai || undefined} onChange={set('tanggal_selesai')} required style={dateError ? { borderColor: 'var(--danger)' } : undefined} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="ka-jm">Jam mulai</label>
+                    <input id="ka-jm" type="time" value={form.waktu_mulai} onChange={set('waktu_mulai')} />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="ka-js">Jam selesai</label>
+                    <input id="ka-js" type="time" value={form.waktu_selesai} onChange={set('waktu_selesai')} />
+                  </div>
+                </div>
+                <span style={{ fontSize: 13, color: dateError ? 'var(--danger)' : 'var(--text-3)', fontWeight: dateError ? 600 : 400 }}>
+                  {dateError ? 'Tanggal selesai tidak boleh sebelum tanggal mulai.' : 'Semua waktu dalam WIB. Kosongkan jam bila agenda sepanjang hari.'}
+                </span>
+              </FormStep>
 
-              <div>
-                <label>Tanggal Mulai <span className="muted">*</span></label>
-                <input
-                  type="date"
-                  value={form.tanggal_mulai}
-                  onChange={e => setForm({ ...form, tanggal_mulai: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label>Tanggal Selesai <span className="muted">*</span></label>
-                <input
-                  type="date"
-                  value={form.tanggal_selesai}
-                  onChange={e => setForm({ ...form, tanggal_selesai: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label>Jam Mulai <span className="muted">(Opsional)</span></label>
-                <input
-                  type="time"
-                  value={form.waktu_mulai}
-                  onChange={e => setForm({ ...form, waktu_mulai: e.target.value })}
-                />
-              </div>
-              <div>
-                <label>Jam Selesai <span className="muted">(Opsional)</span></label>
-                <input
-                  type="time"
-                  value={form.waktu_selesai}
-                  onChange={e => setForm({ ...form, waktu_selesai: e.target.value })}
-                />
-              </div>
-
-              <div>
-                <label>Lokasi Kegiatan</label>
-                <input
-                  value={form.lokasi}
-                  onChange={e => setForm({ ...form, lokasi: e.target.value })}
-                  placeholder="Contoh: Ruang Rapat USC, Aula Utama"
-                />
-              </div>
-              <div>
-                <label>{jenis === 'internal' ? 'Unit Kerja Penyelenggara' : 'Nama Penyelenggara'}</label>
-                {jenis === 'internal' ? (
-                  <>
-                    <select
-                      value={form.unit_kerja}
-                      onChange={(e) => {
-                        setForm({ ...form, unit_kerja: e.target.value })
-                        setShowManualUnitKerja(e.target.value === 'lainnya')
-                      }}
-                      required
-                    >
-                      <option value="">-- Pilih Unit Kerja --</option>
-                      {UNIT_KERJA_LIST.map(unit => (
-                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                      ))}
-                    </select>
-                    {showManualUnitKerja && (
-                      <input
-                        style={{ marginTop: '0.5rem' }}
-                        value={form.unit_kerja_manual}
-                        onChange={e => setForm({ ...form, unit_kerja_manual: e.target.value })}
-                        placeholder="Masukkan nama unit kerja"
-                        required
-                      />
-                    )}
-                  </>
-                ) : (
-                  <input
-                    value={form.penyelenggara_eksternal}
-                    onChange={e => setForm({ ...form, penyelenggara_eksternal: e.target.value })}
-                    placeholder="Masukkan nama penyelenggara external"
-                    required
-                  />
-                )}
-              </div>
-
-              <div className="full">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={form.tampil_publik}
-                    onChange={e => setForm({ ...form, tampil_publik: e.target.checked })}
-                  />
-                  Tampilkan di TV Publik
-                </label>
-                <p className="muted" style={{ fontSize: '0.75rem' }}>
-                  Kalau dicentang, tampil di layar TV lobi publik. Kalau tidak, cuma di TV internal.
-                </p>
-              </div>
-
-              {/* "Dihadiri Pimpinan" independen dari Jenis Kegiatan — event
-                  internal ATAU eksternal bisa sama-sama dihadiri pimpinan,
-                  jadi ini flag terpisah, bukan pilihan ketiga di toggle
-                  Jenis (yang dulu membuat identitas unit kerja penyelenggara
-                  hilang begitu jenisnya dipilih "Pimpinan"). */}
-              <div className="full">
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={dihadiriPimpinan}
-                    onChange={e => setDihadiriPimpinan(e.target.checked)}
-                  />
-                  Dihadiri Pimpinan
-                </label>
-                {dihadiriPimpinan && (
-                  <div style={{ marginTop: '0.75rem', padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
-                    <div className="form-grid" style={{ gap: '1rem' }}>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama Pimpinan</label>
-                        <select
-                          value={form.pimpinan_select}
-                          onChange={(e) => {
-                            setForm({ ...form, pimpinan_select: e.target.value })
-                            setShowManualPimpinan(e.target.value === 'lainnya')
-                          }}
-                          disabled={pimpinanLoading}
-                          required
-                        >
-                          <option value="">{pimpinanLoading ? 'Memuat daftar pimpinan…' : '-- Pilih Pimpinan --'}</option>
-                          {pimpinanOptions.map(p => (
-                            <option key={p.value} value={p.value}>{p.label}</option>
-                          ))}
-                        </select>
-                        {showManualPimpinan && (
-                          <input
-                            style={{ marginTop: '0.5rem' }}
-                            value={form.pimpinan_manual}
-                            onChange={e => setForm({ ...form, pimpinan_manual: e.target.value })}
-                            placeholder="Masukkan nama pimpinan"
-                            required
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Disposisi ke Staff (jika berhalangan)</label>
-                        <select
-                          value={form.disposisi_staff}
-                          onChange={e => setForm({ ...form, disposisi_staff: e.target.value })}
-                        >
-                          <option value="">-- Tidak Ada Disposisi --</option>
-                          {PIC_LIST.map(staff => (
-                            <option key={staff.value} value={staff.value}>{staff.label}</option>
-                          ))}
+              <FormStep n="03" title="Tempat & penyelenggara">
+                <div className="ka-grid-2">
+                  <div className="field">
+                    <label htmlFor="ka-lokasi">Lokasi</label>
+                    <input id="ka-lokasi" value={form.lokasi} onChange={set('lokasi')} placeholder="Ruang Rapat USC, Aula Utama…" />
+                  </div>
+                  {jenis === 'internal' ? (
+                    <div className="field">
+                      <label htmlFor="ka-unit">Unit kerja penyelenggara <span className="pub-req">*</span></label>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <span style={{ position: 'absolute', left: 14, width: 10, height: 10, borderRadius: 3, background: form.unit_kerja ? pvColor : 'var(--border-strong)', pointerEvents: 'none' }} />
+                        <select id="ka-unit" value={form.unit_kerja} style={{ paddingLeft: 34 }}
+                          onChange={(e) => { setForm({ ...form, unit_kerja: e.target.value }); setShowManualUnitKerja(e.target.value === 'lainnya') }} required>
+                          <option value="">Pilih unit kerja…</option>
+                          {UNIT_KERJA_LIST.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                         </select>
                       </div>
+                      {showManualUnitKerja && (
+                        <input style={{ marginTop: 8 }} value={form.unit_kerja_manual} onChange={set('unit_kerja_manual')} placeholder="Nama unit kerja" required aria-label="Nama unit kerja manual" />
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {!dihadiriPimpinan && (
-                <div className="full" style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: 'var(--radius)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', flexShrink: 0 }}>
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
-                    </svg>
-                    <span>Penanggung Jawab (PIC)</span>
-                  </div>
-                  <div className="form-grid" style={{ gap: '1rem' }}>
-                    <div>
-                      <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Pilih PIC</label>
-                      <select
-                        value={form.pic_select}
-                        onChange={(e) => {
-                          setForm({ ...form, pic_select: e.target.value })
-                          setShowManualPic(e.target.value === 'lainnya')
-                        }}
-                      >
-                        <option value="">-- Pilih --</option>
-                        {PIC_LIST.map(pic => (
-                          <option key={pic.value} value={pic.value}>{pic.label}</option>
-                        ))}
-                      </select>
+                  ) : (
+                    <div className="field">
+                      <label htmlFor="ka-eks">Nama penyelenggara eksternal <span className="pub-req">*</span></label>
+                      <input id="ka-eks" value={form.penyelenggara_eksternal} onChange={set('penyelenggara_eksternal')} placeholder="Contoh: Dinas Pendidikan Jatim" required />
                     </div>
-                    {showManualPic && (
-                      <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Nama PIC Manual</label>
-                        <input
-                          type="text"
-                          value={form.pic_manual}
-                          onChange={e => setForm({ ...form, pic_manual: e.target.value })}
-                          placeholder="Masukkan nama PIC"
-                        />
-                      </div>
+                  )}
+                  <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button type="button" className="ka-linkbtn" onClick={() => setShowLink(v => !v)} aria-expanded={showLink}>
+                      {Icon.link}{showLink ? 'Hapus link meeting' : 'Tambah link meeting (online)'}
+                    </button>
+                    {showLink && (
+                      <input type="url" value={form.link_meeting} onChange={set('link_meeting')} placeholder="https://zoom.us/j/… atau https://meet.google.com/…" style={{ fontFamily: 'var(--font-mono)', fontSize: 14.5 }} aria-label="Link meeting" />
                     )}
                   </div>
                 </div>
-              )}
+              </FormStep>
 
-              <div className="full">
-                <label>Deskripsi <span className="muted">(Opsional)</span></label>
-                <textarea
-                  value={form.deskripsi}
-                  onChange={e => setForm({ ...form, deskripsi: e.target.value })}
-                  placeholder="Tambahkan deskripsi atau catatan tambahan..."
-                  rows={3}
-                />
-              </div>
-
-              {/* Field yang jarang dipakai (kebanyakan agenda offline) —
-                  disembunyikan di balik <details> supaya tidak ikut
-                  memanjangkan form secara default. */}
-              <div className="full">
-                <details
-                  open={showDetail}
-                  onToggle={(e) => setShowDetail(e.currentTarget.open)}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '0.625rem 0.875rem' }}
-                >
-                  <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-                    Detail Tambahan (Link Meeting)
-                  </summary>
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <label>Link Meeting <span className="muted">(Zoom/Google Meet - Opsional)</span></label>
-                    <input
-                      type="url"
-                      value={form.link_meeting}
-                      onChange={e => setForm({ ...form, link_meeting: e.target.value })}
-                      placeholder="https://zoom.us/j/... atau https://meet.google.com/..."
-                    />
-                    <p className="muted">Isi jika kegiatan dilakukan secara online</p>
+              <FormStep n="04" title="Penanggung jawab">
+                <div className="ka-toggle-row" style={{ background: 'var(--surface-2)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700 }}>Dihadiri pimpinan</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Agenda ditandai merah di TV Internal. PIC diganti nama pimpinan + disposisi.</span>
                   </div>
-                </details>
-              </div>
+                  <button type="button" role="switch" aria-checked={dihadiriPimpinan} aria-label="Dihadiri pimpinan" className="switch" onClick={() => setDihadiriPimpinan(v => !v)} />
+                </div>
+                {dihadiriPimpinan ? (
+                  <div className="ka-grid-2">
+                    <div className="field">
+                      <label htmlFor="ka-pim">Nama pimpinan <span className="pub-req">*</span></label>
+                      <select id="ka-pim" value={form.pimpinan_select} disabled={pimpinanLoading} required
+                        onChange={(e) => { setForm({ ...form, pimpinan_select: e.target.value }); setShowManualPimpinan(e.target.value === 'lainnya') }}>
+                        <option value="">{pimpinanLoading ? 'Memuat daftar pimpinan…' : 'Pilih pimpinan…'}</option>
+                        {pimpinanOptions.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                      {showManualPimpinan && (
+                        <input style={{ marginTop: 8 }} value={form.pimpinan_manual} onChange={set('pimpinan_manual')} placeholder="Nama pimpinan" required aria-label="Nama pimpinan manual" />
+                      )}
+                    </div>
+                    <div className="field">
+                      <label htmlFor="ka-disp">Disposisi bila berhalangan</label>
+                      <select id="ka-disp" value={form.disposisi_staff} onChange={set('disposisi_staff')}>
+                        <option value="">Tidak ada disposisi</option>
+                        {PIC_LIST.filter(s => s.value !== 'lainnya').map(staff => <option key={staff.value} value={staff.value}>{staff.label}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="ka-grid-2">
+                    <div className="field">
+                      <label htmlFor="ka-pic">PIC kegiatan</label>
+                      <select id="ka-pic" value={form.pic_select}
+                        onChange={(e) => { setForm({ ...form, pic_select: e.target.value }); setShowManualPic(e.target.value === 'lainnya') }}>
+                        <option value="">Pilih PIC…</option>
+                        {PIC_LIST.map(pic => <option key={pic.value} value={pic.value}>{pic.label}</option>)}
+                      </select>
+                    </div>
+                    {showManualPic && (
+                      <div className="field">
+                        <label htmlFor="ka-picm">Nama PIC</label>
+                        <input id="ka-picm" value={form.pic_manual} onChange={set('pic_manual')} placeholder="Masukkan nama PIC" />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </FormStep>
+
+              <FormStep n="05" title="Tampilan" last>
+                <div className="ka-toggle-row" style={{ border: '1px solid var(--border)' }}>
+                  <span style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{Icon.tv}</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 700 }}>Tampilkan di TV Publik</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Muncul di layar lobi &amp; halaman /agenda. Agenda selalu tampil di TV Internal.</span>
+                  </div>
+                  <button type="button" role="switch" aria-checked={form.tampil_publik} aria-label="Tampilkan di TV Publik" className="switch" onClick={() => setForm(f => ({ ...f, tampil_publik: !f.tampil_publik }))} />
+                </div>
+              </FormStep>
             </div>
+
+            <aside className="ka-preview" aria-label="Pratinjau langsung">
+              <span className="eyebrow" style={{ fontSize: 11.5, letterSpacing: '.1em' }}>Pratinjau langsung</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>Daftar agenda</span>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '48px minmax(0,1fr)', gap: 12, alignItems: 'center' }}>
+                  <div className="date-block" style={{ width: 48, height: 50 }}><span className="date-block-mon">{pv.mon}</span><span className="date-block-day" style={{ fontSize: 20 }}>{pv.day}</span></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                    <span style={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3 }}>{pv.title}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-3)' }}><span className="mono" style={{ color: 'var(--text-2)' }}>{pv.time}</span> · {pv.lokasi}</span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Internal</span>
+                <div style={{ background: '#101d42', borderRadius: 12, padding: '12px 14px', boxShadow: `inset 4px 0 0 ${pvColor}`, display: 'flex', flexDirection: 'column', gap: 5, color: '#fff' }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{pv.title}</span>
+                  <span style={{ fontSize: 11.5, color: '#9aa6cc' }}><span style={{ fontWeight: 700, color: pvColor }}>{dihadiriPimpinan ? 'Pimpinan' : pvUnitName}</span> · {pv.lokasi}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Publik</span>
+                {form.tampil_publik ? (
+                  <div style={{ background: '#101d42', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '44px minmax(0,1fr)', gap: 12, alignItems: 'center', color: '#fff' }}>
+                    <div style={{ height: 46, borderRadius: 9, background: '#1a2a5c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span className="mono" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', opacity: .8 }}>{pv.mon}</span>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600, lineHeight: 1 }}>{pv.day}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                      <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{pv.title}</span>
+                      <span style={{ fontSize: 11.5, color: '#9aa6cc' }}>{pv.timeStart} · {pv.lokasi}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>Tidak tampil di layar lobi.</div>
+                )}
+              </div>
+            </aside>
           </div>
 
-          <div className="card-form-footer">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Batal</button>
-            <button type="submit" className="btn btn-primary" disabled={isSaving}>
-              {isSaving ? 'Menyimpan...' : (item?.id ? 'Perbarui' : 'Simpan')}
+          <div className="ka-panel-foot">
+            {error
+              ? <span role="alert" style={{ fontSize: 13.5, color: 'var(--danger)', fontWeight: 600, flex: 1 }}>{error}</span>
+              : <span style={{ fontSize: 13, color: 'var(--text-3)', flex: 1 }}><span className="pub-req">*</span> wajib diisi</span>}
+            <button type="button" className="btn btn-secondary" onClick={onClose}>Batal</button>
+            <button type="submit" className="btn btn-primary" disabled={isSaving} style={{ padding: '0 22px' }}>
+              {isSaving ? 'Menyimpan…' : (item?.id ? 'Perbarui agenda' : 'Simpan agenda')}
             </button>
           </div>
         </form>
@@ -956,64 +657,37 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   )
 }
 
-// ============ KOMPONEN PAGINATION ============
-function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }) {
-  const startItem = (currentPage - 1) * itemsPerPage + 1
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems)
-
+function FormStep({ n, title, last, children }) {
   return (
-    <div className="pagination-container">
-      <p className="muted" style={{ fontSize: '0.8125rem', textAlign: 'center' }}>
-        Menampilkan <strong>{startItem}</strong> - <strong>{endItem}</strong> dari <strong>{totalItems}</strong> agenda
-      </p>
-
-      <div className="flex items-center gap-2">
-        <button
-          className="btn ghost icon-only"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          aria-label="Halaman sebelumnya"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-
-        <div className="flex items-center gap-1 pagination-numbers">
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              onClick={() => onPageChange(page)}
-              className="btn icon-only"
-              style={{
-                background: currentPage === page ? 'var(--primary)' : 'var(--surface)',
-                color: currentPage === page ? 'white' : 'var(--text)',
-                border: currentPage === page ? 'none' : '1px solid var(--border)'
-              }}
-              aria-label={`Halaman ${page}`}
-              aria-current={currentPage === page ? 'page' : undefined}
-            >
-              {page}
-            </button>
-          ))}
-        </div>
-
-        <button
-          className="btn ghost icon-only"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          aria-label="Halaman berikutnya"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
+    <div className="ka-step" style={last ? { borderBottom: 0 } : undefined}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span className="mono" style={{ fontSize: 12, color: 'var(--text-3)' }}>{n}</span>
+        <span style={{ fontSize: 15, fontWeight: 700 }}>{title}</span>
       </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>{children}</div>
     </div>
   )
 }
 
-// ============ HALAMAN UTAMA ============
+// Ekspor agenda yang sedang terfilter ke CSV (dibuka Excel/Sheets)
+function exportCsv(items) {
+  const head = ['Judul', 'Jenis', 'Penyelenggara', 'Tanggal Mulai', 'Tanggal Selesai', 'Jam Mulai', 'Jam Selesai', 'Lokasi', 'PIC / Pimpinan', 'Disposisi', 'TV Publik', 'Status']
+  const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const rows = items.map(a => [
+    a.judul, a.jenis, penyelenggaraLabel(a), a.tanggal_mulai, a.tanggal_selesai,
+    fmtHM(a.waktu_mulai), fmtHM(a.waktu_selesai), a.lokasi,
+    isPimpinan(a) ? (a.nama_pimpinan || '') : cleanPic(a.pic), a.disposisi || '',
+    a.tampil_publik ? 'Ya' : 'Tidak', STATUS_PILL[a._st]?.label,
+  ].map(esc).join(','))
+  const blob = new Blob(['﻿' + [head.map(esc).join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `agenda-usc-${new Date().toISOString().slice(0, 10)}.csv`
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 export default function AgendaManagePage() {
   const { agenda, loading: agendaLoading, error: agendaError, addAgenda, updateAgenda, deleteAgenda, refreshAgenda } = useAgenda()
   const { success, error: showError } = useToast()
@@ -1025,11 +699,11 @@ export default function AgendaManagePage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [jenisFilter, setJenisFilter] = useState('all')
   const [pimpinanOnlyFilter, setPimpinanOnlyFilter] = useState(false)
-  const [viewMode, setViewMode] = useState('card')
+  const [viewMode, setViewMode] = useState('list')
   const [currentPage, setCurrentPage] = useState(1)
   const [userRole, setUserRole] = useState('admin')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
-  
+
   useEffect(() => {
     // Get user role from session
     try {
@@ -1044,52 +718,53 @@ export default function AgendaManagePage() {
       console.error('Error reading user role:', e)
     }
   }, [])
-  
+
+  // Halaman kembali ke 1 setiap filter berubah
+  useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, jenisFilter, pimpinanOnlyFilter])
+
   const canEdit = ['super_admin', 'admin'].includes(userRole)
 
-  const now = new Date()
+  const withStatus = useMemo(() => agenda.map(item => ({
+    ...item,
+    _st: getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai),
+  })), [agenda])
 
   // Calculate stats
-  const stats = useMemo(() => {
-    const total = agenda.length
-    const upcoming = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
-      return status === 'upcoming' || status === 'upcoming_soon'
-    }).length
-    const ongoing = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
-      return status === 'ongoing'
-    }).length
-    const completed = agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
-      return status === 'completed'
-    }).length
-    return { total, upcoming, ongoing, completed }
-  }, [agenda])
+  const stats = useMemo(() => ({
+    all: withStatus.length,
+    upcoming: withStatus.filter(i => i._st === 'upcoming' || i._st === 'upcoming_soon').length,
+    ongoing: withStatus.filter(i => i._st === 'ongoing').length,
+    completed: withStatus.filter(i => i._st === 'completed').length,
+  }), [withStatus])
 
-  // Filter agenda
+  // Filter agenda — yang aktif urut terdekat dulu, yang sudah selesai di
+  // belakang (terbaru dulu), supaya arsip tidak menutupi agenda mendatang.
   const filteredAgenda = useMemo(() => {
-    return agenda.filter(item => {
-      const matchesSearch = item.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.lokasi?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.penyelenggara?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.pic?.toLowerCase().includes(searchQuery.toLowerCase())
-      
+    const q = searchQuery.toLowerCase()
+    const start = (a) => toAgendaDateTime(a.tanggal_mulai, a.waktu_mulai)
+    return withStatus.filter(item => {
+      const matchesSearch = !q ||
+        item.judul.toLowerCase().includes(q) ||
+        item.lokasi?.toLowerCase().includes(q) ||
+        item.penyelenggara?.toLowerCase().includes(q) ||
+        item.pic?.toLowerCase().includes(q)
+
       const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter
-
-      const matchesPimpinan = !pimpinanOnlyFilter || item.dihadiri_pimpinan || item.jenis === 'pimpinan'
-
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai, item.waktu_mulai, item.waktu_selesai)
+      const matchesPimpinan = !pimpinanOnlyFilter || isPimpinan(item)
       const matchesStatus = statusFilter === 'all' ||
-        (statusFilter === 'upcoming' && (status === 'upcoming' || status === 'upcoming_soon')) ||
-        status === statusFilter
+        (statusFilter === 'upcoming' && (item._st === 'upcoming' || item._st === 'upcoming_soon')) ||
+        item._st === statusFilter
 
       return matchesSearch && matchesJenis && matchesPimpinan && matchesStatus
-    }).sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
-  }, [agenda, searchQuery, jenisFilter, pimpinanOnlyFilter, statusFilter])
+    }).sort((a, b) => {
+      const ad = a._st === 'completed', bd = b._st === 'completed'
+      if (ad !== bd) return ad ? 1 : -1
+      return ad ? start(b) - start(a) : start(a) - start(b)
+    })
+  }, [withStatus, searchQuery, jenisFilter, pimpinanOnlyFilter, statusFilter])
 
   // Pagination
-  const totalPages = Math.ceil(filteredAgenda.length / ITEMS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(filteredAgenda.length / ITEMS_PER_PAGE))
   const paginatedAgenda = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE
     return filteredAgenda.slice(start, start + ITEMS_PER_PAGE)
@@ -1160,11 +835,6 @@ export default function AgendaManagePage() {
       <>
         <SkeletonStyles />
         <SkeletonStatGrid count={4} />
-        <div className="toolbar">
-          <div>
-            <SkeletonCardList count={1} />
-          </div>
-        </div>
         <SkeletonCardList count={6} />
       </>
     );
@@ -1172,263 +842,111 @@ export default function AgendaManagePage() {
 
   if (agendaError) {
     return (
-      <EmptyStateError 
+      <EmptyStateError
         message={agendaError}
         onRetry={refreshAgenda}
       />
     )
   }
 
+  const firstShown = filteredAgenda.length ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0
+  const lastShown = Math.min(currentPage * ITEMS_PER_PAGE, filteredAgenda.length)
+
   return (
-    <div>
-      {/* Stats Section */}
-      <div className="stats-grid mb-6">
-        <StatCard
-          label="Total Agenda"
-          value={stats.total}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-          }
-          color="var(--primary)"
-        />
-        <StatCard
-          label="Akan Datang"
-          value={stats.upcoming}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <circle cx="12" cy="12" r="10" />
-              <polyline points="12 6 12 12 16 14" />
-            </svg>
-          }
-          color="var(--primary)"
-        />
-        <StatCard
-          label="Berlangsung"
-          value={stats.ongoing}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-          }
-          color="var(--success)"
-        />
-        <StatCard
-          label="Selesai"
-          value={stats.completed}
-          icon={
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.25rem', height: '1.25rem' }}>
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-              <line x1="16" y1="13" x2="8" y2="13" />
-              <line x1="16" y1="17" x2="8" y2="17" />
-              <polyline points="10 9 9 9 8 9" />
-            </svg>
-          }
-          color="var(--text-3)"
-        />
-      </div>
-
+    <div className="ka">
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header" style={{ marginBottom: 0 }}>
         <div className="page-title-wrap">
-          <h1 className="page-title">Daftar Agenda</h1>
-          <p className="page-subtitle">Kelola dan pantau jadwal kegiatan USC.</p>
+          <h1 className="page-title">Kelola Agenda</h1>
+          <p className="page-subtitle">Agenda direktorat &amp; unit kerja — tampil otomatis di TV Internal, dan di TV Publik bila ditandai.</p>
         </div>
-        {canEdit && (
-          <div className="page-actions">
-            <button className="btn btn-primary" onClick={handleAddNew}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Tambah Agenda
+        <div className="page-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => exportCsv(filteredAgenda)} disabled={!filteredAgenda.length}>
+            {Icon.download}Ekspor
+          </button>
+          {canEdit && (
+            <button type="button" className="btn btn-primary" onClick={handleAddNew}>
+              {Icon.plus}Buat Agenda
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* Filters */}
-      <div className="card mb-4">
-        <div className="card-body">
-          <div className="toolbar" style={{ marginBottom: 0 }}>
-            <SearchInput
-              placeholder="Cari agenda, lokasi, penyelenggara..."
-              value={searchQuery}
-              onChange={setSearchQuery}
-              recentSearchesKey="agenda_search"
-              style={{ maxWidth: '20rem' }}
-            />
-
-            <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
-              <select
-                className="select"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                style={{ width: 'auto' }}
-              >
-                {STATUS_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-
-              <select
-                className="select"
-                value={jenisFilter}
-                onChange={(e) => setJenisFilter(e.target.value)}
-                style={{ width: 'auto' }}
-              >
-                {JENIS_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-
-              <button
-                type="button"
-                onClick={() => setPimpinanOnlyFilter(v => !v)}
-                className="btn btn-sm"
-                aria-pressed={pimpinanOnlyFilter}
-                style={{
-                  height: 44,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  background: pimpinanOnlyFilter ? 'var(--danger-bg)' : 'var(--surface-2)',
-                  color: pimpinanOnlyFilter ? 'var(--danger)' : 'var(--text-2)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                  <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
-                </svg>
-                Dihadiri Pimpinan
-              </button>
-
-              <div className="flex" style={{ background: 'var(--surface-2)', borderRadius: 'var(--radius)', padding: '0.25rem' }}>
-                <button
-                  onClick={() => setViewMode('card')}
-                  className="btn icon-only"
-                  style={{ 
-                    background: viewMode === 'card' ? 'var(--surface)' : 'transparent',
-                    boxShadow: viewMode === 'card' ? 'var(--shadow-sm)' : 'none',
-                    color: viewMode === 'card' ? 'var(--primary)' : 'var(--text-2)'
-                  }}
-                  title="Card View"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-                    <rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setViewMode('table')}
-                  className="btn icon-only"
-                  style={{ 
-                    background: viewMode === 'table' ? 'var(--surface)' : 'transparent',
-                    boxShadow: viewMode === 'table' ? 'var(--shadow-sm)' : 'none',
-                    color: viewMode === 'table' ? 'var(--primary)' : 'var(--text-2)'
-                  }}
-                  title="Table View"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
-                    <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
-                    <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              {hasFilters && (
-                <button className="btn btn-ghost" onClick={clearFilters}>
-                  Reset
-                </button>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
 
-      {/* Results Info */}
-      <p className="muted" style={{ fontSize: '0.8125rem', marginBottom: '1rem' }}>
-        Menampilkan <strong>{filteredAgenda.length}</strong> dari <strong>{agenda.length}</strong> agenda
-      </p>
+      {/* Kartu statistik = filter status */}
+      <div className="ka-stats" role="tablist" aria-label="Filter status">
+        {STATUS_TABS.map(s => {
+          const on = statusFilter === s.value
+          return (
+            <button key={s.value} type="button" role="tab" aria-selected={on} onClick={() => setStatusFilter(s.value)} className={`ka-stat ${on ? 'active' : ''}`}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 600, opacity: .85 }}>{s.label}</span>
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: on ? 'var(--usc-yellow)' : s.dot }} />
+              </div>
+              <span className="ka-stat-n">{stats[s.value]}</span>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* Content */}
-      {filteredAgenda.length === 0 ? (
-        <>
-          {hasFilters ? (
-            searchQuery ? (
-              <EmptyStateSearch 
-                query={searchQuery} 
-                onClear={() => { setSearchQuery(''); setCurrentPage(1); }}
-              />
-            ) : (
-              <EmptyStateFilter onClear={clearFilters} />
-            )
+      <div className="card" style={{ overflow: 'hidden' }}>
+        {/* Toolbar */}
+        <div className="ka-toolbar">
+          <div className="ka-search">
+            {Icon.search}
+            <input type="search" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Cari judul, lokasi, penyelenggara…" aria-label="Cari agenda" />
+          </div>
+          <div className="seg" role="group" aria-label="Jenis kegiatan">
+            {JENIS_OPTIONS.map(o => (
+              <button key={o.value} type="button" className={jenisFilter === o.value ? 'active' : ''} aria-pressed={jenisFilter === o.value} onClick={() => setJenisFilter(o.value)}>{o.label}</button>
+            ))}
+          </div>
+          <button type="button" onClick={() => setPimpinanOnlyFilter(v => !v)} aria-pressed={pimpinanOnlyFilter} className="ka-chip"
+            style={pimpinanOnlyFilter ? { background: 'var(--danger-50)', color: 'var(--danger)', borderColor: 'transparent' } : undefined}>
+            {Icon.person}Dihadiri pimpinan
+          </button>
+          {hasFilters && <button type="button" className="btn btn-ghost btn-sm" onClick={clearFilters}>Reset</button>}
+          <div style={{ flex: 1 }} />
+          <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{filteredAgenda.length} dari {agenda.length} agenda</span>
+          <div className="ka-view" role="group" aria-label="Tampilan">
+            <button type="button" aria-label="Tampilan daftar" aria-pressed={viewMode === 'list'} className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>{Icon.list}</button>
+            <button type="button" aria-label="Tampilan tabel" aria-pressed={viewMode === 'table'} className={viewMode === 'table' ? 'active' : ''} onClick={() => setViewMode('table')}>{Icon.table}</button>
+          </div>
+        </div>
+
+        {/* Content */}
+        {filteredAgenda.length === 0 ? (
+          hasFilters ? (
+            <div style={{ padding: '56px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600 }}>Tidak ada agenda yang cocok</span>
+              <span style={{ fontSize: 14, color: 'var(--text-3)' }}>Ubah kata kunci atau filter.</span>
+              <button type="button" className="btn btn-secondary" onClick={clearFilters} style={{ marginTop: 6 }}>Hapus semua filter</button>
+            </div>
           ) : (
             <EmptyStateAgenda onAddNew={handleAddNew} canEdit={canEdit} />
-          )}
-        </>
-      ) : (
-        <>
-          {viewMode === 'card' ? (
-            <div className="agenda-cards-container">
-              {paginatedAgenda.map((item, index) => (
-                <AgendaCard
-                  key={item.id}
-                  item={item}
-                  index={(currentPage - 1) * ITEMS_PER_PAGE + index}
-                  canEdit={canEdit}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
+          )
+        ) : (
+          <>
+            <div className={viewMode === 'table' ? 'ka-only-mobile' : undefined}>
+              <AgendaList items={paginatedAgenda} canEdit={canEdit} onEdit={handleEdit} onDelete={handleDelete} />
             </div>
-          ) : (
-            <div className="agenda-table-view-desktop">
-              <AgendaTable
-                items={paginatedAgenda}
-                canEdit={canEdit}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
+            {viewMode === 'table' && (
+              <div className="ka-only-desktop">
+                <AgendaTable items={paginatedAgenda} canEdit={canEdit} onEdit={handleEdit} onDelete={handleDelete} />
+              </div>
+            )}
+            <div className="ka-pager">
+              <span style={{ fontSize: 13.5, color: 'var(--text-2)' }}>Menampilkan {firstShown}–{lastShown} dari {filteredAgenda.length}</span>
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                    <button key={n} type="button" onClick={() => setCurrentPage(n)} aria-current={n === currentPage ? 'page' : undefined} className={`ka-page ${n === currentPage ? 'active' : ''}`}>{n}</button>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-          
-          {/* Mobile fallback for table view - show cards instead */}
-          {viewMode === 'table' && (
-            <div className="agenda-table-view-mobile">
-              {paginatedAgenda.map((item, index) => (
-                <AgendaCard
-                  key={item.id}
-                  item={item}
-                  index={(currentPage - 1) * ITEMS_PER_PAGE + index}
-                  canEdit={canEdit}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              totalItems={filteredAgenda.length}
-              itemsPerPage={ITEMS_PER_PAGE}
-            />
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       {showModal && (
         <AgendaModal item={editingItem} onSave={handleSave} onClose={() => { setShowModal(false); setEditingItem(null) }} isSaving={operationLoading} />

@@ -155,7 +155,7 @@ export default function RabForm({ initialHeader, initialCategories, onSubmit, sa
                           <td style={{ padding: '0.375rem', width: 160 }}>
                             <input className="input" type="number" min="0" step="0.01" value={item.harga_satuan} onChange={(e) => updateItem(catIndex, itemIndex, 'harga_satuan', e.target.value)} required />
                           </td>
-                          <td style={{ padding: '0.375rem', whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{formatRupiah(rowTotal)}</td>
+                          <td style={{ padding: '0.375rem', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{formatRupiah(rowTotal)}</td>
                           <td style={{ padding: '0.375rem' }}>
                             <button type="button" className="btn btn-ghost icon-only" onClick={() => removeItem(catIndex, itemIndex)} disabled={cat.items.length === 1} aria-label="Hapus item" style={{ color: 'var(--danger)' }}>
                               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -171,7 +171,7 @@ export default function RabForm({ initialHeader, initialCategories, onSubmit, sa
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => addItem(catIndex)}>+ Tambah Item</button>
                 <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>
-                  Subtotal: <span style={{ fontFamily: 'monospace' }}>{formatRupiah(categorySubtotal(cat))}</span>
+                  Subtotal: <span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(categorySubtotal(cat))}</span>
                 </div>
               </div>
             </div>
@@ -182,7 +182,7 @@ export default function RabForm({ initialHeader, initialCategories, onSubmit, sa
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '1.0625rem', fontWeight: 800, borderTop: '2px solid var(--border)', paddingTop: 12 }}>
-            Total RAB:&nbsp;<span style={{ fontFamily: 'monospace' }}>{formatRupiah(grandTotal)}</span>
+            Total RAB:&nbsp;<span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(grandTotal)}</span>
           </div>
         </div>
       </div>

@@ -6,8 +6,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { UsersProvider } from '@/context/UsersContext'
 import { UnitKerjaProvider } from '@/context/UnitKerjaContext'
-import MobileBottomNav from '@/app/components/MobileBottomNav'
+import MobileBottomNav, { MobileMenuSheet } from '@/app/components/MobileBottomNav'
 import ThemeToggle from '@/app/components/ThemeToggle'
+import { WeatherChip } from '@/app/components/Weather'
 import { NAV_ICONS as icons, getSidebarItems, getGroupedSidebarItems, getPaletteItems } from '@/app/components/navConfig'
 
 function CommandPalette({ open, onClose, items, icons }) {
@@ -55,7 +56,7 @@ function CommandPalette({ open, onClose, items, icons }) {
             placeholder="Cari halaman atau fitur..."
             style={{ flex:1, border:'none', outline:'none', fontSize:'0.9375rem', color:'var(--text)', background:'transparent' }}
           />
-          <kbd style={{ fontSize:'0.6875rem', padding:'2px 6px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text-3)', fontFamily:'monospace' }}>ESC</kbd>
+          <kbd style={{ fontSize:'0.6875rem', padding:'2px 6px', background:'var(--surface-2)', border:'1px solid var(--border)', borderRadius:6, color:'var(--text-3)', fontFamily: 'var(--font-mono)' }}>ESC</kbd>
         </div>
         {/* Results */}
         <div style={{ flex:'1 1 auto', minHeight:0, maxHeight:360, overflowY:'auto' }}>
@@ -101,13 +102,13 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [showUserMenu, setShowUserMenu] = useState(false)
   const [showSearch, setShowSearch] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [saranBaru, setSaranBaru] = useState(0)
   const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
   const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
   const pathname = usePathname()
   const sidebarRef = useRef(null)
-  const userMenuRef = useRef(null)
 
   useEffect(() => {
     fetch('/api/app-settings')
@@ -118,6 +119,22 @@ export default function DashboardLayout({ children }) {
       })
       .catch(() => {})
   }, [])
+
+  // Jumlah kritik & saran yang belum ditinjau → badge merah di sidebar
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('simdir_session')
+      if (!s) return
+      const d = JSON.parse(atob(s))
+      fetch('/api/saran', { headers: { authorization: `Bearer ${d.token || d.role || 'session'}` } })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((rows) => Array.isArray(rows) && setSaranBaru(rows.filter((x) => x.status === 'baru').length))
+        .catch(() => {})
+    } catch {}
+  }, [])
+
+  // Tutup sheet menu saat pindah halaman
+  useEffect(() => { setMenuOpen(false) }, [pathname])
 
   // Track mobile viewport
   useEffect(() => {
@@ -137,23 +154,12 @@ export default function DashboardLayout({ children }) {
       }
       if (e.key === 'Escape') {
         if (sidebarOpen) setSidebarOpen(false)
-        setShowUserMenu(false)
+        setMenuOpen(false)
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [sidebarOpen])
-
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handler = (e) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-        setShowUserMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
 
   useEffect(() => {
     const getUser = async () => {
@@ -242,6 +248,8 @@ export default function DashboardLayout({ children }) {
   const items = getSidebarItems(userRole)
   const groupedItems = getGroupedSidebarItems(userRole)
   const paletteItems = getPaletteItems(userRole)
+  const currentItem = items.find(item => item.href === pathname)
+  const currentGroup = groupedItems.find(g => g.items.some(i => i.href === pathname))
 
   return (
     <div className="app-shell">
@@ -271,7 +279,8 @@ export default function DashboardLayout({ children }) {
             <img src={logoUrl} alt={brandName} />
           </div>
           <div className="sidebar-brand-text">
-            <span className="sidebar-brand-name">{brandName}</span>
+            <span className="sidebar-brand-name">SIMDIR</span>
+            <span className="sidebar-brand-sub" title={brandName}>{brandName}</span>
           </div>
         </div>
 
@@ -291,6 +300,9 @@ export default function DashboardLayout({ children }) {
                 >
                   <span className="nav-icon">{icons[item.icon]}</span>
                   <span className="nav-label">{item.label}</span>
+                  {item.key === 'kelola-saran' && saranBaru > 0 && (
+                    <span className="nav-badge" aria-label={`${saranBaru} belum ditinjau`}>{saranBaru}</span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -304,120 +316,67 @@ export default function DashboardLayout({ children }) {
             <div className="user-name truncate">{userName}</div>
             <div className="user-role">{userRole.replace('_', ' ')}</div>
           </div>
+          <button className="logout-btn" onClick={handleLogout} aria-label="Keluar" title="Keluar">
+            <span style={{ width: 17, height: 17, display: 'inline-flex' }}>{icons.logout}</span>
+          </button>
         </div>
-        <button className="logout-btn" onClick={handleLogout}>
-          <span style={{ width: 16, height: 16 }}>{icons.logout}</span>
-          <span>Logout</span>
-        </button>
       </nav>
 
       {/* Main Area */}
       <div className="main-area">
-        {/* Topbar (Desktop + Tablet) */}
+        {/* Topbar (Desktop + Tablet) — Redesign 01: cari · cuaca · tema · notifikasi */}
         <header className="topbar no-print" role="banner">
-          <div className="topbar-title">
-            <span>Home</span>
-            <span className="crumb-sep">/</span>
-            <span className="crumb-current">{items.find(item => item.href === pathname)?.label || 'Dashboard'}</span>
-          </div>
+          {pathname !== '/dashboard' && currentItem && (
+            <div className="topbar-title">
+              {currentGroup && <span>{currentGroup.label}</span>}
+              {currentGroup && <span className="crumb-sep">/</span>}
+              <span className="crumb-current">{currentItem.label}</span>
+            </div>
+          )}
 
           {/* Search — klik untuk buka command palette */}
           <button
             className="topbar-search"
             onClick={() => setShowSearch(true)}
             aria-label="Cari (Ctrl+K)"
-            style={{ cursor: 'text', textAlign: 'left' }}
+            style={{ cursor: 'text', textAlign: 'left', maxWidth: pathname === '/dashboard' ? 460 : 320 }}
           >
             <span className="topbar-search-icon">{icons.search}</span>
-            <span style={{ flex: 1, fontSize: '0.875rem', color: 'var(--text-3)', pointerEvents: 'none' }}>
-              Cari agenda, program, surat...
+            <span style={{ flex: 1, fontSize: 14, color: 'var(--text-3)', pointerEvents: 'none' }}>
+              Cari menu, agenda, invoice…
             </span>
-            <kbd style={{ fontSize: '0.6875rem', padding: '2px 6px', background: 'var(--surface-3)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-3)', fontFamily: 'monospace', flexShrink: 0 }}>
+            <kbd style={{ fontSize: 11.5, padding: '1px 6px', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', flexShrink: 0, background: 'transparent' }}>
               Ctrl K
             </kbd>
           </button>
 
-          {/* Actions */}
           <div className="topbar-actions">
-            <ThemeToggle style={{ borderRadius: 10 }} />
-            <button className="icon-btn" aria-label="Notifikasi">
+            <WeatherChip />
+            <ThemeToggle style={{ width: 40, height: 40, borderRadius: 10, color: 'var(--text)' }} />
+            <button className="icon-btn" aria-label={saranBaru > 0 ? `Notifikasi: ${saranBaru} masukan baru` : 'Notifikasi'} onClick={() => saranBaru > 0 && (window.location.href = '/kelola-saran')}>
               <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
-              <span className="dot" aria-hidden="true" />
+              {saranBaru > 0 && <span className="dot" aria-hidden="true" />}
             </button>
-
-            {/* User menu */}
-            <div ref={userMenuRef} style={{ position: 'relative' }}>
-              <button
-                className="topbar-user"
-                onClick={() => setShowUserMenu(v => !v)}
-                aria-expanded={showUserMenu}
-                aria-label="Menu pengguna"
-              >
-                <div className="topbar-user-avatar">{userInitial}</div>
-                <div className="topbar-user-meta">
-                  <span className="topbar-user-name">{userName}</span>
-                  <span className="topbar-user-role">{userRole.replace('_', ' ')}</span>
-                </div>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, color: 'var(--text-3)', marginLeft: 4, transition: 'transform .15s', transform: showUserMenu ? 'rotate(180deg)' : 'rotate(0)' }}>
-                  <polyline points="6 9 12 15 18 9"/>
-                </svg>
-              </button>
-
-              {showUserMenu && (
-                <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-md)', minWidth: 200, zIndex: 100, animation: 'modalIn .15s ease', overflow: 'hidden' }}>
-                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--surface-2)' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text)' }}>{userName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: 2 }}>{userRole.replace('_', ' ')}</div>
-                  </div>
-                  {userRole === 'super_admin' && (
-                    <Link
-                      href="/pengaturan/users"
-                      onClick={() => setShowUserMenu(false)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', fontSize: '0.875rem', color: 'var(--text)', transition: 'background .12s' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <span style={{ width: 16, height: 16 }}>{icons.settings}</span>
-                      Pengaturan
-                    </Link>
-                  )}
-                  <button
-                    onClick={() => { setShowUserMenu(false); handleLogout() }}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.875rem', color: 'var(--danger)', textAlign: 'left', transition: 'background .12s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-50)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <span style={{ width: 16, height: 16 }}>{icons.logout}</span>
-                    Logout
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
         </header>
 
         {/* Mobile Header (shown on mobile, hidden on desktop/tablet) */}
         <header className="mobile-header no-print" aria-label="Header mobile">
-          <button
-            className="icon-btn"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Buka menu"
-            style={{ width: 40, height: 40 }}
-          >
-            <span style={{ width: 20, height: 20 }}>{icons.menu}</span>
-          </button>
           <div className="mobile-header-brand">
             <div className="mobile-header-brand-mark">
               <img src={logoUrl} alt={brandName} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <div className="mobile-header-title">{brandName}</div>
-              <div className="mobile-header-sub">{items.find(item => item.href === pathname)?.label || 'USC'}</div>
+              <div className="mobile-header-title">SIMDIR</div>
             </div>
           </div>
-          <ThemeToggle style={{ border: 'none', background: 'none' }} />
-          <button className="icon-btn" aria-label="Notifikasi" style={{ width: 40, height: 40 }}>
+          <ThemeToggle style={{ width: 44, height: 44, borderRadius: 12, color: 'var(--text)' }} />
+          <button className="icon-btn" onClick={() => setShowSearch(true)} aria-label="Cari">
+            <span style={{ width: 18, height: 18 }}>{icons.search}</span>
+          </button>
+          <button className="icon-btn" aria-label="Notifikasi" onClick={() => saranBaru > 0 && (window.location.href = '/kelola-saran')}>
             <span style={{ width: 18, height: 18 }}>{icons.bell}</span>
+            {saranBaru > 0 && <span className="dot" aria-hidden="true" />}
           </button>
         </header>
 
@@ -436,22 +395,25 @@ export default function DashboardLayout({ children }) {
         </main>
 
         {/* Footer Credit */}
-        <footer className="no-print" style={{ 
-          padding: '1rem 1.5rem', 
-          borderTop: '1px solid var(--border)',
-          textAlign: 'center',
-          fontSize: '0.75rem',
-          color: 'var(--text-3)',
-          backgroundColor: 'var(--surface)',
-        }}>
+        <footer className="no-print app-credit">
           Made by <strong>Rahmat Iqbal</strong>
         </footer>
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation + sheet "Semua menu" */}
       <MobileBottomNav
         userRole={userRole}
-        onMenuClick={() => setSidebarOpen(true)}
+        menuOpen={menuOpen}
+        onMenuClick={() => setMenuOpen(v => !v)}
+      />
+      <MobileMenuSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        groups={groupedItems}
+        pathname={pathname}
+        userName={userName}
+        userRole={userRole}
+        onLogout={handleLogout}
       />
 
       {/* Sidebar Overlay */}

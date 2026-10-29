@@ -258,7 +258,7 @@ function Tooltip({ step, currentStep, totalSteps, onNext, onPrev, onSkip, onComp
             onClick={currentStep === totalSteps - 1 ? onComplete : onNext}
             style={{
               padding: '0.5rem 1rem',
-              background: 'var(--primary)',
+              background: 'var(--primary-solid)',
               border: 'none',
               borderRadius: 'var(--radius)',
               fontSize: '0.8125rem',

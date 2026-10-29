@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import ThemeToggle from '@/app/components/ThemeToggle'
 import ConfirmModal from '@/app/components/ConfirmModal'
+import PublicShell, { usePublicBrand, todayEyebrow } from '@/app/components/PublicShell'
 
 const KEPERLUAN_LIST = [
   { value: 'kunjungan_kerja', label: 'Kunjungan Kerja' },
@@ -18,36 +18,10 @@ const UNIT_DITUJU_LIST = [
   'ULABK', 'PUI Seni', 'PUI Olahraga', 'Lainnya',
 ]
 
-const inputStyle = {
-  width: '100%', padding: '10px 12px', borderRadius: 10,
-  border: '1px solid var(--border)', background: 'var(--surface)',
-  // 16px eksplisit — di bawah itu Safari iOS auto-zoom saat field
-  // difokuskan, dan halaman ini mengunci zoom manual jadi tidak bisa
-  // dikembalikan sendiri oleh pengunjung.
-  fontSize: '16px', color: 'var(--text)',
-}
-const labelStyle = { display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }
-const errorTextStyle = { margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--danger)' }
+const errorTextStyle = { margin: '6px 0 0', fontSize: 13, color: 'var(--danger)' }
 
 function Req() {
-  return <span style={{ color: 'var(--danger)' }}>*</span>
-}
-
-function PublicHeader({ brandName, logoUrl }) {
-  return (
-    <header style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)', padding: '14px 20px', position: 'sticky', top: 0, zIndex: 100 }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <img src={logoUrl} alt={brandName} width={120} height={32} style={{ height: 32, width: 'auto', maxWidth: 120, objectFit: 'contain', flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--text)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
-            <div style={{ fontSize: '0.6875rem', color: 'var(--text-3)' }}>Buku Tamu Digital</div>
-          </div>
-        </div>
-        <ThemeToggle style={{ flexShrink: 0 }} />
-      </div>
-    </header>
-  )
+  return <span className="pub-req">*</span>
 }
 
 // Signature pad sederhana — opsional, tidak wajib diisi
@@ -143,11 +117,13 @@ function SignaturePad({ onChange }) {
   }
 
   return (
-    <div>
+    <div className="sig-box">
+      <span className="sig-hint" aria-hidden="true">Tanda tangan dengan jari</span>
+      <span className="sig-line" aria-hidden="true" />
       <canvas
         ref={canvasRef}
         aria-label="Area tanda tangan (opsional) — gambar dengan mouse atau jari"
-        style={{ width: '100%', height: 150, borderRadius: 10, border: '1px dashed var(--border-strong)', background: 'var(--surface-2)', touchAction: 'none', cursor: 'crosshair' }}
+        style={{ position: 'relative', width: '100%', height: 130, display: 'block', touchAction: 'none', cursor: 'crosshair' }}
         onMouseDown={start}
         onMouseMove={move}
         onMouseUp={end}
@@ -156,9 +132,7 @@ function SignaturePad({ onChange }) {
         onTouchMove={move}
         onTouchEnd={end}
       />
-      <button type="button" onClick={requestClear} className="btn btn-ghost btn-sm" style={{ marginTop: 6, minHeight: 44 }}>
-        Hapus Tanda Tangan
-      </button>
+      <button type="button" onClick={requestClear} className="sig-clear">Hapus</button>
       <ConfirmModal
         open={confirmClearOpen}
         title="Hapus Tanda Tangan"
@@ -246,7 +220,7 @@ function PhotoCapture({ onChange }) {
   if (previewUrl) {
     return (
       <div>
-        <img src={previewUrl} alt="Preview foto tamu" width={160} height={160} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
+        <img src={previewUrl} alt="Preview foto tamu" width={160} height={160} style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)' }} />
         <div>
           <button type="button" onClick={requestReset} className="btn btn-ghost btn-sm" style={{ marginTop: 6, minHeight: 44 }}>
             Ambil/Upload Ulang
@@ -267,10 +241,10 @@ function PhotoCapture({ onChange }) {
   if (cameraOn) {
     return (
       <div>
-        <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxWidth: 320, borderRadius: 10, border: '1px solid var(--border)', background: '#000' }} />
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <button type="button" onClick={capture} className="btn btn-primary btn-sm" style={{ minHeight: 44 }}>Jepret</button>
-          <button type="button" onClick={stopCamera} className="btn btn-ghost btn-sm" style={{ minHeight: 44 }}>Batal</button>
+        <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', background: '#000' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+          <button type="button" onClick={capture} className="btn btn-primary" style={{ minHeight: 48 }}>Jepret</button>
+          <button type="button" onClick={stopCamera} className="btn btn-secondary" style={{ minHeight: 48 }}>Batal</button>
         </div>
       </div>
     )
@@ -278,9 +252,15 @@ function PhotoCapture({ onChange }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button type="button" onClick={startCamera} className="btn btn-outline btn-sm" style={{ minHeight: 44 }}>Ambil Foto</button>
-        <button type="button" onClick={() => fileInputRef.current?.click()} className="btn btn-outline btn-sm" style={{ minHeight: 44 }}>Upload dari Galeri</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <button type="button" onClick={startCamera} className="pub-tile-btn">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+          Ambil foto
+        </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()} className="pub-tile-btn">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>
+          Dari galeri
+        </button>
       </div>
       <input ref={fileInputRef} type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleFileChange} style={{ display: 'none' }} />
       {cameraError && (
@@ -291,17 +271,7 @@ function PhotoCapture({ onChange }) {
 }
 
 export default function DaftarTamuPage() {
-  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
-  const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
-  useEffect(() => {
-    fetch('/api/app-settings')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.brand_name) setBrandName(data.brand_name)
-        if (data.logo_url) setLogoUrl(data.logo_url)
-      })
-      .catch(() => {})
-  }, [])
+  const { brandName, logoUrl } = usePublicBrand()
 
   const [form, setForm] = useState({
     nama_lengkap: '', instansi: '', telepon: '', email: '', keperluan: '', keperluan_detail: '',
@@ -411,195 +381,174 @@ export default function DaftarTamuPage() {
     return () => clearTimeout(timer)
   }, [submitted, countdown])
 
-  const pageStyle = {
-    minHeight: '100vh', display: 'flex', flexDirection: 'column',
-    background: 'var(--surface-2)',
-  }
+  const shell = { title: brandName, subtitle: 'Buku Tamu Digital', logoUrl }
+  const rombongan = Math.max(1, parseInt(form.jumlah_rombongan, 10) || 1)
 
   if (submitted) {
     return (
-      <div style={pageStyle}>
-        <PublicHeader brandName={brandName} logoUrl={logoUrl} />
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px' }}>
-          <div style={{ maxWidth: 460, width: '100%', background: 'var(--surface)', borderRadius: 20, padding: '40px 28px', textAlign: 'center', boxShadow: 'var(--shadow-md)' }}>
-            <div style={{ width: 64, height: 64, background: 'var(--success-50)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 28 }}>✓</div>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>Terima kasih!</h2>
-            <p style={{ color: 'var(--text-2)', fontSize: '0.9375rem', marginBottom: 24 }}>
-              Kunjungan Anda telah tercatat. Selamat datang di {brandName}.
-            </p>
-            <button className="btn btn-primary" onClick={resetForm}>Isi Buku Tamu Lagi</button>
-            <p style={{ margin: '16px 0 0', fontSize: '0.75rem', color: 'var(--text-3)' }} aria-live="polite">
-              Kembali ke form kosong otomatis dalam {countdown} detik…
-            </p>
-          </div>
+      <PublicShell {...shell}>
+        <div className="pub-success">
+          <span className="pub-success-icon"><svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg></span>
+          <h1 className="pub-h">Terima kasih!</h1>
+          <p className="pub-lede">Kunjungan Anda tercatat. Selamat datang di {brandName}.</p>
+          <button type="button" className="pub-ghost" onClick={resetForm} style={{ minHeight: 50, marginTop: 8 }}>Isi untuk tamu berikutnya</button>
+          <span className="mono" style={{ fontSize: 12.5, color: 'var(--text-3)' }} aria-live="polite">Form kosong otomatis dalam {countdown} detik</span>
         </div>
-      </div>
+      </PublicShell>
     )
   }
 
   return (
-    <div style={pageStyle}>
-      <PublicHeader brandName={brandName} logoUrl={logoUrl} />
-      <div style={{ flex: 1, padding: '32px 16px' }}>
-        <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <h1 style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Buku Tamu Digital</h1>
-          <p style={{ color: 'var(--text-2)', fontSize: '0.9375rem', marginBottom: 24 }}>
-            Silakan isi data kunjungan Anda.
-          </p>
+    <PublicShell {...shell}>
+      <form onSubmit={handleSubmit} noValidate className="pub-form" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div className="pub-body">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span className="eyebrow" style={{ fontSize: 11.5 }} suppressHydrationWarning>{todayEyebrow()}</span>
+            <h1 className="pub-h">Selamat datang.</h1>
+            <p className="pub-lede">Isi data kunjungan Anda — kurang dari satu menit.</p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="card" noValidate>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              <div>
-                <label htmlFor="nama_lengkap" style={labelStyle}>Nama Lengkap <Req /></label>
-                <input
-                  ref={namaLengkapRef}
-                  id="nama_lengkap"
-                  name="name"
-                  autoComplete="name"
-                  style={inputStyle}
-                  value={form.nama_lengkap}
-                  onChange={(e) => set('nama_lengkap', e.target.value)}
-                  placeholder="Nama Anda"
-                  aria-invalid={!!fieldErrors.nama_lengkap}
-                  aria-describedby={fieldErrors.nama_lengkap ? 'err-nama_lengkap' : undefined}
-                />
-                {fieldErrors.nama_lengkap && <p id="err-nama_lengkap" style={errorTextStyle}>{fieldErrors.nama_lengkap}</p>}
-              </div>
+          <div>
+            <label htmlFor="nama_lengkap">Nama lengkap <Req /></label>
+            <input
+              ref={namaLengkapRef}
+              id="nama_lengkap"
+              name="name"
+              autoComplete="name"
+              value={form.nama_lengkap}
+              onChange={(e) => set('nama_lengkap', e.target.value)}
+              placeholder="Nama Anda"
+              aria-invalid={!!fieldErrors.nama_lengkap}
+              aria-describedby={fieldErrors.nama_lengkap ? 'err-nama_lengkap' : undefined}
+            />
+            {fieldErrors.nama_lengkap && <p id="err-nama_lengkap" style={errorTextStyle}>{fieldErrors.nama_lengkap}</p>}
+          </div>
 
-              <div>
-                <label htmlFor="instansi" style={labelStyle}>Instansi / Asal <Req /></label>
-                <input
-                  ref={instansiRef}
-                  id="instansi"
-                  name="organization"
-                  autoComplete="organization"
-                  style={inputStyle}
-                  value={form.instansi}
-                  onChange={(e) => set('instansi', e.target.value)}
-                  placeholder="Nama instansi, atau 'Perorangan'"
-                  aria-invalid={!!fieldErrors.instansi}
-                  aria-describedby={fieldErrors.instansi ? 'err-instansi' : undefined}
-                />
-                {fieldErrors.instansi && <p id="err-instansi" style={errorTextStyle}>{fieldErrors.instansi}</p>}
-              </div>
+          <div>
+            <label htmlFor="instansi">Instansi / asal <Req /></label>
+            <input
+              ref={instansiRef}
+              id="instansi"
+              name="organization"
+              autoComplete="organization"
+              value={form.instansi}
+              onChange={(e) => set('instansi', e.target.value)}
+              placeholder="Nama instansi, atau Perorangan"
+              aria-invalid={!!fieldErrors.instansi}
+              aria-describedby={fieldErrors.instansi ? 'err-instansi' : undefined}
+            />
+            {fieldErrors.instansi && <p id="err-instansi" style={errorTextStyle}>{fieldErrors.instansi}</p>}
+          </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-                <div>
-                  <label htmlFor="telepon" style={labelStyle}>No. HP {!form.email.trim() && <Req />}</label>
-                  <input
-                    ref={teleponRef}
-                    id="telepon"
-                    name="tel"
-                    type="tel"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    style={inputStyle}
-                    value={form.telepon}
-                    onChange={(e) => set('telepon', e.target.value)}
-                    placeholder="08xxxxxxxxxx"
-                    aria-invalid={!!fieldErrors.telepon_email}
-                    aria-describedby="err-telepon_email"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" style={labelStyle}>Email {!form.telepon.trim() && <Req />}</label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    spellCheck={false}
-                    style={inputStyle}
-                    value={form.email}
-                    onChange={(e) => set('email', e.target.value)}
-                    placeholder="email@contoh.com"
-                    aria-invalid={!!fieldErrors.telepon_email}
-                    aria-describedby="err-telepon_email"
-                  />
-                </div>
-              </div>
-              <p id="err-telepon_email" style={{ margin: '-10px 0 0', fontSize: '0.75rem', color: fieldErrors.telepon_email ? 'var(--danger)' : 'var(--text-3)' }}>
-                {fieldErrors.telepon_email || 'Isi minimal salah satu (No. HP atau Email).'}
-              </p>
+          <fieldset className="pub-fieldset">
+            <legend>Kontak <Req /> <span className="pub-opt">· isi salah satu</span></legend>
+            <input
+              ref={teleponRef}
+              id="telepon"
+              name="tel"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={form.telepon}
+              onChange={(e) => set('telepon', e.target.value)}
+              placeholder="No. HP — 08xxxxxxxxxx"
+              aria-label="Nomor HP"
+              aria-invalid={!!fieldErrors.telepon_email}
+              aria-describedby="err-telepon_email"
+            />
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              spellCheck={false}
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+              placeholder="Email — email@contoh.com"
+              aria-label="Email"
+              aria-invalid={!!fieldErrors.telepon_email}
+              aria-describedby="err-telepon_email"
+            />
+            {fieldErrors.telepon_email && <p id="err-telepon_email" style={{ ...errorTextStyle, margin: 0 }}>{fieldErrors.telepon_email}</p>}
+          </fieldset>
 
-              <div>
-                <label htmlFor="keperluan" style={labelStyle}>Keperluan Kunjungan <Req /></label>
-                <select
-                  ref={keperluanRef}
-                  id="keperluan"
-                  name="keperluan"
-                  style={inputStyle}
-                  value={form.keperluan}
-                  onChange={(e) => set('keperluan', e.target.value)}
-                  aria-invalid={!!fieldErrors.keperluan}
-                  aria-describedby={fieldErrors.keperluan ? 'err-keperluan' : undefined}
+          <fieldset className="pub-fieldset" aria-describedby={fieldErrors.keperluan ? 'err-keperluan' : undefined}>
+            <legend>Keperluan kunjungan <Req /></legend>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }} role="radiogroup" aria-label="Keperluan kunjungan">
+              {KEPERLUAN_LIST.map((k, i) => (
+                <button
+                  key={k.value}
+                  ref={i === 0 ? keperluanRef : undefined}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.keperluan === k.value}
+                  className={`chip ${form.keperluan === k.value ? 'active' : ''}`}
+                  onClick={() => set('keperluan', k.value)}
                 >
-                  <option value="">Pilih keperluan…</option>
-                  {KEPERLUAN_LIST.map((k) => <option key={k.value} value={k.value}>{k.label}</option>)}
-                </select>
-                {fieldErrors.keperluan && <p id="err-keperluan" style={errorTextStyle}>{fieldErrors.keperluan}</p>}
-              </div>
-
-              {form.keperluan === 'lainnya' && (
-                <div>
-                  <label htmlFor="keperluan_detail" style={labelStyle}>Keterangan Keperluan</label>
-                  <input id="keperluan_detail" name="keperluan_detail" autoComplete="off" style={inputStyle} value={form.keperluan_detail} onChange={(e) => set('keperluan_detail', e.target.value)} placeholder="Jelaskan keperluan kunjungan Anda" />
-                </div>
-              )}
-
-              <div>
-                <label htmlFor="unit_dituju" style={labelStyle}>Unit/Fasilitas yang Dituju <Req /></label>
-                <select
-                  ref={unitDitujuRef}
-                  id="unit_dituju"
-                  name="unit_dituju"
-                  style={inputStyle}
-                  value={form.unit_dituju}
-                  onChange={(e) => set('unit_dituju', e.target.value)}
-                  aria-invalid={!!fieldErrors.unit_dituju}
-                  aria-describedby={fieldErrors.unit_dituju ? 'err-unit_dituju' : undefined}
-                >
-                  <option value="">Pilih unit/fasilitas…</option>
-                  {UNIT_DITUJU_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
-                </select>
-                {fieldErrors.unit_dituju && <p id="err-unit_dituju" style={errorTextStyle}>{fieldErrors.unit_dituju}</p>}
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14 }}>
-                <div>
-                  <label htmlFor="nama_ditemui" style={labelStyle}>Nama yang Ditemui <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(opsional)</span></label>
-                  <input id="nama_ditemui" name="nama_ditemui" autoComplete="off" style={inputStyle} value={form.nama_ditemui} onChange={(e) => set('nama_ditemui', e.target.value)} placeholder="Nama pihak yang dituju" />
-                </div>
-                <div>
-                  <label htmlFor="jumlah_rombongan" style={labelStyle}>Jumlah Rombongan <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(opsional)</span></label>
-                  <input id="jumlah_rombongan" name="jumlah_rombongan" type="number" inputMode="numeric" autoComplete="off" min="1" style={inputStyle} value={form.jumlah_rombongan} onChange={(e) => set('jumlah_rombongan', e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Tanda Tangan <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(opsional)</span></label>
-                <SignaturePad onChange={setTandaTangan} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Foto <span style={{ color: 'var(--text-3)', fontWeight: 400 }}>(opsional)</span></label>
-                <PhotoCapture onChange={setFoto} />
-              </div>
-
-              {error && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--danger-50)', border: '1px solid var(--danger-100)', borderRadius: 10, color: 'var(--danger)', fontSize: '0.875rem' }}>
-                  {error}
-                </div>
-              )}
+                  {k.label}
+                </button>
+              ))}
             </div>
-            <div className="modal-foot">
-              <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-                {loading ? 'Menyimpan…' : 'Simpan Data Kunjungan'}
-              </button>
+            {form.keperluan === 'lainnya' && (
+              <input id="keperluan_detail" name="keperluan_detail" autoComplete="off" value={form.keperluan_detail} onChange={(e) => set('keperluan_detail', e.target.value)} placeholder="Jelaskan keperluan Anda" aria-label="Keterangan keperluan" />
+            )}
+            {fieldErrors.keperluan && <p id="err-keperluan" style={{ ...errorTextStyle, margin: 0 }}>{fieldErrors.keperluan}</p>}
+          </fieldset>
+
+          <div>
+            <label htmlFor="unit_dituju">Unit / fasilitas yang dituju <Req /></label>
+            <select
+              ref={unitDitujuRef}
+              id="unit_dituju"
+              name="unit_dituju"
+              value={form.unit_dituju}
+              onChange={(e) => set('unit_dituju', e.target.value)}
+              aria-invalid={!!fieldErrors.unit_dituju}
+              aria-describedby={fieldErrors.unit_dituju ? 'err-unit_dituju' : undefined}
+            >
+              <option value="">Pilih unit/fasilitas…</option>
+              {UNIT_DITUJU_LIST.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+            {fieldErrors.unit_dituju && <p id="err-unit_dituju" style={errorTextStyle}>{fieldErrors.unit_dituju}</p>}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 140px', gap: 10, alignItems: 'end' }}>
+            <div style={{ minWidth: 0 }}>
+              <label htmlFor="nama_ditemui">Bertemu dengan</label>
+              <input id="nama_ditemui" name="nama_ditemui" autoComplete="off" value={form.nama_ditemui} onChange={(e) => set('nama_ditemui', e.target.value)} placeholder="Opsional" />
             </div>
-          </form>
+            <div>
+              <label id="lbl-romb">Rombongan</label>
+              <div className="stepper" role="group" aria-labelledby="lbl-romb">
+                <button type="button" aria-label="Kurangi" onClick={() => set('jumlah_rombongan', String(Math.max(1, rombongan - 1)))} disabled={rombongan <= 1}>−</button>
+                <span className="mono" aria-live="polite">{rombongan}</span>
+                <button type="button" aria-label="Tambah" onClick={() => set('jumlah_rombongan', String(rombongan + 1))}>+</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label>Tanda tangan <span className="pub-opt">· opsional</span></label>
+            <SignaturePad onChange={setTandaTangan} />
+          </div>
+
+          <div>
+            <label>Foto <span className="pub-opt">· opsional</span></label>
+            <PhotoCapture onChange={setFoto} />
+          </div>
+
+          {error && (
+            <div role="alert" style={{ padding: '12px 14px', background: 'var(--danger-50)', borderRadius: 12, color: 'var(--danger)', fontSize: 14, fontWeight: 600 }}>
+              {error}
+            </div>
+          )}
         </div>
-      </div>
-    </div>
+        <div className="pub-dock">
+          <button type="submit" className="pub-cta" disabled={loading}>
+            {loading ? 'Menyimpan…' : 'Simpan data kunjungan'}
+          </button>
+        </div>
+      </form>
+    </PublicShell>
   )
 }

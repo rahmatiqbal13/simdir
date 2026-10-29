@@ -4,21 +4,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import ThemeToggle from '@/app/components/ThemeToggle'
 
-// Logo instansi — diambil dari pengaturan (fallback ke logo default)
-const InstansiLogo = ({ logoUrl, brandName }) => (
-  <img
-    src={logoUrl}
-    alt={brandName}
-    style={{
-      height: '100%',
-      width: 'auto',
-      maxWidth: '100%',
-      objectFit: 'contain',
-      filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'
-    }}
-  />
-)
-
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -91,95 +76,40 @@ export default function LoginPage() {
 
   return (
     <div className="login-shell">
-      <ThemeToggle style={{ position: 'fixed', top: 'calc(16px + env(safe-area-inset-top))', right: 'calc(16px + env(safe-area-inset-right))', zIndex: 10 }} />
-      {/* Left Side - Branding (hidden on mobile) */}
+      {/* Kiri — panel navy dengan cincin kuning (disembunyikan di HP) */}
       <div className="login-aside">
-        <div className="login-aside-content">
-          {/* Brand mark + name */}
-          <div className="row-flex" style={{ gap: 14 }}>
-            <div style={{ height: 48, display: 'flex', alignItems: 'center' }}>
-              <InstansiLogo logoUrl={logoUrl} brandName={brandName} />
-            </div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 260, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
-          </div>
-
-          {/* Headline */}
-          <div style={{ maxWidth: 460 }}>
-            <h1 style={{
-              fontSize: '2.5rem', fontWeight: 800,
-              letterSpacing: '-0.022em', lineHeight: 1.1,
-              marginBottom: 16
-            }}>
-              Sistem Informasi <br /> Direktorat <span style={{ color: 'var(--accent)' }}>USC</span>
-            </h1>
-            <p style={{ fontSize: '1rem', opacity: 0.8, lineHeight: 1.6 }}>
-              Kelola agenda, penilaian fasilitas, kritik &amp; saran, dan laporan
-              direktorat dalam satu platform terintegrasi.
-            </p>
-
-            {/* Feature chips */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 32, flexWrap: 'wrap' }}>
-              {[
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>, label: 'Agenda Pintar' },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>, label: 'Penilaian Fasilitas' },
-                { icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>, label: 'E-Invoice' },
-              ].map(({ icon, label }) => (
-                <div key={label} style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '8px 14px',
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  borderRadius: 999,
-                  fontSize: '0.8125rem', fontWeight: 600
-                }}>
-                  {icon}
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ fontSize: '0.75rem', opacity: 0.55 }}>
-            © 2026 Direktorat Unesa Science Center · v2.0
+        <div className="login-brand">
+          <img src={logoUrl} alt={brandName} className="login-brand-logo" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+            <span className="login-brand-name">SIMDIR</span>
+            <span className="login-brand-sub">{brandName}</span>
           </div>
         </div>
+        <div className="login-pitch">
+          <h1 className="login-headline">Agenda, layanan &amp; keuangan direktorat — satu tempat.</h1>
+          <p className="login-lede">Masuk untuk mengelola agenda, TV display, masukan publik, dan dokumen keuangan.</p>
+        </div>
+        <div className="login-status"><span className="login-status-dot" />Sistem normal · Made by Rahmat Iqbal</div>
       </div>
 
-      {/* Right Side - Login Form */}
+      {/* Kanan — formulir */}
       <div className="login-form-wrap">
-        <div className="login-form">
-          {/* Mobile-only brand header */}
-          <div className="hide-desktop" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
-              <InstansiLogo logoUrl={logoUrl} brandName={brandName} />
-            </div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.25, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
+        <div className="login-topbar">
+          <div className="login-mobile-brand hide-desktop">
+            <img src={logoUrl} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19 }}>SIMDIR</span>
           </div>
-
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 6 }}>Selamat datang kembali</h2>
-          <p className="muted" style={{ fontSize: '0.9375rem', marginBottom: 28 }}>Masuk dengan akun direktorat Anda.</p>
-
-          {/* Credit */}
-          <div style={{ 
-            fontSize: '0.6875rem', 
-            color: 'var(--text-3)', 
-            marginBottom: 20,
-            padding: '8px 12px',
-            backgroundColor: 'var(--surface-2)',
-            borderRadius: '8px',
-            textAlign: 'center',
-          }}>
-            Made by <strong>Rahmat Iqbal</strong>
+          <ThemeToggle style={{ width: 40, height: 40, borderRadius: 10, color: 'var(--text)', marginLeft: 'auto' }} />
+        </div>
+        <div className="login-form">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <h2 className="login-title">Masuk</h2>
+            <p className="muted" style={{ fontSize: 15, margin: 0 }}>Gunakan akun yang diberikan admin direktorat.</p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div
-              className="alert alert-danger"
-              role="alert"
-              aria-live="polite"
-              style={{ marginBottom: 20 }}
-            >
+            <div className="alert alert-danger" role="alert" aria-live="polite">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16, flexShrink: 0 }}>
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
@@ -189,77 +119,49 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} noValidate>
-            <div className="field mb-4">
-              <label className="field-label" htmlFor="identifier">Email</label>
-              <div className="input-group">
-                <svg className="input-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                  <polyline points="22,6 12,13 2,6"/>
-                </svg>
-                <input
-                  type="email"
-                  id="identifier"
-                  name="identifier"
-                  className="input"
-                  placeholder="email@usc.ac.id"
-                  value={formData.identifier}
-                  onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                  required
-                  autoComplete="email"
-                  spellCheck={false}
-                  inputMode="email"
-                  disabled={loading}
-                />
-              </div>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <div className="field">
+              <label className="field-label" htmlFor="identifier">Email atau username</label>
+              <input
+                type="text"
+                id="identifier"
+                name="identifier"
+                placeholder="nama@unesa.ac.id"
+                value={formData.identifier}
+                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                required
+                autoComplete="username"
+                autoCapitalize="none"
+                spellCheck={false}
+                disabled={loading}
+                style={{ height: 48 }}
+              />
             </div>
 
-            <div className="field mb-4">
-              <div className="row-flex-between">
-                <label className="field-label" htmlFor="password">Kata Sandi</label>
-              </div>
-              <div className="input-group" style={{ position: 'relative' }}>
-                <svg className="input-group-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
+            <div className="field">
+              <label className="field-label" htmlFor="password">Kata sandi</label>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
-                  className="input"
-                  placeholder="Masukkan kata sandi"
+                  placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
                   autoComplete="current-password"
                   spellCheck={false}
                   disabled={loading}
-                  style={{ paddingRight: 44 }}
+                  style={{ height: 48, paddingRight: 84 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                   disabled={loading}
-                  style={{
-                    position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)',
-                    width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'none', border: 0, color: 'var(--text-3)', cursor: 'pointer', padding: 0
-                  }}
+                  style={{ position: 'absolute', right: 4, width: 76, height: 40, border: 0, background: 'transparent', color: 'var(--text-2)', font: '600 12.5px var(--font-sans)', cursor: 'pointer' }}
                 >
-                  {showPassword ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  )}
+                  {showPassword ? 'Sembunyikan' : 'Tampilkan'}
                 </button>
               </div>
             </div>
@@ -268,7 +170,7 @@ export default function LoginPage() {
               type="submit"
               className="btn btn-primary"
               disabled={loading}
-              style={{ width: '100%', height: 44, fontSize: '0.9375rem', boxShadow: '0 4px 14px rgba(30,58,138,0.25)' }}
+              style={{ width: '100%', minHeight: 50, fontSize: 15.5, fontWeight: 700 }}
               aria-busy={loading}
             >
               {loading ? (
@@ -276,10 +178,19 @@ export default function LoginPage() {
                   <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2, borderTopColor: 'white' }} aria-hidden="true" />
                   Memproses...
                 </>
-              ) : 'Masuk ke SIMDIR'}
+              ) : 'Masuk'}
             </button>
           </form>
 
+          <div className="login-public">
+            <span className="eyebrow" style={{ fontSize: 11.5, letterSpacing: '.1em' }}>Halaman publik</span>
+            <div className="login-public-grid">
+              <a href="/daftar-tamu">Buku Tamu</a>
+              <a href="/kritik-saran">Kritik &amp; Saran</a>
+              <a href="/penilaian">Penilaian Fasilitas</a>
+              <a href="/agenda">Agenda publik</a>
+            </div>
+          </div>
         </div>
       </div>
     </div>

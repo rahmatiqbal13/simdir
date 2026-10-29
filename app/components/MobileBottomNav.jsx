@@ -1,124 +1,92 @@
 'use client'
 
 /**
- * Mobile Bottom Navigation
- * Menyediakan navigasi bottom untuk mobile devices
+ * Mobile Bottom Navigation (Redesign 01)
+ * 3 item utama per role + tombol "Menu" yang membuka sheet "Semua menu".
  */
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { NAV_ICONS, getBottomNavItems } from './navConfig'
 
-export default function MobileBottomNav({ userRole = 'admin', onMenuClick }) {
+export default function MobileBottomNav({ userRole = 'admin', onMenuClick, menuOpen = false }) {
   const pathname = usePathname()
   const items = getBottomNavItems(userRole)
 
   return (
-    <nav
-      className="mobile-bottom-nav no-print"
-      role="navigation"
-      aria-label="Navigasi mobile"
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-        padding: '0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom))',
-        zIndex: 90,
-        display: 'none' // Hidden by default, shown on mobile via media query
-      }}
-    >
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-        maxWidth: '480px',
-        margin: '0 auto'
-      }}>
-        {items.map((item) => {
-          const isActive = pathname === item.href
-
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`bottom-nav-item ${isActive ? 'active' : ''}`}
-              aria-current={isActive ? 'page' : undefined}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.5rem 0.75rem',
-                textDecoration: 'none',
-                color: isActive ? 'var(--primary)' : 'var(--text-2)',
-                fontSize: '0.75rem',
-                fontWeight: isActive ? 600 : 500,
-                minWidth: '60px',
-                transition: 'all 0.2s',
-                borderRadius: 'var(--radius)',
-                background: isActive ? 'var(--primary-bg)' : 'transparent',
-                position: 'relative'
-              }}
-            >
-              <span style={{ width: '1.5rem', height: '1.5rem' }}>
-                {NAV_ICONS[item.icon]}
-              </span>
-              <span>{item.shortLabel}</span>
-              {isActive && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '-0.5rem',
-                    width: '20px',
-                    height: '3px',
-                    background: 'var(--primary)',
-                    borderRadius: '0 0 2px 2px'
-                  }}
-                  aria-hidden="true"
-                />
-              )}
-            </Link>
-          )
-        })}
-
-        <button
-          onClick={onMenuClick}
-          className="bottom-nav-item"
-          aria-label="Buka menu lengkap"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '0.25rem',
-            padding: '0.5rem 0.75rem',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--text-2)',
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            minWidth: '60px',
-            transition: 'all 0.2s',
-            borderRadius: 'var(--radius)'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--primary)'
-            e.currentTarget.style.background = 'var(--primary-bg)'
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-2)'
-            e.currentTarget.style.background = 'none'
-          }}
-        >
-          <span style={{ width: '1.5rem', height: '1.5rem' }}>
-            {NAV_ICONS.menu}
-          </span>
-          <span>Menu</span>
-        </button>
-      </div>
+    <nav className="mbn no-print" aria-label="Navigasi mobile">
+      {items.map((item) => {
+        const isActive = pathname === item.href
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`mbn-item ${isActive && !menuOpen ? 'active' : ''}`}
+            aria-current={isActive ? 'page' : undefined}
+          >
+            <span className="mbn-icon">{NAV_ICONS[item.icon]}</span>
+            <span>{item.shortLabel}</span>
+          </Link>
+        )
+      })}
+      <button
+        type="button"
+        onClick={onMenuClick}
+        className={`mbn-item ${menuOpen ? 'active' : ''}`}
+        aria-label="Buka semua menu"
+        aria-expanded={menuOpen}
+      >
+        <span className="mbn-icon">{NAV_ICONS.menu}</span>
+        <span>Menu</span>
+      </button>
     </nav>
+  )
+}
+
+// Sheet bawah berisi seluruh menu per grup (2 kolom), menggantikan drawer
+// sidebar di HP.
+export function MobileMenuSheet({ open, onClose, groups, pathname, userName, userRole, onLogout }) {
+  if (!open) return null
+  return (
+    <>
+      <div className="menu-sheet-backdrop no-print" onClick={onClose} aria-hidden="true" />
+      <div className="menu-sheet no-print" role="dialog" aria-modal="true" aria-label="Semua menu">
+        <span className="menu-sheet-grip" aria-hidden="true" />
+        <div className="menu-sheet-head">
+          <span className="menu-sheet-title">Semua menu</span>
+          <button type="button" className="pub-icon-btn" onClick={onClose} aria-label="Tutup menu" style={{ fontSize: 20 }}>×</button>
+        </div>
+        {groups.map((g) => (
+          <div className="menu-sheet-group" key={g.key}>
+            <span className="menu-sheet-label">{g.label}</span>
+            <div className="menu-sheet-grid">
+              {g.items.map((it) => (
+                <Link
+                  key={it.href}
+                  href={it.href}
+                  onClick={onClose}
+                  className={`menu-sheet-link ${pathname === it.href ? 'active' : ''}`}
+                  aria-current={pathname === it.href ? 'page' : undefined}
+                >
+                  {NAV_ICONS[it.icon]}
+                  <span>{it.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+        <div className="menu-sheet-foot">
+          <div className="user-avatar">{(userName || 'U').charAt(0).toUpperCase()}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }} className="truncate">{userName}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', textTransform: 'capitalize' }}>{(userRole || '').replace('_', ' ')}</div>
+          </div>
+          <button type="button" className="btn btn-danger btn-sm" onClick={onLogout} style={{ minHeight: 44 }}>
+            <span style={{ width: 16, height: 16, display: 'inline-flex' }}>{NAV_ICONS.logout}</span>
+            Keluar
+          </button>
+        </div>
+      </div>
+    </>
   )
 }

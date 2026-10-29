@@ -100,10 +100,10 @@ export default function KwitansiListPage() {
                 <tr><td colSpan={7} className="text-center muted" style={{ padding: '2rem' }}>Belum ada kwitansi</td></tr>
               ) : filtered.map((item) => (
                 <tr key={item.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{item.nomor_kwitansi}</td>
+                  <td style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{item.nomor_kwitansi}</td>
                   <td className="num muted" style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{formatDate(item.tanggal)}</td>
                   <td>{item.terima_dari}</td>
-                  <td className="num" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{formatRupiah(item.jumlah)}</td>
+                  <td className="num" style={{ whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{formatRupiah(item.jumlah)}</td>
                   <td style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.untuk_pembayaran}</td>
                   <td>
                     {item.invoice ? (

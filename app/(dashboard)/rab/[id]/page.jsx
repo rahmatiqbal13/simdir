@@ -119,22 +119,22 @@ export default function RabDetailPage() {
                             <td style={{ padding: '0.5rem 0.625rem' }}>{it.uraian}</td>
                             <td style={{ padding: '0.5rem 0.625rem' }}>{it.volume}</td>
                             <td style={{ padding: '0.5rem 0.625rem' }}>{it.satuan || '-'}</td>
-                            <td style={{ padding: '0.5rem 0.625rem', fontFamily: 'monospace' }}>{formatRupiah(it.harga_satuan)}</td>
-                            <td style={{ padding: '0.5rem 0.625rem', fontFamily: 'monospace' }}>{formatRupiah(it.total)}</td>
+                            <td style={{ padding: '0.5rem 0.625rem', fontFamily: 'var(--font-mono)' }}>{formatRupiah(it.harga_satuan)}</td>
+                            <td style={{ padding: '0.5rem 0.625rem', fontFamily: 'var(--font-mono)' }}>{formatRupiah(it.total)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                   <div style={{ textAlign: 'right', fontWeight: 700, marginTop: 8, fontSize: '0.875rem' }}>
-                    Subtotal: <span style={{ fontFamily: 'monospace' }}>{formatRupiah(subtotal)}</span>
+                    Subtotal: <span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(subtotal)}</span>
                   </div>
                 </div>
               );
             })}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '1.0625rem', fontWeight: 800, borderTop: '2px solid var(--border)', paddingTop: 12 }}>
-              Total RAB:&nbsp;<span style={{ fontFamily: 'monospace' }}>{formatRupiah(grandTotal)}</span>
+              Total RAB:&nbsp;<span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(grandTotal)}</span>
             </div>
           </div>
         </div>

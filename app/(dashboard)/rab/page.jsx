@@ -117,10 +117,10 @@ export default function RabListPage() {
                 <tr><td colSpan={6} className="text-center muted" style={{ padding: '2rem' }}>Belum ada RAB</td></tr>
               ) : filtered.map((item) => (
                 <tr key={item.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{item.nomor_rab}</td>
+                  <td style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{item.nomor_rab}</td>
                   <td>{item.nama_kegiatan}</td>
                   <td className="num" style={{ whiteSpace: 'nowrap' }}>{item.tahun_anggaran}</td>
-                  <td className="num" style={{ whiteSpace: 'nowrap', fontFamily: 'monospace' }}>{formatRupiah(totalOf(item))}</td>
+                  <td className="num" style={{ whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{formatRupiah(totalOf(item))}</td>
                   <td className="num muted" style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{formatDate(item.tanggal)}</td>
                   <td className="text-right">
                     <div style={{ display: 'inline-flex', gap: 8 }}>

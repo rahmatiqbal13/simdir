@@ -135,10 +135,10 @@ export default function KelolaSaranPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
-          { label: 'Total Masuk',   value: stats.total,      bg: '#eff6ff', color: '#1e3a8a' },
-          { label: 'Belum Dibaca',  value: stats.baru,       bg: '#fef2f2', color: '#dc2626' },
-          { label: 'Permohonan',    value: stats.permohonan, bg: '#f0fdf4', color: '#16a34a' },
-          { label: 'Selesai',       value: stats.selesai,    bg: '#fefce8', color: '#b45309' },
+          { label: 'Total Masuk',   value: stats.total,      bg: 'var(--info-50)', color: 'var(--primary)' },
+          { label: 'Belum Dibaca',  value: stats.baru,       bg: 'var(--danger-50)', color: 'var(--danger)' },
+          { label: 'Permohonan',    value: stats.permohonan, bg: 'var(--success-50)', color: 'var(--success)' },
+          { label: 'Selesai',       value: stats.selesai,    bg: 'var(--warning-50)', color: 'var(--warning)' },
         ].map(s => (
           <div key={s.label} style={{ background: 'var(--surface)', borderRadius: 12, padding: '1.25rem', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: '1.75rem', fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -159,7 +159,7 @@ export default function KelolaSaranPage() {
         </select>
         <button
           onClick={() => { setFilterJenis(''); setFilterStatus('') }}
-          style={{ ...selectStyle, cursor: 'pointer', background: 'var(--surface)' }}
+          style={{ ...selectStyle, cursor: 'pointer', background: 'var(--surface)', color: 'var(--text)', fontWeight: 600 }}
         >Reset</button>
       </div>
 

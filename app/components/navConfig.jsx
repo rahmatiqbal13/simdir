@@ -180,8 +180,7 @@ export const NAV_GROUPS = [
   { key: 'agenda-publikasi', label: 'Agenda & Publikasi' },
   { key: 'layanan-publik', label: 'Layanan Publik' },
   { key: 'keuangan-dokumen', label: 'Keuangan & Dokumen' },
-  { key: 'laporan', label: 'Laporan' },
-  { key: 'pengaturan', label: 'Pengaturan' },
+  { key: 'laporan', label: 'Laporan & Pengaturan' },
 ]
 
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.
@@ -200,11 +199,11 @@ export const ALL_NAV_ITEMS = [
   { key: 'memo', href: '/memo', label: 'Memo Pimpinan', shortLabel: 'Memo', icon: 'memo', roles: ['super_admin', 'pimpinan'], group: 'keuangan-dokumen' },
   { key: 'pemasukan-unit-usaha', href: '/pemasukan-unit-usaha', label: 'Pemasukan Unit Usaha', shortLabel: 'Unit Usaha', icon: 'wallet', roles: ['super_admin', 'admin_keuangan'], group: 'keuangan-dokumen' },
   { key: 'laporan', href: '/laporan', label: 'Laporan', shortLabel: 'Laporan', icon: 'chart', roles: ['super_admin', 'admin_keuangan', 'pimpinan'], group: 'laporan' },
-  { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'], group: 'pengaturan' },
-  { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'], group: 'pengaturan' },
-  { key: 'pengaturan-pimpinan', href: '/pengaturan/pimpinan', label: 'Data Pimpinan', shortLabel: 'Pimpinan', icon: 'person', roles: ['super_admin'], group: 'pengaturan' },
-  { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'], group: 'pengaturan' },
-  { key: 'pengaturan-metode-pembayaran', href: '/pengaturan/metode-pembayaran', label: 'Metode Pembayaran', shortLabel: 'Pembayaran', icon: 'qr', roles: ['super_admin'], group: 'pengaturan' },
+  { key: 'pengaturan-users', href: '/pengaturan/users', label: 'Pengaturan Pengguna', shortLabel: 'Pengaturan', icon: 'settings', roles: ['super_admin'], group: 'laporan' },
+  { key: 'pengaturan-unit-kerja', href: '/pengaturan/unit-kerja', label: 'Unit Kerja', shortLabel: 'Unit Kerja', icon: 'building', roles: ['super_admin'], group: 'laporan' },
+  { key: 'pengaturan-pimpinan', href: '/pengaturan/pimpinan', label: 'Data Pimpinan', shortLabel: 'Pimpinan', icon: 'person', roles: ['super_admin'], group: 'laporan' },
+  { key: 'pengaturan-branding', href: '/pengaturan/branding', label: 'Nama Instansi & Logo', shortLabel: 'Branding', icon: 'image', roles: ['super_admin'], group: 'laporan' },
+  { key: 'pengaturan-metode-pembayaran', href: '/pengaturan/metode-pembayaran', label: 'Metode Pembayaran', shortLabel: 'Pembayaran', icon: 'qr', roles: ['super_admin'], group: 'laporan' },
 ]
 
 // Urutan tampil di sidebar desktop, per role.

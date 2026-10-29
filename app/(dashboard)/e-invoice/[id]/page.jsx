@@ -247,7 +247,7 @@ export default function InvoiceDetailPage() {
             <div style={{ display: 'grid', gap: '1rem' }}>
               <div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-3)' }}>Nomor Invoice</div>
-                <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>{invoice.nomor_invoice}</div>
+                <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>{invoice.nomor_invoice}</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -334,11 +334,11 @@ export default function InvoiceDetailPage() {
                       <td>{index + 1}</td>
                       <td>{item.deskripsi}</td>
                       <td style={{ textAlign: 'center' }}>{item.quantity}{item.satuan ? ` ${item.satuan}` : ''}</td>
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{formatRupiah(item.harga_satuan)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)' }}>{formatRupiah(item.harga_satuan)}</td>
                       {hasDiskon && (
                         <td style={{ textAlign: 'center' }}>{(item.diskon_persen || 0) > 0 ? `${item.diskon_persen}%` : '-'}</td>
                       )}
-                      <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 500 }}>{formatRupiah(item.total)}</td>
+                      <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 500 }}>{formatRupiah(item.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -357,24 +357,24 @@ export default function InvoiceDetailPage() {
             <div style={{ maxWidth: '400px', marginLeft: 'auto' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
                 <span style={{ color: 'var(--text-2)' }}>Subtotal</span>
-                <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.subtotal)}</span>
+                <span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(invoice.subtotal)}</span>
               </div>
               {invoice.ppn_nilai > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
                   <span style={{ color: 'var(--text-2)' }}>PPN ({invoice.ppn_persen}%)</span>
-                  <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.ppn_nilai)}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(invoice.ppn_nilai)}</span>
                 </div>
               )}
               {invoice.diskon_nilai > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
                   <span style={{ color: 'var(--text-2)' }}>Diskon</span>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--danger)' }}>-{formatRupiah(invoice.diskon_nilai)}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--danger)' }}>-{formatRupiah(invoice.diskon_nilai)}</span>
                 </div>
               )}
               {invoice.biaya_pengiriman > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0' }}>
                   <span style={{ color: 'var(--text-2)' }}>Biaya Pengiriman</span>
-                  <span style={{ fontFamily: 'monospace' }}>{formatRupiah(invoice.biaya_pengiriman)}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{formatRupiah(invoice.biaya_pengiriman)}</span>
                 </div>
               )}
               <div style={{ 
@@ -385,7 +385,7 @@ export default function InvoiceDetailPage() {
                 marginTop: '0.5rem',
               }}>
                 <span style={{ fontWeight: 700, fontSize: '1.125rem' }}>TOTAL</span>
-                <span style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'monospace' }}>
+                <span style={{ fontWeight: 700, fontSize: '1.25rem', color: 'var(--primary)', fontFamily: 'var(--font-mono)' }}>
                   {formatRupiah(invoice.total)}
                 </span>
               </div>

@@ -3,169 +3,12 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
-import { UNIT_COLORS } from './unit-colors'
-import { MONTHS, MONTHS_L, DAYS, formatTime, getAgendaStatus, sortActiveAgenda, DARK, LIGHT, useStageScale, useTheme, useClock } from './shared'
-import AgendaTvTable from './AgendaTvTable'
+import { MONTHS, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
+import { useWeather } from '@/app/components/Weather'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading } from './TvKit'
 
-// ============ WEATHER ICON COMPONENT ============
-function WeatherIcon({ code, size = '1.8vw', color = '#f5b915' }) {
-  const s = { width: size, height: size, display: 'block' }
-  // Map WMO code to SVG
-  const svgs = {
-    // Clear / Sunny
-    0: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-      </svg>
-    ),
-    // Mainly clear
-    1: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M12 2v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M19.78 4.22l-1.42 1.42"/><circle cx="12" cy="9" r="3.5" fill={color} fillOpacity="0.15"/>
-      </svg>
-    ),
-    // Partly cloudy
-    2: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M12 2v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M19.78 4.22l-1.42 1.42"/><path d="M17.5 12a5.5 5.5 0 0 0-5-3.5"/><circle cx="12" cy="9" r="2.5" fill={color} fillOpacity="0.15"/>
-      </svg>
-    ),
-    // Overcast
-    3: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 19c0-3.037-2.463-5.5-5.5-5.5S6.5 15.963 6.5 19"/><path d="M17.5 19h-11"/><path d="M18 13a6 6 0 0 0-6-6"/><path d="M6 13a6 6 0 0 1 6-6"/><rect x="8" y="10" width="8" height="4" rx="2" fill={color} fillOpacity="0.1"/>
-      </svg>
-    ),
-    // Fog
-    45: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M4 14h16"/><path d="M4 18h16"/><path d="M4 10h16"/><path d="M6 6h12"/><path d="M8 14l2-4"/><path d="M14 14l-2-4"/>
-      </svg>
-    ),
-    48: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M4 14h16"/><path d="M4 18h16"/><path d="M4 10h16"/><path d="M6 6h12"/><path d="M8 14l2-4"/><path d="M14 14l-2-4"/>
-      </svg>
-    ),
-    // Drizzle
-    51: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 17c0-3.037-2.463-5.5-5.5-5.5S6.5 13.963 6.5 17"/><path d="M17.5 17h-11"/><path d="M8 20l-1 2"/><path d="M12 20v2"/><path d="M16 20l1 2"/>
-      </svg>
-    ),
-    53: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 17c0-3.037-2.463-5.5-5.5-5.5S6.5 13.963 6.5 17"/><path d="M17.5 17h-11"/><path d="M7 20l-1 2"/><path d="M10 20l-1 2"/><path d="M13 20v2"/><path d="M16 20l1 2"/><path d="M19 20l1 2"/>
-      </svg>
-    ),
-    55: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M6 19l-1 2"/><path d="M9 19l-1 2"/><path d="M12 19v2"/><path d="M15 19l1 2"/><path d="M18 19l1 2"/><path d="M21 19l1 2"/>
-      </svg>
-    ),
-    // Rain
-    61: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M8 19l-2 3"/><path d="M12 19l-2 3"/><path d="M16 19l-2 3"/>
-      </svg>
-    ),
-    63: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 15c0-3.037-2.463-5.5-5.5-5.5S6.5 11.963 6.5 15"/><path d="M17.5 15h-11"/><path d="M7 18l-2 3"/><path d="M10 18l-2 3"/><path d="M13 18l-2 3"/><path d="M16 18l-2 3"/><path d="M19 18l-2 3"/>
-      </svg>
-    ),
-    65: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M6 17l-2 3"/><path d="M9 17l-2 3"/><path d="M12 17l-2 3"/><path d="M15 17l-2 3"/><path d="M18 17l-2 3"/><path d="M21 17l-2 3"/>
-      </svg>
-    ),
-    // Rain showers
-    80: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 16c0-3.037-2.463-5.5-5.5-5.5S6.5 12.963 6.5 16"/><path d="M17.5 16h-11"/><path d="M8 19l-2 3"/><path d="M12 19l-2 3"/><path d="M16 19l-2 3"/>
-      </svg>
-    ),
-    81: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 15c0-3.037-2.463-5.5-5.5-5.5S6.5 11.963 6.5 15"/><path d="M17.5 15h-11"/><path d="M7 18l-2 3"/><path d="M10 18l-2 3"/><path d="M13 18l-2 3"/><path d="M16 18l-2 3"/><path d="M19 18l-2 3"/>
-      </svg>
-    ),
-    // Heavy rain showers
-    82: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 13c0-3.037-2.463-5.5-5.5-5.5S6.5 9.963 6.5 13"/><path d="M17.5 13h-11"/><path d="M5 16l-2 3"/><path d="M8 16l-2 3"/><path d="M11 16l-2 3"/><path d="M14 16l-2 3"/><path d="M17 16l-2 3"/><path d="M20 16l-2 3"/><path d="M23 16l-2 3"/>
-      </svg>
-    ),
-    // Thunderstorm
-    95: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M11 17l-2 3h3l-1 3"/><path d="M15 17l-2 3"/>
-      </svg>
-    ),
-    96: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 14c0-3.037-2.463-5.5-5.5-5.5S6.5 10.963 6.5 14"/><path d="M17.5 14h-11"/><path d="M11 17l-2 3h3l-1 3"/><path d="M15 17l-2 3"/>
-      </svg>
-    ),
-    99: (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <path d="M17.5 13c0-3.037-2.463-5.5-5.5-5.5S6.5 9.963 6.5 13"/><path d="M17.5 13h-11"/><path d="M10 16l-2 3h3l-1 3"/><path d="M14 16l-2 3h3l-1 3"/><path d="M18 16l-2 3"/>
-      </svg>
-    ),
-  }
-
-  // Fallback for unknown codes
-  if (!svgs[code]) {
-    return (
-      <svg viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={s}>
-        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
-      </svg>
-    )
-  }
-  return svgs[code]
-}
-
-// ============ WMO WEATHER CODES ============
-const WMO = {
-  0: { label: 'Cerah' },
-  1: { label: 'Cerah Berawan' },
-  2: { label: 'Berawan Sebagian' },
-  3: { label: 'Berawan' },
-  45: { label: 'Berkabut' },
-  48: { label: 'Kabut' },
-  51: { label: 'Gerimis Ringan' },
-  53: { label: 'Gerimis' },
-  55: { label: 'Gerimis Lebat' },
-  61: { label: 'Hujan Ringan' },
-  63: { label: 'Hujan Sedang' },
-  65: { label: 'Hujan Lebat' },
-  80: { label: 'Hujan Ringan' },
-  81: { label: 'Hujan' },
-  82: { label: 'Hujan Deras' },
-  95: { label: 'Badai Petir' },
-  96: { label: 'Badai Petir' },
-  99: { label: 'Badai Hebat' },
-}
-
-function useWeather() {
-  const [weather, setWeather] = useState(null)
-  const fetch_ = useCallback(async () => {
-    if (typeof window === 'undefined') return
-    try {
-      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-7.3076&longitude=112.6748&current=temperature_2m,weather_code&timezone=Asia%2FJakarta')
-      if (!r.ok) throw new Error()
-      const d = await r.json()
-      setWeather({ temp: Math.round(d.current.temperature_2m), code: d.current.weather_code })
-    } catch { setWeather(null) }
-  }, [])
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    fetch_()
-    const id = setInterval(fetch_, 10 * 60 * 1000)
-    return () => clearInterval(id)
-  }, [fetch_])
-  return weather
-}
+const ROWS_PER_PAGE = 4
+const ROTATE_SEC = 15
 
 // ============ NETWORK STATUS ============
 function useNetworkStatus() {
@@ -185,7 +28,7 @@ function useNetworkStatus() {
 }
 
 // ============ MEDIA ROTATOR ============
-const MediaRotator = ({ t }) => {
+const MediaRotator = ({ p, onState }) => {
   const [idx, setIdx]             = useState(0)
   const [fading, setFading]       = useState(false)
   const [imgErr, setImgErr]       = useState(false)
@@ -415,62 +258,57 @@ const MediaRotator = ({ t }) => {
 
   const total = playlist.length
 
+  // Laporkan item aktif ke induk (judul, indeks, durasi) untuk bar segmen
+  // dan keterangan di bawah media.
+  const onStateRef = useRef(onState)
+  useEffect(() => { onStateRef.current = onState }, [onState])
+  useEffect(() => {
+    onStateRef.current?.({ idx: total ? idx % total : 0, total, cur, startedAt: Date.now() })
+  }, [idx, total, cur])
+
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: p.video }}>
+      {!cur && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, color: p.ink4 }}>
+          <svg viewBox="0 0 24 24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 19, letterSpacing: '.06em' }}>BELUM ADA MEDIA · ATUR DI TV PAMFLET</span>
+        </div>
+      )}
       {cur?.type === 'youtube' && (
-        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease' }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease', background: '#000' }}>
           <div id="yt-tv-player" style={{ width: '100%', height: '100%' }} />
         </div>
       )}
       {cur?.type === 'image' && (
-        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', background: t.card }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {imgErr ? (
-            <div style={{ color: t.text3, textAlign: 'center', fontSize: 14 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>🖼️</div>
-              Gambar tidak ditemukan
+            <div style={{ color: p.ink4, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 19, letterSpacing: '.06em' }}>
+              GAMBAR TIDAK DITEMUKAN
             </div>
           ) : (
             <img src={cur.src} alt={cur.title} onError={() => setImgErr(true)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           )}
         </div>
       )}
-      {total > 1 && (
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, display: 'flex', gap: 2 }}>
-          {playlist.map((_, i) => (
-            <div key={i} style={{ flex: 1, height: '100%', background: i === (idx % total) ? '#f5b915' : 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
-          ))}
-        </div>
+      {cur && (
+        <span style={{ position: 'absolute', top: 24, left: 24, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, letterSpacing: '.08em', padding: '6px 14px', borderRadius: 8, background: '#f5b915', color: '#0a1430' }}>
+          {cur.type === 'youtube' ? 'VIDEO' : 'PAMFLET'}
+        </span>
       )}
     </div>
   )
 }
 
 // ============ HALAMAN UTAMA ============
+// TV Publik (Redesign 02 · 2a): agenda terbuka di kiri (40%), media di kanan
+// (60%), ticker INFO di bawah. Hanya agenda bertanda "Tampilkan di TV Publik".
 export default function AgendaTVPage() {
   const scale                 = useStageScale()
-  const { isDark, t, toggle } = useTheme()
+  const { isDark, toggle }    = useTheme()
+  const p                     = isDark ? TV_DARK : TV_LIGHT
   const now                   = useClock()
   const weather               = useWeather()
   const isOnline              = useNetworkStatus()
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-    try {
-      const link = document.createElement('link')
-      link.rel  = 'stylesheet'
-      link.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap'
-      document.head?.appendChild?.(link)
-      return () => { 
-        try { 
-          if (document.head?.contains?.(link)) {
-            document.head?.removeChild?.(link) 
-          }
-        } catch {} 
-      }
-    } catch (err) {
-      console.warn('Font loading error:', err)
-    }
-  }, [])
 
   const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
   const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
@@ -505,22 +343,45 @@ export default function AgendaTVPage() {
     finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { 
+  useEffect(() => {
     if (typeof window !== 'undefined') {
-      load() 
+      load()
     }
   }, [load])
-  
-  useEffect(() => { 
+
+  useEffect(() => {
     if (typeof window === 'undefined') return
-    const id = setInterval(load, 300000); 
-    return () => clearInterval(id) 
+    const id = setInterval(load, 300000);
+    return () => clearInterval(id)
   }, [load])
 
   const filtered = useMemo(() => sortActiveAgenda(agenda), [agenda])
 
-  // Keyboard shortcuts (fullscreen, theme toggle — page navigation is handled
-  // inside AgendaTvTable, which owns its own currentPage state)
+  // Rotasi halaman agenda tiap ROTATE_SEC detik
+  const [page, setPage] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+  const pages = Math.max(1, Math.ceil(filtered.length / ROWS_PER_PAGE))
+  const pagesRef = useRef(pages)
+  pagesRef.current = pages
+  useEffect(() => {
+    const id = setInterval(() => {
+      setElapsed(e => {
+        if (e + 1 >= ROTATE_SEC) { setPage(pg => (pg + 1) % pagesRef.current); return 0 }
+        return e + 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [])
+  const pg = page % pages
+  const rows = filtered.slice(pg * ROWS_PER_PAGE, pg * ROWS_PER_PAGE + ROWS_PER_PAGE)
+
+  // Status media aktif (dilaporkan MediaRotator) untuk segmen & keterangan
+  const [media, setMedia] = useState({ idx: 0, total: 0, cur: null, startedAt: Date.now() })
+  const mediaPct = media.cur?.type === 'image' && media.cur.duration
+    ? Math.min(100, ((now ? now.getTime() : Date.now()) - media.startedAt) / media.cur.duration * 100)
+    : 100
+
+  // Keyboard shortcuts: F = fullscreen, T = tema, ←/→ = halaman agenda
   useEffect(() => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return
     const handler = (e) => {
@@ -537,257 +398,147 @@ export default function AgendaTVPage() {
         }
       }
       if (e.key === 't' || e.key === 'T') toggle()
+      if (e.key === 'ArrowRight') { setPage(x => x + 1); setElapsed(0) }
+      if (e.key === 'ArrowLeft') { setPage(x => x - 1 + pagesRef.current); setElapsed(0) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [toggle])
 
   const marqueeText = useMemo(() => {
-    const ongoing  = filtered.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing')
-    const upcoming = filtered.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'ongoing').slice(0, 5)
-    const parts = []
-    ongoing.forEach(a => parts.push(`[BERLANGSUNG] ${a.judul} di ${a.lokasi || '—'}`))
-    upcoming.forEach(a => {
-      const d = new Date(a.tanggal_mulai)
-      parts.push(`[AGENDA] ${d.getDate()} ${MONTHS[d.getMonth()]} ${formatTime(a.waktu_mulai)} — ${a.judul} (${a.lokasi || '—'})`)
-    })
-    parts.push('[INFO] Untuk info lengkap, kunjungi SIMDIR atau hubungi Sekretariat USC')
-    return parts.map(p => `${p}  •  `).join('') + parts.map(p => `${p}  •  `).join('')
+    const parts = filtered
+      .filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'upcoming')
+      .map(a => {
+        const d = new Date(a.tanggal_mulai)
+        return `${a.judul} — ${d.getDate()} ${MONTHS[d.getMonth()]}${a.waktu_mulai ? `, ${a.waktu_mulai.slice(0, 5).replace(':', '.')}` : ''}${a.lokasi ? `, ${a.lokasi}` : ''}`
+      })
+    parts.push('Pindai QR di layar untuk kritik & saran atau menilai fasilitas kami')
+    parts.push('Agenda lengkap: kunjungi halaman /agenda')
+    return parts.join('     ◆     ')
   }, [filtered])
 
-  const hh        = now ? String(now.getHours()).padStart(2, '0')   : '--'
-  const mm        = now ? String(now.getMinutes()).padStart(2, '0') : '--'
-  const dateShort = now ? `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS_L[now.getMonth()]} ${now.getFullYear()}` : '—'
-  const dateLong  = dateShort
-
-  const wInfo = weather ? (WMO[weather.code] || { label: 'Tidak Diketahui' }) : null
-
   // Show loading only if no data cached yet
-  if (loading && agenda.length === 0) {
-    return (
-      <div style={{ height: '100vh', background: '#0a1228', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
-        <div style={{ width: 80, height: 80, borderRadius: 16, background: 'linear-gradient(135deg,#f5b915,#d97706)', display: 'grid', placeItems: 'center', color: '#0f172a', fontWeight: 900, fontSize: 32 }}>
-          S
-        </div>
-        <p style={{ color: '#64748b', fontSize: 18 }}>Memuat agenda...</p>
-      </div>
-    )
-  }
-
+  if (loading && agenda.length === 0) return <TvLoading />
   // Show fatal error only if truly no data
-  if (error && agenda.length === 0) {
-    return (
-      <div style={{ height: '100vh', background: '#0a1228', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24 }}>
-        <div style={{ width: 80, height: 80, borderRadius: 16, background: '#7f1d1d', display: 'grid', placeItems: 'center', color: '#fca5a5', fontWeight: 900, fontSize: 32 }}>
-          !
-        </div>
-        <p style={{ color: '#f87171', fontSize: 18 }}>{error}</p>
-        {!isOnline && <p style={{ color: '#94a3b8', fontSize: 14 }}>Koneksi internet terputus. Periksa jaringan.</p>}
-      </div>
-    )
-  }
+  if (error && agenda.length === 0) return <TvLoading error={!isOnline ? `${error} · koneksi terputus` : error} />
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://managementusc.vercel.app'
 
   return (
-    <>
-      <div style={{ 
-        position: 'fixed', 
-        inset: 0, 
-        background: '#000', 
-        overflow: 'hidden',
-        fontSize: '1vw' // Base font size for vw scaling
-      }}>
-        <div style={{
-          width: '100vw', 
-          height: '100vh',
-          background: t.bg,
-          backgroundImage: t.stageBg,
-          display: 'flex',
-          flexDirection: 'column',
-          fontFamily: '"Plus Jakarta Sans", system-ui, sans-serif',
-          color: t.text,
-          overflow: 'hidden',
-        }}>
+    <TvStage scale={scale} p={p}>
+      {/* ── HEADER ── */}
+      <header style={{ height: 128, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 28, padding: '0 56px', borderBottom: `1px solid ${p.line}` }}>
+        <img src={logoUrl} alt={brandName} style={{ width: 72, height: 72, objectFit: 'contain', background: '#fff', borderRadius: 16, padding: 6 }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, letterSpacing: '-.02em', lineHeight: 1 }}>Unesa Science Center</span>
+          <span style={{ fontSize: 21, color: p.ink2 }}>Selamat datang — agenda &amp; informasi untuk pengunjung</span>
+        </div>
+        {!isOnline && <TvOffline />}
+        <TvWeather weather={weather} p={p} />
+        <TvClock now={now} p={p} />
+        <TvThemeButton isDark={isDark} onToggle={toggle} p={p} />
+      </header>
 
-          {/* ── HEADER ── */}
-          <header style={{ 
-            padding: '1.5vh 2vw 1vh', 
-            borderBottom: `1px solid ${t.border}`, 
-            flexShrink: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1vh'
-          }}>
-            {/* Main row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw' }}>
-              {/* Brand */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.9vw', flexShrink: 0 }}>
-                <div style={{ background: isDark ? 'transparent' : '#1e3a8a', borderRadius: '0.4vw', padding: isDark ? 0 : '0.3vw', flexShrink: 0 }}>
-                  <img src={logoUrl} alt={brandName} style={{ height: '4.5vw', width: 'auto', maxWidth: '4.5vw', objectFit: 'contain', display: 'block' }} />
-                </div>
-                <div style={{ fontSize: '1.3vw', fontWeight: 800, letterSpacing: '0.02em', lineHeight: 1.15, color: t.text, maxWidth: '16vw', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{brandName}</div>
+      {/* ── MAIN ── */}
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '40fr 60fr', gap: 36, padding: '32px 56px' }}>
+        {/* Kiri: agenda terbuka + QR */}
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 24, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '24px 28px 16px' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600, letterSpacing: '-.01em' }}>Agenda terbuka</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: p.ink2 }}>{pg + 1} / {pages}</span>
+          </div>
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {rows.length === 0 && (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: `1px solid ${p.line}`, fontSize: 24, color: p.ink2, padding: 28, textAlign: 'center' }}>
+                Belum ada agenda terbuka dalam waktu dekat.
               </div>
-
-              {/* Title */}
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <h1 style={{ fontSize: '1.8vw', fontWeight: 800, margin: 0, letterSpacing: '0.04em', color: t.accent }}>AGENDA DIREKTORAT</h1>
-                <p style={{ fontSize: '1vw', color: t.text2, margin: '0.3vh 0 0', textTransform: 'capitalize' }}>{dateLong}</p>
-              </div>
-
-              {/* Right: Theme + Weather + Clock */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8vw', flexShrink: 0 }}>
-                {/* Theme toggle */}
-                <button
-                  onClick={toggle}
-                  style={{ background: 'rgba(255,255,255,0.04)', color: t.text, border: `1px solid ${t.border}`, width: '2.8vw', height: '4vh', borderRadius: '0.6vw', display: 'grid', placeItems: 'center', cursor: 'pointer', flexShrink: 0 }}
-                >
-                  {isDark ? (
-                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: '1.3vw', height: '1.3vw' }}>
-                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="none" stroke={t.accent} strokeWidth="2" style={{ width: '1.3vw', height: '1.3vw' }}>
-                      <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
-                    </svg>
-                  )}
-                </button>
-
-                {/* Weather */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', padding: '0.8vh 1vw', background: 'rgba(255,255,255,0.04)', border: `1px solid ${t.border}`, borderRadius: '0.6vw', minWidth: '10vw' }}>
-                  <div style={{ width: '2.5vw', height: '2.5vw', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                    <WeatherIcon code={weather?.code} size="2.2vw" color={t.accent} />
+            )}
+            {rows.map(a => {
+              const st = getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai)
+              const d = new Date(a.tanggal_mulai)
+              const ongoing = st === 'ongoing'
+              const c = tvStatusColor(st, p)
+              return (
+                <div key={a.id} style={{ flex: 1, maxHeight: 170, display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 22, alignItems: 'center', padding: '0 28px', borderTop: `1px solid ${p.line}` }}>
+                  <div style={{ height: 92, borderRadius: 18, background: ongoing ? '#0b7a4b' : p.blockBg, color: ongoing ? '#fff' : p.blockFg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', opacity: .8 }}>{MONTHS[d.getMonth()]}</span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 600, lineHeight: 1 }}>{d.getDate()}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1, minWidth: 0 }}>
-                    <div style={{ fontSize: '1.4vw', fontWeight: 800, letterSpacing: '-0.02em', fontFamily: '"JetBrains Mono", monospace', color: t.text }}>
-                      {weather ? weather.temp : '--'}<span style={{ color: t.accent }}>°</span>C
-                    </div>
-                    <div style={{ fontSize: '0.7vw', fontWeight: 600, color: t.text2, marginTop: '0.2vh', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {wInfo ? wInfo.label : 'Memuat…'}
-                    </div>
-                    <div style={{ fontSize: '0.6vw', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text3, marginTop: '0.1vh' }}>Surabaya</div>
-                  </div>
-                </div>
-
-                {/* Clock */}
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '2.8vw', fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em', color: t.text }}>
-                    {hh}<span style={{ animation: 'blink 1s steps(1) infinite' }}>:</span>{mm}
-                  </div>
-                  <div style={{ fontSize: '0.8vw', color: t.text2, marginTop: '0.3vh', letterSpacing: '0.04em' }}>{dateShort}</div>
-                </div>
-
-                {/* Offline indicator */}
-                {!isOnline && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '0.4vw',
-                    padding: '0.6vh 0.8vw',
-                    background: 'rgba(185,28,28,0.2)',
-                    border: '1px solid rgba(185,28,28,0.4)',
-                    borderRadius: '0.5vw',
-                    animation: 'pulse 2s infinite',
-                  }}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" style={{ width: '1.1vw', height: '1.1vw' }}>
-                      <path d="M18.36 6.64a9 9 0 0 1 1.66 8.88"/><path d="M5.64 5.64a9 9 0 0 1 12.72 12.72"/><path d="M15.34 15.34A5 5 0 0 1 8.66 8.66"/><line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                    <span style={{ fontSize: '0.7vw', fontWeight: 700, color: '#f87171', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Offline</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Legend unit kerja */}
-            <div style={{ paddingTop: '0.8vh', borderTop: `1px solid ${t.border}`, display: 'flex', gap: '0 0.8vw', alignItems: 'center', flexWrap: 'nowrap', overflow: 'hidden' }}>
-              {Object.entries(UNIT_COLORS).map(([key, uc]) => (
-                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.3vw', flexShrink: 0 }}>
-                  <span style={{ width: '0.45vw', height: '0.45vw', borderRadius: 2, background: uc.border, flexShrink: 0, display: 'block' }} />
-                  <span style={{ fontSize: '0.75vw', fontWeight: 600, color: t.text3, whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>{uc.name}</span>
-                </div>
-              ))}
-            </div>
-          </header>
-
-          {/* ── MAIN ── */}
-          <main style={{
-            display: 'grid',
-            gridTemplateColumns: '2fr 3fr',
-            gap: '1.2vw',
-            padding: '1.5vh 1.5vw',
-            flex: 1,
-            minHeight: 0,
-            overflow: 'hidden'
-          }}>
-
-            {/* LEFT: Table (dibatasi 4 baris) + QR Kritik & Saran mengisi sisa ruang */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2vw', minHeight: 0 }}>
-              <AgendaTvTable agenda={filtered} t={t} scale={scale} maxRows={4} />
-
-              <div style={{ flex: 1, minHeight: 0, background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '0.8vw', display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', padding: '1.5vh' }}>
-                {[
-                  { path: '/kritik-saran', label: 'Kritik & Saran', hint: 'Scan dengan HP untuk memberi masukan' },
-                  { path: '/penilaian', label: 'Penilaian Fasilitas', hint: 'Scan dengan HP untuk memberi penilaian' },
-                ].map(({ path, label, hint }) => (
-                  <div key={path} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1vh' }}>
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin + path : 'https://managementusc.vercel.app' + path)}`}
-                      alt={`QR ${label}`}
-                      style={{ width: '7.5vw', height: '7.5vw', borderRadius: '0.4vw', display: 'block', background: '#fff', padding: '0.4vw', outline: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, outlineOffset: '-1px' }}
-                    />
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '1vw', fontWeight: 800, color: t.text, letterSpacing: '0.02em' }}>{label}</div>
-                      <div style={{ fontSize: '0.75vw', color: t.text2, marginTop: '0.3vh', maxWidth: '10vw' }}>{hint}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: 600, lineHeight: 1.15, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{a.judul}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 20, color: p.ink2, minWidth: 0 }}>
+                      {st !== 'upcoming' && (
+                        <span style={{ fontSize: 17, fontWeight: 700, padding: '3px 12px', borderRadius: 99, background: ongoing ? (isDark ? '#12392a' : '#dcf5e8') : (isDark ? '#3a2e0a' : '#fdf0cc'), color: c, flexShrink: 0 }}>{TV_STATUS_LABEL[st]}</span>
+                      )}
+                      <span style={{ fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{a.waktu_mulai ? a.waktu_mulai.slice(0, 5).replace(':', '.') : 'Sepanjang hari'}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.lokasi}</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT: Side panel */}
-            <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5vh', minHeight: 0 }}>
-
-              {/* Media card */}
-              <div style={{ background: t.card, boxShadow: `0 0 0 1px ${t.border}, 0 4px 12px rgba(0,0,0,0.15)`, borderRadius: '1vw', overflow: 'hidden', flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '1.2vh 1.4vw', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1vw', borderBottom: `1px solid ${t.border}`, flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6vw', fontSize: '1vw', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: t.text2 }}>
-                    <svg viewBox="0 0 24 24" fill={t.accent} style={{ width: '1.2vw', height: '1.2vw' }}><path d="M21.582 7.176a2.506 2.506 0 0 0-1.768-1.768C18.254 5 12 5 12 5s-6.254 0-7.814.408a2.506 2.506 0 0 0-1.768 1.768C2 8.746 2 12 2 12s0 3.254.418 4.824c.23.864.908 1.538 1.768 1.768C5.746 19 12 19 12 19s6.254 0 7.814-.408a2.506 2.506 0 0 0 1.768-1.768C22 15.254 22 12 22 12s0-3.254-.418-4.824zM10 15V9l5.2 3-5.2 3z"/></svg>
-                    Video Profil USC
-                  </div>
                 </div>
-                <div style={{ flex: 1, position: 'relative', background: '#000', minHeight: 0 }}>
-                  <MediaRotator t={t} />
+              )
+            })}
+          </div>
+          {/* QR masukan pengunjung */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 24, padding: '18px 28px', borderTop: `1px solid ${p.line}` }}>
+            {[
+              { path: '/kritik-saran', label: 'Kritik & Saran' },
+              { path: '/penilaian', label: 'Nilai Fasilitas' },
+            ].map(q => (
+              <div key={q.path} style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(origin + q.path)}`} alt={`QR ${q.label}`}
+                  style={{ width: 96, height: 96, borderRadius: 12, background: '#fff', padding: 6, flexShrink: 0 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  <span style={{ fontSize: 22, fontWeight: 700 }}>{q.label}</span>
+                  <span style={{ fontSize: 17, color: p.ink2 }}>Pindai dengan kamera HP</span>
                 </div>
               </div>
+            ))}
+          </div>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '18px 28px', background: p.head }}>
+            <TvProgress pct={(elapsed / ROTATE_SEC) * 100} p={p} />
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: p.ink2 }}>{ROTATE_SEC - elapsed}s</span>
+          </div>
+        </div>
 
-            </aside>
-          </main>
-
-          {/* ── FOOTER / MARQUEE ── */}
-          <footer style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto auto', gap: '0.8vw', alignItems: 'center', padding: '0.6vh 1.4vw', background: t.footerBg, borderTop: `1px solid ${t.border}`, overflow: 'hidden', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4vw', fontSize: '0.75vw', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', background: t.accent, color: '#1a1a1a', padding: '0.35vh 0.8vw', borderRadius: 999, flexShrink: 0 }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '0.75vw', height: '0.75vw' }}><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
-              PENGUMUMAN
-            </div>
-            <div style={{ overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              <span style={{ display: 'inline-block', animation: 'marquee 45s linear infinite', fontSize: '1.15vw', fontWeight: 600, color: t.text, letterSpacing: '0.02em' }}>
-                {marqueeText}
+        {/* Kanan: media */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minHeight: 0 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {Array.from({ length: Math.max(1, media.total) }, (_, i) => (
+              <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: p.track, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: !media.total ? '0%' : i < media.idx ? '100%' : i === media.idx ? `${mediaPct}%` : '0%', background: '#f5b915', transition: 'width 1s linear' }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ flex: 1, minHeight: 0, borderRadius: 24, overflow: 'hidden', border: `1px solid ${p.line}`, position: 'relative' }}>
+            <MediaRotator p={p} onState={setMedia} />
+          </div>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {media.cur?.title || 'Unesa Science Center'}
+              </span>
+              <span style={{ fontSize: 21, color: p.ink2 }}>
+                {media.cur ? (media.cur.type === 'youtube' ? 'Video · YouTube' : 'Pamflet kegiatan') : brandName}
               </span>
             </div>
-            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7vw', color: t.text3, letterSpacing: '0.04em', fontWeight: 600, flexShrink: 0 }}>
-              SIMDIR v2.0 · TV
-            </div>
-            <div style={{ fontSize: '0.65vw', color: t.text3, flexShrink: 0, padding: '0.3vh 0.7vw', background: t.card, borderRadius: '0.5vw' }}>
-              Made by <strong style={{ color: t.accent }}>Rahmat Iqbal</strong>
-            </div>
-          </footer>
+            {media.total > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, color: p.ink2, flexShrink: 0 }}>{media.idx + 1} / {media.total}</span>}
+          </div>
         </div>
       </div>
 
-      <style>{`
-        @keyframes blink    { 50% { opacity: 0.2; } }
-        @keyframes marquee  { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        @keyframes dotpulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); } 70% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
-        * { box-sizing: border-box; }
-        body { margin: 0; -webkit-font-smoothing: antialiased; }
-        button:hover { opacity: 0.85; }
-      `}</style>
-    </>
+      {/* ── FOOTER / TICKER ── */}
+      <footer style={{ height: 76, flexShrink: 0, display: 'flex', alignItems: 'center', background: '#f5b915', color: '#0a1430', overflow: 'hidden' }}>
+        <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 32px', background: '#0a1430', color: '#f5b915', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 600, letterSpacing: '.1em', flexShrink: 0, position: 'relative', zIndex: 1 }}>INFO</span>
+        <div style={{ flex: 1, overflow: 'hidden', fontSize: 26, fontWeight: 600 }}>
+          <div style={{ display: 'flex', whiteSpace: 'nowrap', width: 'max-content', animation: 'simdirMarquee 45s linear infinite' }}>
+            <span style={{ paddingRight: 80, paddingLeft: 32 }}>{marqueeText}</span>
+            <span style={{ paddingRight: 80, paddingLeft: 32 }}>{marqueeText}</span>
+          </div>
+        </div>
+        <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 24px', background: '#0a1430', color: '#9aa6cc', fontSize: 15, flexShrink: 0, position: 'relative', zIndex: 1 }}>
+          Made by <strong style={{ color: '#f5b915', marginLeft: 6 }}>Rahmat Iqbal</strong>
+        </span>
+      </footer>
+    </TvStage>
   )
 }

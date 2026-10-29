@@ -449,7 +449,7 @@ export default function EInvoicePage() {
                           {formatDateShort(invoice.tanggal_jatuh_tempo)}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                      <td style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                         {formatRupiah(invoice.total)}
                       </td>
                       <td>

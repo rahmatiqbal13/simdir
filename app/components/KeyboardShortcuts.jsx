@@ -142,7 +142,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }) {
                     borderRadius: 'var(--radius)',
                     padding: '0.25rem 0.5rem',
                     fontSize: '0.75rem',
-                    fontFamily: 'monospace',
+                    fontFamily: 'var(--font-mono)',
                     fontWeight: 600,
                     color: 'var(--text)',
                     minWidth: '40px',
@@ -220,7 +220,7 @@ export function ShortcutBadge({ shortcut, size = 'sm' }) {
         background: 'var(--surface-2)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius)',
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-mono)',
         fontWeight: 600,
         color: 'var(--text-3)',
         ...sizes[size]

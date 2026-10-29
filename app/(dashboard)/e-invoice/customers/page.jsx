@@ -504,7 +504,7 @@ export default function CustomersPage() {
                   filteredCustomers.map((customer) => (
                     <tr key={customer.id}>
                       <td>
-                        <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                        <div style={{ fontWeight: 600, fontFamily: 'var(--font-mono)' }}>
                           {customer.kode_pelanggan}
                         </div>
                       </td>

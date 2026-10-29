@@ -1,6 +1,6 @@
 // Helper functions, theme data, dan hooks yang dipakai bersama oleh halaman TV
-// publik (./page.jsx), halaman TV internal (../tv-internal/page.jsx), dan
-// komponen tabel bersama (./AgendaTvTable.jsx).
+// publik (./page.jsx) dan halaman TV internal (../tv-internal/page.jsx).
+// Komponen visual & palet layar TV ada di ./TvKit.jsx.
 
 import { useState, useEffect, useCallback } from 'react'
 import { safeLocalStorage } from '@/lib/localStorage'

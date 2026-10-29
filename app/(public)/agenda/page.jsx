@@ -3,37 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import ThemeToggle from '@/app/components/ThemeToggle'
-import { formatTime, getAgendaStatus } from './tv/shared'
-
-// Helper functions
-const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-}
-
-// Helper function untuk countdown
-const getCountdown = (tanggalMulai) => {
-  const now = new Date()
-  const start = new Date(tanggalMulai)
-  const diffTime = start - now
-  
-  if (diffTime <= 0) return null
-  
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-  const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
-  const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60))
-  
-  if (diffDays > 0) {
-    return { value: diffDays, unit: 'hari', label: `${diffDays} hari lagi` }
-  } else if (diffHours > 0) {
-    return { value: diffHours, unit: 'jam', label: `${diffHours} jam lagi` }
-  } else {
-    return { value: diffMinutes, unit: 'menit', label: `${diffMinutes} menit lagi` }
-  }
-}
+import Link from 'next/link'
+import { getAgendaStatus } from './tv/shared'
+import { getUnitColor } from './tv/unit-colors'
 
 // ============ ICS EXPORT ("Tambah ke Kalender") ============
 // WIB = UTC+7 sepanjang tahun (tanpa DST), jadi konversi ke UTC cukup
@@ -115,507 +87,89 @@ function downloadIcs(item) {
   URL.revokeObjectURL(url)
 }
 
-// Data akan di-fetch dari Supabase
+const CAR_PER = 4            // 4 kartu per halaman (2×2)
+const ROTATE_SEC = 10        // carousel berganti tiap 10 detik
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+const MONL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+const DOW = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+const DOW_CAL = ['SN', 'SL', 'RB', 'KM', 'JM', 'SB', 'MG']
 
-const ITEMS_PER_VIEW = 4
-const ROTATE_INTERVAL = 10000 // 10 detik
+const pad2 = (n) => String(n).padStart(2, '0')
+const keyOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+const parseDay = (iso) => { const [y, m, d] = String(iso).split('-').map(Number); return new Date(y, m - 1, d) }
+const hm = (t) => (t ? t.slice(0, 5).replace(':', '.') : '')
+const timeRange = (a) => {
+  const s = hm(a.waktu_mulai), e = hm(a.waktu_selesai)
+  return s && e ? `${s}–${e}` : s || 'Sepanjang hari'
+}
+const unitName = (a) => (a.penyelenggara || '').replace(/^External - /, '') || 'USC'
 
-// ============ KOMPONEN STATUS BADGE ============
-function StatusBadge({ tanggalMulai, tanggalSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai)
-  
-  const configs = {
-    upcoming: { label: 'Akan Datang', bg: 'var(--primary-50)', color: 'var(--primary)', border: 'var(--primary-100)' },
-    upcoming_soon: { label: 'Segera', bg: 'var(--warning-50)', color: 'var(--warning)', border: 'var(--warning-100)' },
-    ongoing: { label: 'Berlangsung', bg: 'var(--success-50)', color: 'var(--success)', border: '#a7f3d0' },
-    completed: { label: 'Selesai', bg: 'var(--surface-3)', color: 'var(--text-3)', border: 'var(--border)' },
-  }
-  
-  const config = configs[status]
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.375rem',
-      padding: '0.375rem 0.75rem',
-      borderRadius: '9999px',
-      fontSize: '0.75rem',
-      fontWeight: 600,
-      background: config.bg,
-      color: config.color,
-      border: `1px solid ${config.border}`
-    }}>
-      {status === 'ongoing' && (
-        <span style={{ 
-          width: '6px', 
-          height: '6px', 
-          borderRadius: '50%', 
-          background: config.color,
-          animation: 'pulse 2s infinite'
-        }} />
-      )}
-      {config.label}
-    </span>
-  )
+// Label hitung mundur + warnanya untuk satu agenda
+function countdown(a, now) {
+  const st = getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai)
+  if (st === 'completed') return { label: 'Selesai', bg: 'var(--surface-2)', fg: 'var(--text-2)' }
+  const start = new Date(`${a.tanggal_mulai}T${a.waktu_mulai || '00:00:00'}`)
+  const diff = start - now
+  if (diff <= 0) return { label: 'Berlangsung', bg: 'var(--success-50)', fg: 'var(--success)' }
+  const today = new Date(now); today.setHours(0, 0, 0, 0)
+  const days = Math.round((parseDay(a.tanggal_mulai) - today) / 864e5)
+  if (days >= 1) return { label: days === 1 ? 'Besok' : `${days} hari lagi`, bg: 'var(--info-50)', fg: 'var(--info)' }
+  const h = Math.floor(diff / 36e5), m = Math.floor((diff % 36e5) / 6e4)
+  return { label: `${h ? `${h} jam ` : ''}${m} mnt lagi`, bg: 'var(--usc-yellow)', fg: '#0e1a3a' }
 }
 
-// ============ KOMPONEN JENIS BADGE ============
-function JenisBadge({ jenis }) {
-  const configs = {
-    internal: { label: 'Internal', bg: 'var(--primary-50)', color: 'var(--primary)', border: 'var(--primary-100)' },
-    eksternal: { label: 'Eksternal', bg: 'var(--warning-50)', color: 'var(--warning)', border: 'var(--warning-100)' },
-  }
+const IconCal = ({ size = 16 }) => <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="12" y1="14" x2="12" y2="18" /><line x1="10" y1="16" x2="14" y2="16" /></svg>
+const IconClock = ({ size = 15 }) => <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+const IconPin = () => <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+const IconChev = ({ dir }) => <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><polyline points={dir === 'l' ? '15 18 9 12 15 6' : '9 18 15 12 9 6'} /></svg>
 
-  const config = configs[jenis] || configs.internal
-
+function AgendaCard({ a, now, todayKey }) {
+  const d = parseDay(a.tanggal_mulai)
+  const cd = countdown(a, now)
+  const isToday = a.tanggal_mulai === todayKey
+  const done = getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'completed'
+  const color = getUnitColor(a.jenis === 'eksternal' ? 'eksternal' : 'internal', a.penyelenggara, false).border
   return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.25rem',
-      padding: '0.25rem 0.625rem',
-      borderRadius: '9999px',
-      fontSize: '0.6875rem',
-      fontWeight: 500,
-      background: config.bg,
-      color: config.color,
-      border: `1px solid ${config.border}`
-    }}>
-      {config.label}
-    </span>
-  )
-}
-
-// ============ KOMPONEN BADGE "DIHADIRI PIMPINAN" ============
-// Terpisah dari JenisBadge — kehadiran pimpinan independen dari jenis.
-function PimpinanBadge() {
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.25rem',
-      padding: '0.25rem 0.625rem',
-      borderRadius: '9999px',
-      fontSize: '0.6875rem',
-      fontWeight: 500,
-      background: 'var(--danger-50)',
-      color: 'var(--danger)',
-      border: '1px solid var(--danger-100)'
-    }}>
-      Dihadiri Pimpinan
-    </span>
-  )
-}
-
-// ============ KOMPONEN COUNTDOWN BADGE ============
-function CountdownBadge({ tanggalMulai, tanggalSelesai }) {
-  const status = getAgendaStatus(tanggalMulai, tanggalSelesai)
-  const countdown = getCountdown(tanggalMulai)
-  
-  if (status === 'ongoing') {
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.375rem',
-        padding: '0.375rem 0.75rem',
-        borderRadius: '8px',
-        fontSize: '0.75rem',
-        fontWeight: 700,
-        background: 'var(--success)',
-        color: 'white'
-      }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: '0.875rem', height: '0.875rem' }}>
-          <polygon points="5 3 19 12 5 21 5 3" />
-        </svg>
-        Sedang Berlangsung
-      </span>
-    )
-  }
-  
-  if (status === 'completed') {
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '0.375rem',
-        padding: '0.375rem 0.75rem',
-        borderRadius: '8px',
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        background: 'var(--surface-3)',
-        color: 'var(--text-3)'
-      }}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-        Selesai
-      </span>
-    )
-  }
-  
-  if (!countdown) return null
-  
-  const isUrgent = countdown.unit === 'jam' || countdown.unit === 'menit'
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.375rem',
-      padding: '0.375rem 0.75rem',
-      borderRadius: '8px',
-      fontSize: '0.75rem',
-      fontWeight: 700,
-      background: isUrgent ? 'var(--danger-50)' : '#e0f2fe',
-      color: isUrgent ? 'var(--danger)' : '#0284c7',
-      border: `1px solid ${isUrgent ? 'var(--danger-100)' : '#bae6fd'}`
-    }}>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.875rem', height: '0.875rem' }}>
-        <circle cx="12" cy="12" r="10" />
-        <polyline points="12 6 12 12 16 14" />
-      </svg>
-      {countdown.label}
-    </span>
-  )
-}
-
-// ============ KOMPONEN AGENDA CARD ============
-function AgendaCard({ item }) {
-  const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-  
-  const statusColors = {
-    upcoming: 'var(--primary)',
-    upcoming_soon: 'var(--warning)',
-    ongoing: 'var(--success)',
-    completed: 'var(--text-3)',
-  }
-  // Raw hex mirrors of the tokens above — needed because CSS custom properties
-  // can't have a hex alpha suffix appended (see `${hex}15` usage below).
-  const statusHex = {
-    upcoming: '#1e3a8a',
-    upcoming_soon: '#b45309',
-    ongoing: '#047857',
-    completed: '#64748b',
-  }
-
-  const color = statusColors[status]
-  const hex = statusHex[status]
-  const startDate = new Date(item.tanggal_mulai)
-  const endDate = new Date(item.tanggal_selesai)
-  const isMultiDay = item.tanggal_mulai !== item.tanggal_selesai
-
-  return (
-    <div className="agenda-public-card" style={{
-      background: 'var(--surface)',
-      borderRadius: '16px',
-      border: '1px solid var(--border)',
-      overflow: 'hidden',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      {/* Header with Date */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)' }}>
-        {/* Date Box */}
-        <div className="card-date-box" style={{
-          width: '80px',
-          padding: '1rem',
-          background: `${hex}15`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRight: `3px solid ${color}`,
-          flexShrink: 0
-        }}>
-          <span className="month" style={{
-            fontSize: '0.6875rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            color: color
-          }}>
-            {startDate.toLocaleDateString('id-ID', { month: 'short' })}
-          </span>
-          <span className="day" style={{
-            fontSize: '1.75rem',
-            fontWeight: 800,
-            color: color,
-            lineHeight: 1
-          }}>
-            {startDate.getDate()}
-          </span>
-          <span className="weekday" style={{ fontSize: '0.625rem', color: 'var(--text-3)' }}>
-            {startDate.toLocaleDateString('id-ID', { weekday: 'short' })}
-          </span>
+    <article className="ap-card" style={{ opacity: done ? 0.6 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div className={`ap-date ${isToday ? 'today' : ''}`}>
+          <span className="date-block-mon">{MON[d.getMonth()]}</span>
+          <span className="date-block-day">{d.getDate()}</span>
+          <span style={{ fontSize: 10.5, opacity: .8 }}>{DOW[d.getDay()].slice(0, 3)}</span>
         </div>
-
-        {/* Title & Badges */}
-        <div className="card-header-content" style={{ flex: 1, padding: '1rem', minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <StatusBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
-            <JenisBadge jenis={item.jenis} />
-            {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') && <PimpinanBadge />}
-          </div>
-          <h3 className="card-title" style={{
-            fontSize: '1rem',
-            fontWeight: 700,
-            color: 'var(--text)',
-            lineHeight: 1.4,
-            margin: 0,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {item.judul}
-          </h3>
-          {/* Countdown Badge */}
-          <div style={{ marginTop: '0.5rem' }}>
-            <CountdownBadge tanggalMulai={item.tanggal_mulai} tanggalSelesai={item.tanggal_selesai} />
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7, minWidth: 0 }}>
+          <span className="ap-cd" style={{ background: cd.bg, color: cd.fg }}><IconClock size={12} />{cd.label}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, color: 'var(--text-2)', minWidth: 0 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: color, flexShrink: 0 }} />
+            <span className="truncate">{unitName(a)}</span>
+          </span>
         </div>
       </div>
-
-      {/* Content */}
-      <div className="card-body" style={{ padding: '1rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Info Grid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem', marginBottom: '0.75rem' }}>
-          {/* Date Range */}
-          <div className="info-row" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {isMultiDay
-                ? `${formatDate(item.tanggal_mulai)} - ${formatDate(item.tanggal_selesai)}`
-                : formatDate(item.tanggal_mulai)
-              }
-            </span>
-          </div>
-
-          {/* Time */}
-          {(item.waktu_mulai || item.waktu_selesai) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {formatTime(item.waktu_mulai)} - {formatTime(item.waktu_selesai)} WIB
-              </span>
-            </div>
-          )}
-
-          {/* Link Meeting */}
-          {item.link_meeting && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--primary)', flexShrink: 0 }}>
-                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-              </svg>
-              <a 
-                href={item.link_meeting} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                style={{ 
-                  overflow: 'hidden', 
-                  textOverflow: 'ellipsis', 
-                  whiteSpace: 'nowrap',
-                  color: 'var(--primary)',
-                  fontWeight: 500,
-                  textDecoration: 'none'
-                }}
-              >
-                Join Meeting Online
-              </a>
-            </div>
-          )}
-
-          {/* Location */}
-          {item.lokasi && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.lokasi}</span>
-            </div>
-          )}
-
-          {/* Organizer */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            </svg>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.penyelenggara}</span>
-          </div>
-
-          {/* PIC, Disposisi, atau nama Pimpinan */}
-          {(item.dihadiri_pimpinan || item.jenis === 'pimpinan') ? (
-            item.disposisi ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--danger)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--danger)', flexShrink: 0 }}>
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="8.5" cy="7" r="4" />
-                  <polyline points="17 11 19 13 23 9" />
-                </svg>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                  Disposisi ke: {item.disposisi}
-                </span>
-              </div>
-            ) : (item.nama_pimpinan || item.jenis === 'pimpinan') && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--danger)' }}>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color: 'var(--danger)', flexShrink: 0 }}>
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                  <path d="M12 2v5" /><path d="M12 8l-3-3" /><path d="M12 8l3-3" />
-                </svg>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
-                  Pimpinan: {item.nama_pimpinan || item.penyelenggara}
-                </span>
-              </div>
-            )
-          ) : item.pic && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-2)' }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem', color, flexShrink: 0 }}>
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                PIC: {item.pic.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : item.pic}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Description */}
-        {item.deskripsi && (
-          <p className="description" style={{
-            marginTop: 'auto',
-            paddingTop: '0.75rem',
-            borderTop: '1px solid var(--border)',
-            fontSize: '0.8125rem',
-            color: 'var(--text-3)',
-            lineHeight: 1.5,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
-          }}>
-            {item.deskripsi}
-          </p>
+      <h3 className="ap-card-title">{a.judul}</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, fontSize: 14, color: 'var(--text-2)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconClock /><span className="mono" style={{ color: 'var(--text)', fontWeight: 600 }}>{timeRange(a)}</span> WIB
+          {a.tanggal_selesai && a.tanggal_selesai !== a.tanggal_mulai && <span>· s/d {parseDay(a.tanggal_selesai).getDate()} {MON[parseDay(a.tanggal_selesai).getMonth()]}</span>}
+        </span>
+        {a.lokasi && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><IconPin />{a.lokasi}</span>}
+      </div>
+      {a.deskripsi && <p className="ap-desc">{a.deskripsi}</p>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 4, flexWrap: 'wrap' }}>
+        <button type="button" className="ap-btn" onClick={() => downloadIcs(a)}><IconCal size={15} />Tambah ke kalender</button>
+        {a.link_meeting && (
+          <a href={a.link_meeting} target="_blank" rel="noopener noreferrer" className="ap-btn primary">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>
+            Gabung online
+          </a>
         )}
-
-        {/* Tambah ke Kalender — unduh .ics, kompatibel dengan Google/Apple/Outlook */}
-        <button
-          type="button"
-          onClick={() => downloadIcs(item)}
-          className="agenda-press-btn"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            minHeight: '2.75rem',
-            boxSizing: 'border-box',
-            gap: '0.375rem',
-            alignSelf: 'flex-start',
-            marginTop: '0.75rem',
-            padding: '0.5rem 0.875rem',
-            background: 'var(--surface-2)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: 'var(--text-2)',
-            cursor: 'pointer'
-          }}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '0.9375rem', height: '0.9375rem', flexShrink: 0 }}>
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-            <line x1="12" y1="14" x2="12" y2="18" />
-            <line x1="10" y1="16" x2="14" y2="16" />
-          </svg>
-          Tambah ke Kalender
-        </button>
       </div>
-    </div>
+    </article>
   )
 }
 
-// ============ KOMPONEN NAVIGASI DOTS ============
-function NavigationDots({ total, current, onSelect }) {
-  return (
-    <div className="nav-dots" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-      {Array.from({ length: total }, (_, i) => (
-        <button
-          key={i}
-          onClick={() => onSelect(i)}
-          aria-label={`Halaman ${i + 1}`}
-          aria-current={i === current ? 'true' : undefined}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '2.75rem',
-            height: '2.75rem',
-            padding: 0,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <span
-            className="agenda-nav-dot"
-            aria-hidden="true"
-            style={{
-              display: 'block',
-              width: i === current ? '2rem' : '0.75rem',
-              height: '0.75rem',
-              borderRadius: '9999px',
-              background: i === current ? 'var(--primary)' : '#cbd5e1',
-              transition: 'width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease'
-            }}
-          />
-        </button>
-      ))}
-    </div>
-  )
-}
-
-// ============ KOMPONEN PROGRESS BAR ============
-function ProgressBar({ progress }) {
-  return (
-    <div style={{ width: '100%', height: '4px', background: 'var(--border)', borderRadius: '9999px', overflow: 'hidden' }}>
-      <div
-        style={{
-          width: `${progress}%`,
-          height: '100%',
-          background: 'linear-gradient(90deg, var(--primary), #7c3aed)',
-          borderRadius: '9999px',
-          transition: 'width 0.1s linear'
-        }}
-      />
-    </div>
-  )
-}
-
-// ============ HALAMAN UTAMA ============
 export default function AgendaPage() {
   const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
-  const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
+  const [logoUrl, setLogoUrl] = useState('/images/logo USC.png')
   useEffect(() => {
     fetch('/api/app-settings')
       .then((res) => res.json())
@@ -630,10 +184,14 @@ export default function AgendaPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [showCompleted, setShowCompleted] = useState(false)
-  const [currentPage, setCurrentPage] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const [isPaused, setIsPaused] = useState(false)
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const [range, setRange] = useState('all')        // all | today | week
+  const [day, setDay] = useState(null)              // 'YYYY-MM-DD' dari kalender
+  const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1) })
+  const [page, setPage] = useState(0)
+  const [elapsed, setElapsed] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const [hovering, setHovering] = useState(false)
+  const [now, setNow] = useState(() => new Date())
 
   // Fetch agenda from Supabase
   useEffect(() => {
@@ -675,586 +233,248 @@ export default function AgendaPage() {
     loadAgenda()
   }, [])
 
-  // Update current time every minute for countdown
+  // Jam (untuk hitung mundur) + detak carousel tiap detik
+  const stopped = paused || hovering
+  const stoppedRef = useRef(stopped)
+  stoppedRef.current = stopped
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 60000) // Update every minute
-    return () => clearInterval(timer)
+    const id = setInterval(() => {
+      setNow(new Date())
+      if (!stoppedRef.current) {
+        setElapsed(e => {
+          if (e + 1 >= ROTATE_SEC) { setPage(p => p + 1); return 0 }
+          return e + 1
+        })
+      }
+    }, 1000)
+    return () => clearInterval(id)
   }, [])
 
-  // Filter agenda
-  const filteredAgenda = useMemo(() => {
-    return agenda.filter(item => {
-      const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-      if (status === 'upcoming' || status === 'upcoming_soon' || status === 'ongoing') {
-        return true
-      }
-      if (showCompleted && status === 'completed') {
-        return true
-      }
-      return false
-    }).sort((a, b) => new Date(a.tanggal_mulai) - new Date(b.tanggal_mulai))
-  }, [agenda, showCompleted])
+  const todayKey = keyOf(now)
+  const weekEndKey = keyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 6))
+  const inRange = (a, k) => k === 'all' || (k === 'today'
+    ? a.tanggal_mulai <= todayKey && (a.tanggal_selesai || a.tanggal_mulai) >= todayKey
+    : a.tanggal_mulai <= weekEndKey && (a.tanggal_selesai || a.tanggal_mulai) >= todayKey)
+  const onDay = (a, k) => a.tanggal_mulai <= k && (a.tanggal_selesai || a.tanggal_mulai) >= k
 
-  // Calculate pages
-  const totalPages = Math.ceil(filteredAgenda.length / ITEMS_PER_VIEW)
-  const currentAgenda = useMemo(() => {
-    const start = currentPage * ITEMS_PER_VIEW
-    return filteredAgenda.slice(start, start + ITEMS_PER_VIEW)
-  }, [filteredAgenda, currentPage])
-
-  // Stats
-  const stats = useMemo(() => {
-    return {
-      total: agenda.length,
-      upcoming: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'upcoming' || status === 'upcoming_soon'
-      }).length,
-      ongoing: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'ongoing'
-      }).length,
-      completed: agenda.filter(item => {
-        const status = getAgendaStatus(item.tanggal_mulai, item.tanggal_selesai)
-        return status === 'completed'
-      }).length,
-    }
+  // Aktif dulu (terdekat), yang selesai di belakang (terbaru dulu)
+  const sorted = useMemo(() => {
+    const t = (a) => new Date(`${a.tanggal_mulai}T${a.waktu_mulai || '00:00:00'}`)
+    const done = (a) => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'completed'
+    return agenda.slice().sort((a, b) => (done(a) - done(b)) || (done(a) ? t(b) - t(a) : t(a) - t(b)))
   }, [agenda])
+  const active = sorted.filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')
 
-  // Ref untuk tracking currentPage dalam interval
-  const currentPageRef = useRef(currentPage)
-  useEffect(() => {
-    currentPageRef.current = currentPage
-  }, [currentPage])
+  const list = useMemo(() => {
+    let l = sorted.filter(a => showCompleted || getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')
+    return day ? l.filter(a => onDay(a, day)) : l.filter(a => inRange(a, range))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, showCompleted, day, range, todayKey])
 
-  // Auto-rotate
-  useEffect(() => {
-    if (isPaused || totalPages <= 1) return
+  const pages = Math.max(1, Math.ceil(list.length / CAR_PER))
+  const p = page % pages
+  const cards = list.slice(p * CAR_PER, p * CAR_PER + CAR_PER)
+  const goTo = (i) => { setPage(((i % pages) + pages) % pages); setElapsed(0) }
+  useEffect(() => { setPage(0); setElapsed(0) }, [showCompleted, day, range])
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          const nextPage = (currentPageRef.current + 1) % totalPages
-          setCurrentPage(nextPage)
-          return 0
-        }
-        return prev + (100 / (ROTATE_INTERVAL / 100))
-      })
-    }, 100)
+  // Agenda unggulan: yang paling dekat & belum lewat jam mulainya
+  const feat = active.find(a => new Date(`${a.tanggal_mulai}T${a.waktu_mulai || '00:00:00'}`) > now) || active[0]
+  const featCd = useMemo(() => {
+    if (!feat) return ''
+    const diff = new Date(`${feat.tanggal_mulai}T${feat.waktu_mulai || '00:00:00'}`) - now
+    if (diff <= 0) return 'Sedang berlangsung'
+    const d = Math.floor(diff / 864e5), h = Math.floor((diff % 864e5) / 36e5), m = Math.floor((diff % 36e5) / 6e4)
+    return d > 0 ? `${d} hari ${h} jam` : `${h} jam ${pad2(m)} mnt`
+  }, [feat, now])
+  const featWhen = feat ? (feat.tanggal_mulai === todayKey ? 'Hari ini' : `${DOW[parseDay(feat.tanggal_mulai).getDay()]}, ${parseDay(feat.tanggal_mulai).getDate()} ${MON[parseDay(feat.tanggal_mulai).getMonth()]}`) : ''
 
-    return () => clearInterval(interval)
-  }, [isPaused, totalPages])
+  // Sel kalender (Senin di kiri)
+  const cells = useMemo(() => {
+    const y = calMonth.getFullYear(), m = calMonth.getMonth()
+    const off = (new Date(y, m, 1).getDay() + 6) % 7, nd = new Date(y, m + 1, 0).getDate()
+    const out = Array.from({ length: off }, () => null)
+    for (let n = 1; n <= nd; n++) {
+      const k = `${y}-${pad2(m + 1)}-${pad2(n)}`
+      out.push({ n, k, has: agenda.some(a => onDay(a, k)), past: k < todayKey, today: k === todayKey })
+    }
+    return out
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calMonth, agenda, todayKey])
 
-  // Reset progress when page changes
-  useEffect(() => {
-    setProgress(0)
-  }, [currentPage])
+  // Strip 7 hari untuk mobile
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
+    const k = keyOf(d)
+    return { k, dow: DOW[d.getDay()].slice(0, 3), n: d.getDate(), has: agenda.some(a => onDay(a, k)) }
+  })
 
-  // Reset to first page when filter changes
-  useEffect(() => {
-    setCurrentPage(0)
-    setProgress(0)
-  }, [showCompleted])
-
-  if (loading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: 'var(--surface-2)', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        flexDirection: 'column',
-        gap: '1rem'
-      }}>
-        <div style={{ 
-          width: '48px', 
-          height: '48px', 
-          borderRadius: '12px', 
-          background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%)',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--text)',
-          fontWeight: 800,
-          fontSize: '1.5rem'
-        }}>
-          S
-        </div>
-        <p style={{ color: 'var(--text-3)' }}>Memuat agenda...</p>
-      </div>
-    )
+  const pickDay = (k, past) => {
+    if (day === k) { setDay(null); return }
+    setDay(k)
+    if (past) setShowCompleted(true)
   }
 
-  if (error) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        background: 'var(--surface-2)', 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        flexDirection: 'column',
-        gap: '1rem'
-      }}>
-        <div style={{ 
-          width: '48px', 
-          height: '48px', 
-          borderRadius: '12px', 
-          background: 'var(--danger-50)',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--danger)',
-          fontWeight: 800,
-          fontSize: '1.5rem'
-        }}>
-          !
-        </div>
-        <p style={{ color: 'var(--danger)' }}>{error}</p>
-      </div>
-    )
-  }
+  const dateEyebrow = `${DOW[now.getDay()]} · ${now.getDate()} ${MONL[now.getMonth()]} ${now.getFullYear()}`
+  const weekCount = active.filter(a => inRange(a, 'week')).length
 
   return (
-    <div 
-      style={{ minHeight: '100vh', background: 'var(--surface-2)', display: 'flex', flexDirection: 'column' }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={() => setIsPaused(true)}
-      onTouchEnd={() => setIsPaused(false)}
-    >
-      {/* Header */}
-      <header className="agenda-public-header" style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        padding: '1.5rem'
-      }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '1rem'
-          }}>
-            {/* Brand */}
-            <div className="brand-section" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <img src={logoUrl} alt={brandName} className="brand-logo" style={{ height: '40px', width: 'auto', maxWidth: '140px', objectFit: 'contain', flexShrink: 0 }} />
-              <div className="brand-text">
-                <strong style={{ display: 'block', fontSize: '1.0625rem', color: 'var(--text)', lineHeight: 1.25, maxWidth: '260px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {brandName}
-                </strong>
-              </div>
-            </div>
-
-            {/* Title */}
-            <div className="title-section" style={{ textAlign: 'center' }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.25rem' }}>
-                Agenda Kegiatan
-              </h1>
-              <p style={{ fontSize: '0.9375rem', color: 'var(--text-3)' }}>
-                Jadwal kegiatan Direktorat Unesa Science Center
-              </p>
-            </div>
-
-            {/* TV Mode & Login Buttons */}
-            <div className="header-buttons" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              <ThemeToggle />
-              <a
-                href="/agenda/tv"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  boxSizing: 'border-box',
-                  gap: '0.5rem',
-                  padding: '0.625rem 1.25rem',
-                  background: '#0f172a',
-                  color: 'white',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  textDecoration: 'none'
-                }}
-                title="Tampilan khusus untuk Smart TV / Layar Besar"
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                  <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
-                  <polyline points="17 2 12 7 7 2" />
-                </svg>
-                <span>Mode TV</span>
-              </a>
-              <a
-                href="/login"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  minHeight: '2.75rem',
-                  boxSizing: 'border-box',
-                  gap: '0.5rem',
-                  padding: '0.625rem 1.25rem',
-                  background: 'var(--primary)',
-                  color: 'white',
-                  borderRadius: '8px',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  textDecoration: 'none'
-                }}
-              >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-                </svg>
-                <span>Masuk</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Stats Bar */}
-          <div className="agenda-stats-bar" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '1rem',
-            flexWrap: 'wrap',
-            marginTop: '1.5rem'
-          }}>
-            {[
-              { label: 'Total', value: stats.total, color: 'var(--primary)' },
-              { label: 'Berlangsung', value: stats.ongoing, color: 'var(--success)' },
-              { label: 'Akan Datang', value: stats.upcoming, color: 'var(--primary)' },
-              { label: 'Selesai', value: stats.completed, color: 'var(--text-3)' },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="stat-item"
-                style={{
-                  textAlign: 'center',
-                  padding: '0.625rem 1.25rem',
-                  background: 'var(--surface-2)',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border)',
-                  minWidth: '90px'
-                }}
-              >
-                <div className="stat-value" style={{ fontSize: '1.25rem', fontWeight: 700, color: item.color }}>
-                  {item.value}
-                </div>
-                <div className="stat-label" style={{ fontSize: '0.625rem', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {item.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="ap">
+      <header className="ap-header">
+        <Link href="/agenda" className="ap-brand">
+          <img src={logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+          <span style={{ display: 'flex', flexDirection: 'column', gap: 1, minWidth: 0 }}>
+            <span className="ap-brand-name">Unesa Science Center</span>
+            <span className="ap-brand-sub">{brandName}</span>
+          </span>
+        </Link>
+        <nav className="ap-nav" aria-label="Halaman publik">
+          <Link href="/agenda" aria-current="page" className="active">Agenda</Link>
+          <Link href="/daftar-tamu">Buku Tamu</Link>
+          <Link href="/kritik-saran">Kritik &amp; Saran</Link>
+          <Link href="/penilaian">Penilaian</Link>
+        </nav>
+        <div style={{ flex: 1 }} />
+        <ThemeToggle style={{ width: 42, height: 42, borderRadius: 10, color: 'var(--text)' }} />
+        <a href="/agenda/tv" className="ap-tvbtn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="2" y="7" width="20" height="15" rx="2" /><polyline points="17 2 12 7 7 2" /></svg>
+          Mode TV
+        </a>
+        <Link href="/login" className="btn btn-primary ap-login">Masuk</Link>
       </header>
 
-      {/* Main Content */}
-      <main className="agenda-public-main" style={{ flex: 1, padding: '2rem' }}>
-        <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-          {/* Controls */}
-          <div className="agenda-controls" style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '1rem',
-            marginBottom: '2rem',
-            flexWrap: 'wrap'
-          }}>
-            {/* Toggle Show Completed */}
-            <button
-              onClick={() => setShowCompleted(!showCompleted)}
-              className="agenda-press-btn"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                minHeight: '2.75rem',
-                boxSizing: 'border-box',
-                gap: '0.5rem',
-                padding: '0.625rem 1.25rem',
-                background: showCompleted ? 'var(--surface-3)' : 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '9999px',
-                fontSize: '0.8125rem',
-                fontWeight: 500,
-                color: showCompleted ? 'var(--text)' : 'var(--text-3)',
-                cursor: 'pointer'
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1rem', height: '1rem' }}>
-                {showCompleted ? (
-                  <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>
-                ) : (
-                  <><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" /><line x1="1" y1="1" x2="23" y2="23" /></>
-                )}
-              </svg>
-              {showCompleted ? 'Sembunyikan Selesai' : 'Tampilkan Selesai'}
-            </button>
-
-            {/* Page Info */}
-            {totalPages > 1 && (
-              <div className="control-badge" style={{
-                padding: '0.625rem 1.25rem',
-                background: 'var(--primary)',
-                color: 'white',
-                borderRadius: '9999px',
-                fontSize: '0.8125rem',
-                fontWeight: 600
-              }}>
-                Halaman {currentPage + 1} dari {totalPages}
-              </div>
-            )}
-
-            {/* Agenda Count */}
-            <div className="control-badge" style={{
-              padding: '0.625rem 1.25rem',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '9999px',
-              fontSize: '0.8125rem',
-              color: 'var(--text-3)'
-            }}>
-              {filteredAgenda.length} agenda
-            </div>
+      <main className="ap-main">
+        <div className="ap-hero">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <span className="eyebrow ap-eyebrow">{dateEyebrow}</span>
+            <h1 className="ap-title">Agenda kegiatan</h1>
+            <p className="ap-lede">Kelas, kunjungan, dan acara Unesa Science Center yang terbuka untuk umum. {weekCount} agenda dalam 7 hari ke depan.</p>
           </div>
-
-          {/* Agenda Grid - 4 per view (2x2) */}
-          {filteredAgenda.length > 0 ? (
-            <>
-              <div className="agenda-public-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-              }}>
-                {currentAgenda.map((item) => (
-                  <AgendaCard key={item.id} item={item} />
-                ))}
+          {feat && (
+            <div className="now-card ap-feat">
+              <span className="now-card-eyebrow">Berikutnya · {featWhen}</span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 360 }}>
+                <span className="ap-feat-title">{feat.judul}</span>
+                <span style={{ fontSize: 14.5, color: '#cfd8f3' }}>{timeRange(feat)} WIB{feat.lokasi ? ` · ${feat.lokasi}` : ''}</span>
               </div>
-
-              {/* Navigation */}
-              {totalPages > 1 && (
-                <div className="agenda-navigation" style={{
-                  background: 'var(--surface)',
-                  padding: '1.5rem',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border)',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}>
-                  {/* Progress Bar */}
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '0.75rem',
-                      gap: '0.75rem'
-                    }}>
-                      <button
-                        type="button"
-                        onClick={() => setIsPaused((v) => !v)}
-                        aria-label={isPaused ? 'Lanjutkan putar otomatis' : 'Jeda putar otomatis'}
-                        aria-pressed={isPaused}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          minHeight: '2.75rem',
-                          boxSizing: 'border-box',
-                          gap: '0.375rem',
-                          padding: '0.25rem 0.625rem',
-                          background: 'var(--surface-3)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '9999px',
-                          fontSize: '0.75rem',
-                          fontWeight: 600,
-                          color: 'var(--text-2)',
-                          cursor: 'pointer',
-                          flexShrink: 0
-                        }}
-                      >
-                        <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '0.875rem', height: '0.875rem' }} aria-hidden="true">
-                          {isPaused ? (
-                            <polygon points="6 3 20 12 6 21 6 3" />
-                          ) : (
-                            <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>
-                          )}
-                        </svg>
-                        {isPaused ? 'Lanjutkan' : 'Jeda'}
-                      </button>
-                      <span style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
-                        {isPaused
-                          ? 'Putar otomatis dijeda'
-                          : `Berganti otomatis dalam ${Math.ceil((100 - progress) / 100 * (ROTATE_INTERVAL / 1000))} detik`}
-                      </span>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--primary)', marginLeft: 'auto' }}>
-                        {Math.round(progress)}%
-                      </span>
-                    </div>
-                    <ProgressBar progress={progress} />
-                  </div>
-
-                  {/* Navigation Buttons & Dots */}
-                  <div className="nav-buttons" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '1rem'
-                  }}>
-                    <button
-                      className="nav-btn agenda-press-btn"
-                      onClick={() => {
-                        setCurrentPage((prev) => (prev - 1 + totalPages) % totalPages)
-                        setProgress(0)
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        minHeight: '2.75rem',
-                        boxSizing: 'border-box',
-                        gap: '0.5rem',
-                        padding: '0.75rem 1.25rem',
-                        background: 'var(--surface-3)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '10px',
-                        fontSize: '0.875rem',
-                        fontWeight: 500,
-                        color: 'var(--text-2)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                        <polyline points="15 18 9 12 15 6" />
-                      </svg>
-                      <span className="nav-btn-text">Sebelumnya</span>
-                    </button>
-
-                    <NavigationDots
-                      total={totalPages}
-                      current={currentPage}
-                      onSelect={(page) => {
-                        setCurrentPage(page)
-                        setProgress(0)
-                      }}
-                    />
-
-                    <button
-                      className="nav-btn agenda-press-btn"
-                      onClick={() => {
-                        setCurrentPage((prev) => (prev + 1) % totalPages)
-                        setProgress(0)
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        minHeight: '2.75rem',
-                        boxSizing: 'border-box',
-                        gap: '0.5rem',
-                        padding: '0.75rem 1.25rem',
-                        background: 'var(--primary)',
-                        border: 'none',
-                        borderRadius: '10px',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        color: 'white',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span className="nav-btn-text">Selanjutnya</span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '1.125rem', height: '1.125rem' }}>
-                        <polyline points="9 18 15 12 9 6" />
-                      </svg>
-                    </button>
-                  </div>
+              <div className="ap-feat-foot">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontSize: 12.5, color: '#cfd8f3' }}>Dimulai dalam</span>
+                  <span className="mono ap-feat-cd">{featCd}</span>
                 </div>
-              )}
-            </>
-          ) : (
-            <div style={{
-              textAlign: 'center',
-              padding: '4rem 2rem',
-              background: 'var(--surface)',
-              borderRadius: '16px',
-              border: '1px solid var(--border)'
-            }}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '4rem', height: '4rem', color: '#cbd5e1', marginBottom: '1rem' }}>
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-2)', marginBottom: '0.5rem' }}>
-                Tidak ada agenda
-              </h3>
-              <p style={{ fontSize: '0.9375rem', color: 'var(--text-3)' }}>
-                Tidak ada agenda yang akan datang atau sedang berlangsung.
-              </p>
+                <button type="button" className="ap-feat-btn" onClick={() => downloadIcs(feat)}><IconCal />Tambah ke kalender</button>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Strip 7 hari (mobile) */}
+        <div className="ap-week" role="group" aria-label="Pilih tanggal">
+          {week.map(w => (
+            <button key={w.k} type="button" onClick={() => pickDay(w.k, false)} aria-pressed={day === w.k} className={`ap-week-day ${day === w.k ? 'active' : ''}`}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, opacity: .8 }}>{w.dow}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{w.n}</span>
+              <span className="ap-dot" style={{ background: w.has ? (day === w.k ? 'var(--usc-yellow)' : 'var(--primary)') : 'transparent' }} />
+            </button>
+          ))}
+        </div>
+
+        <div className="ap-grid">
+          <aside className="ap-aside">
+            <div className="ap-panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{MONL[calMonth.getMonth()]} {calMonth.getFullYear()}</span>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button type="button" className="ap-calnav" aria-label="Bulan sebelumnya" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}><IconChev dir="l" /></button>
+                  <button type="button" className="ap-calnav" aria-label="Bulan berikutnya" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}><IconChev /></button>
+                </div>
+              </div>
+              <div className="ap-cal-head">{DOW_CAL.map(d => <span key={d}>{d}</span>)}</div>
+              <div className="ap-cal">
+                {cells.map((c, i) => c ? (
+                  <button key={c.k} type="button" onClick={() => pickDay(c.k, c.past)} aria-pressed={day === c.k} aria-label={`${c.n} ${MONL[calMonth.getMonth()]}${c.has ? ', ada agenda' : ''}`}
+                    className={`ap-cal-cell ${day === c.k ? 'sel' : ''} ${c.today ? 'today' : ''} ${c.past ? 'past' : ''}`}>
+                    {c.n}
+                    <span className="ap-dot" style={{ background: c.has ? (day === c.k ? 'var(--usc-yellow)' : 'var(--primary)') : 'transparent' }} />
+                  </button>
+                ) : <span key={`e${i}`} />)}
+              </div>
+              <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>Titik = ada agenda. Klik tanggal untuk memfilter.</span>
+            </div>
+            <div className="ap-panel" style={{ gap: 10 }}>
+              <span className="eyebrow" style={{ fontSize: 11.5, letterSpacing: '.1em' }}>Sedang berkunjung?</span>
+              <Link href="/daftar-tamu" className="ap-visit">Isi buku tamu<span>→</span></Link>
+              <Link href="/penilaian" className="ap-visit">Nilai fasilitas<span>→</span></Link>
+              <Link href="/kritik-saran" className="ap-visit" style={{ borderBottom: 0 }}>Kirim kritik &amp; saran<span>→</span></Link>
+            </div>
+          </aside>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
+            <div className="ap-filters">
+              {[['all', 'Semua mendatang'], ['today', 'Hari ini'], ['week', '7 hari ke depan']].map(([k, label]) => (
+                <button key={k} type="button" className={`chip ${!day && range === k ? 'active' : ''}`} aria-pressed={!day && range === k} onClick={() => { setRange(k); setDay(null) }}>
+                  {label}<span className="chip-count">{active.filter(a => inRange(a, k)).length}</span>
+                </button>
+              ))}
+              {day && (
+                <button type="button" className="chip" onClick={() => setDay(null)} style={{ background: 'var(--usc-yellow)', borderColor: 'var(--usc-yellow)', color: '#0e1a3a', fontWeight: 700 }} aria-label="Hapus filter tanggal">
+                  {parseDay(day).getDate()} {MON[parseDay(day).getMonth()]}<span style={{ fontSize: 17, lineHeight: 1 }}>×</span>
+                </button>
+              )}
+              <div style={{ flex: 1 }} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-2)' }} id="ap-done-label">Tampilkan selesai</span>
+              <button type="button" role="switch" aria-checked={showCompleted} aria-labelledby="ap-done-label" className="switch" onClick={() => setShowCompleted(v => !v)} />
+            </div>
+
+            {loading ? (
+              <div className="ap-cards">{[0, 1, 2, 3].map(i => <div key={i} className="ap-card" style={{ minHeight: 260, animation: 'pulse 1.5s infinite' }} />)}</div>
+            ) : error ? (
+              <div className="ap-empty"><span className="ap-empty-title">{error}</span><span>Coba muat ulang halaman.</span></div>
+            ) : list.length === 0 ? (
+              <div className="ap-empty">
+                <span className="ap-empty-title">Tidak ada agenda publik</span>
+                <span>{day ? 'Pilih tanggal lain di kalender.' : 'Belum ada agenda untuk rentang ini.'}</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
+                <div className="ap-cards">
+                  {cards.map(a => <AgendaCard key={a.id} a={a} now={now} todayKey={todayKey} />)}
+                </div>
+                {pages > 1 && (
+                  <div className="ap-car">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <button type="button" className="ap-pause" onClick={() => setPaused(v => !v)} aria-label={paused ? 'Lanjutkan putar otomatis' : 'Jeda putar otomatis'}>
+                        {paused
+                          ? <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><polygon points="6 3 20 12 6 21 6 3" /></svg>
+                          : <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>}
+                        <span className="ap-hide-sm">{paused ? 'Lanjutkan' : 'Jeda'}</span>
+                      </button>
+                      <span className="ap-hide-sm" style={{ fontSize: 13.5, color: 'var(--text-2)' }} aria-live="off">
+                        {stopped ? 'Putar otomatis dijeda' : `Berganti dalam ${ROTATE_SEC - elapsed} detik`}
+                      </span>
+                      <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(elapsed / ROTATE_SEC) * 100}%`, background: 'var(--usc-yellow)', borderRadius: 3, transition: 'width 1s linear' }} />
+                      </div>
+                      <span className="mono" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>{p + 1} / {pages}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                      <button type="button" className="ap-carbtn" onClick={() => goTo(p - 1)} aria-label="Halaman sebelumnya"><IconChev dir="l" /><span className="ap-hide-sm">Sebelumnya</span></button>
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        {Array.from({ length: pages }, (_, i) => (
+                          <button key={i} type="button" onClick={() => goTo(i)} aria-label={`Halaman ${i + 1}`} aria-current={i === p ? 'true' : undefined} className="ap-dotbtn">
+                            <span style={{ height: 10, width: i === p ? 30 : 10, borderRadius: 5, background: i === p ? 'var(--primary)' : 'var(--border-strong)', transition: 'width .25s' }} />
+                          </button>
+                        ))}
+                      </div>
+                      <button type="button" className="ap-carbtn primary" onClick={() => goTo(p + 1)} aria-label="Halaman selanjutnya"><span className="ap-hide-sm">Selanjutnya</span><IconChev /></button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
       </main>
-
-      {/* Footer */}
-      <footer style={{
-        background: 'var(--surface)',
-        borderTop: '1px solid var(--border)',
-        padding: '1.5rem',
-        textAlign: 'center'
-      }}>
-        <p style={{ fontSize: '0.8125rem', color: 'var(--text-3)' }}>
-          &copy; 2025 Direktorat Unesa Science Center. All rights reserved.
-        </p>
-        <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-          Made by <strong>Rahmat Iqbal</strong>
-        </p>
-      </footer>
-
-      <style jsx global>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        @keyframes agendaCardEnter {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        .agenda-public-card {
-          animation: agendaCardEnter 300ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
-          transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 200ms ease;
-        }
-        .agenda-public-grid .agenda-public-card:nth-child(1) { animation-delay: 0ms; }
-        .agenda-public-grid .agenda-public-card:nth-child(2) { animation-delay: 50ms; }
-        .agenda-public-grid .agenda-public-card:nth-child(3) { animation-delay: 100ms; }
-        .agenda-public-grid .agenda-public-card:nth-child(4) { animation-delay: 150ms; }
-
-        @media (hover: hover) and (pointer: fine) {
-          .agenda-public-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.12);
-          }
-        }
-
-        .agenda-press-btn {
-          transition: transform 120ms ease-out;
-        }
-        .agenda-press-btn:active {
-          transform: scale(0.97);
-        }
-
-        .agenda-nav-dot {
-          transition: transform 120ms ease-out, width 250ms cubic-bezier(0.23, 1, 0.32, 1), background-color 250ms ease;
-        }
-        .agenda-nav-dot:active {
-          transform: scale(0.9);
-        }
-
-        @media (max-width: 640px) {
-          .agenda-public-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      <footer className="ap-footer"><span>© {now.getFullYear()} {brandName}</span><span>Semua waktu dalam WIB</span></footer>
     </div>
   )
 }

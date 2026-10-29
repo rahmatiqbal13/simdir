@@ -101,7 +101,7 @@ export default function MemoListPage() {
                 <tr><td colSpan={6} className="text-center muted" style={{ padding: '2rem' }}>Belum ada memo</td></tr>
               ) : filtered.map((item) => (
                 <tr key={item.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{item.nomor}</td>
+                  <td style={{ fontWeight: 600, fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{item.nomor}</td>
                   <td className="muted" style={{ whiteSpace: 'nowrap', fontSize: '0.8125rem' }}>{formatDate(item.tanggal)}</td>
                   <td style={{ whiteSpace: 'nowrap' }}>{item.kepada}</td>
                   <td style={{ maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.perihal}</td>

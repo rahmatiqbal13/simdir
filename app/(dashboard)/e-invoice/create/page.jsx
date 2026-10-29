@@ -60,7 +60,7 @@ function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
           min="0"
         />
       </td>
-      <td style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontFamily: 'monospace' }}>
+      <td style={{ padding: '0.75rem', textAlign: 'right', width: '150px', fontFamily: 'var(--font-mono)' }}>
         {formatRupiah(total)}
       </td>
       <td style={{ padding: '0.75rem', width: '50px', textAlign: 'center' }}>
@@ -726,7 +726,7 @@ export default function CreateInvoicePage() {
                         border: '1px solid var(--border)',
                         borderRadius: '4px',
                         padding: '0.5rem',
-                        fontFamily: 'monospace'
+                        fontFamily: 'var(--font-mono)'
                       }}
                     />
                   </div>
@@ -842,7 +842,7 @@ export default function CreateInvoicePage() {
                       type="text"
                       value={newCustomer.kode_pelanggan}
                       disabled
-                      style={{ width: '200px', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem', fontFamily: 'monospace' }}
+                      style={{ width: '200px', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}
                     />
                     <small style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.25rem' }}>Dibuat otomatis oleh sistem</small>
                   </div>
@@ -998,7 +998,7 @@ export default function CreateInvoicePage() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                     <span style={{ fontSize: '0.875rem' }}>Sub Total</span>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatRupiah(subtotal)}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{formatRupiah(subtotal)}</span>
                   </div>
                   
                   {/* Pajak */}
@@ -1013,7 +1013,7 @@ export default function CreateInvoicePage() {
                         />
                         <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Pajak (+)</span>
                       </div>
-                      <span style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--text-2)' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.875rem', color: 'var(--text-2)' }}>
                         {formatRupiah(ppnNilai)}
                       </span>
                     </div>
@@ -1057,7 +1057,7 @@ export default function CreateInvoicePage() {
                                 border: '1px solid var(--border-strong)',
                                 borderRadius: '4px',
                                 padding: '0.5rem',
-                                fontFamily: 'monospace'
+                                fontFamily: 'var(--font-mono)'
                               }}
                               min="0"
                               step="0.01"
@@ -1079,7 +1079,7 @@ export default function CreateInvoicePage() {
                               border: '1px solid var(--border-strong)',
                               borderRadius: '4px',
                               padding: '0.5rem',
-                              fontFamily: 'monospace'
+                              fontFamily: 'var(--font-mono)'
                             }}
                           />
                         )}
@@ -1109,7 +1109,7 @@ export default function CreateInvoicePage() {
                         border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
-                        fontFamily: 'monospace',
+                        fontFamily: 'var(--font-mono)',
                         backgroundColor: diskon.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
@@ -1137,7 +1137,7 @@ export default function CreateInvoicePage() {
                         border: '1px solid var(--border-strong)',
                         borderRadius: '4px',
                         padding: '0.5rem',
-                        fontFamily: 'monospace',
+                        fontFamily: 'var(--font-mono)',
                         backgroundColor: biayaPengiriman.aktif ? 'var(--surface)' : 'var(--surface-2)'
                       }}
                     />
@@ -1156,7 +1156,7 @@ export default function CreateInvoicePage() {
                     borderRadius: '4px'
                   }}>
                     <span style={{ fontSize: '1rem', fontWeight: 700 }}>TOTAL</span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'monospace' }}>
+                    <span style={{ fontSize: '1.25rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                       {formatRupiah(total)}
                     </span>
                   </div>
