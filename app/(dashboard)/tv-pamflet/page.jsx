@@ -2,6 +2,108 @@
 
 import { useState, useEffect, useRef } from 'react'
 import ConfirmModal from '@/app/components/ConfirmModal'
+import { TV_LAYAR, TV_LAYAR_SLUGS, TV_LAYAR_UNIT } from '@/lib/tvLayar'
+
+// Pilih layar TV tujuan. Kosong = tampil di semua TV.
+function LayarPicker({ value, onChange, compact = false }) {
+  const toggle = (slug) => onChange(value.includes(slug) ? value.filter(s => s !== slug) : [...value, slug])
+  const chip = (active) => ({
+    padding: compact ? '1px 8px' : '0.375rem 0.75rem',
+    borderRadius: '99px',
+    fontSize: compact ? '0.7rem' : '0.8125rem',
+    fontWeight: 600,
+    cursor: 'pointer',
+    border: `1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
+    background: active ? 'var(--primary)' : 'transparent',
+    color: active ? '#fff' : 'var(--text-2)',
+  })
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: compact ? '0.25rem' : '0.5rem' }}>
+      <button type="button" onClick={() => onChange([])} style={chip(value.length === 0)}>Semua TV</button>
+      {TV_LAYAR_SLUGS.map(slug => (
+        <button key={slug} type="button" onClick={() => toggle(slug)} style={chip(value.includes(slug))}>{TV_LAYAR[slug].nama}</button>
+      ))}
+    </div>
+  )
+}
+
+// Pengaturan operasional satu layar unit (tabel tv_screens)
+function ScreenSettings({ slug, initial, onSaved, onError }) {
+  const [f, setF] = useState(() => ({
+    jam_buka: initial?.jam_buka?.slice(0, 5) || '',
+    jam_tutup: initial?.jam_tutup?.slice(0, 5) || '',
+    tutup_sementara: !!initial?.tutup_sementara,
+    catatan: initial?.catatan || '',
+    running_text: initial?.running_text || '',
+  }))
+  const [saving, setSaving] = useState(false)
+  const set = (k, v) => setF(prev => ({ ...prev, [k]: v }))
+  const input = { width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }
+  const label = { display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--text)' }
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/tv-screens/${slug}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(f),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Gagal menyimpan')
+      onSaved(`Pengaturan TV ${TV_LAYAR[slug].nama} disimpan. TV akan update dalam 5 menit.`)
+    } catch (err) {
+      onError(err.message || 'Gagal menyimpan pengaturan layar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '1.5rem', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', gap: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>TV {TV_LAYAR[slug].nama}</h2>
+        <a href={`/agenda/tv/${slug}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8125rem', color: 'var(--primary)' }}>Buka layar ↗</a>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+        <div>
+          <label style={label}>Jam buka</label>
+          <input type="time" value={f.jam_buka} onChange={(e) => set('jam_buka', e.target.value)} style={input} />
+        </div>
+        <div>
+          <label style={label}>Jam tutup</label>
+          <input type="time" value={f.jam_tutup} onChange={(e) => set('jam_tutup', e.target.value)} style={input} />
+        </div>
+      </div>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem', cursor: 'pointer' }}>
+        <input type="checkbox" checked={f.tutup_sementara} onChange={(e) => set('tutup_sementara', e.target.checked)} />
+        Tutup sementara (perawatan, acara khusus, dll.)
+      </label>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={label}>Catatan di kartu status</label>
+        <input type="text" value={f.catatan} onChange={(e) => set('catatan', e.target.value)} maxLength={200}
+          placeholder={f.tutup_sementara ? 'mis. Perawatan kolam hingga 2 Nov' : 'Opsional — mis. Khusus member pagi ini'} style={input} />
+      </div>
+
+      <div style={{ marginBottom: '1.25rem' }}>
+        <label style={label}>Running text</label>
+        <textarea value={f.running_text} onChange={(e) => set('running_text', e.target.value)} rows={4} maxLength={2000}
+          placeholder={'Satu info per baris, mis.\nWajib bilas sebelum masuk kolam\nTiket pelajar Rp10.000'} style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }} />
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.375rem' }}>
+          Jadwal hari ini dari Kelola Agenda (penyelenggara {TV_LAYAR[slug].nama}, tampil publik) ikut otomatis.
+        </p>
+      </div>
+
+      <button onClick={save} disabled={saving}
+        style={{ width: '100%', padding: '0.625rem', background: saving ? 'var(--text-3)' : 'var(--primary)', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '0.875rem', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}>
+        {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+      </button>
+    </div>
+  )
+}
 
 export default function TVPamfletPage() {
   const [pamflets, setPamflets] = useState([])
@@ -22,6 +124,12 @@ export default function TVPamfletPage() {
   const [ytDuration, setYtDuration] = useState(15)
   const [ytSaving, setYtSaving] = useState(false)
   
+  // Layar tujuan untuk pamflet baru (dipakai form gambar & YouTube)
+  const [target, setTarget] = useState([])
+
+  // Pengaturan layar unit (tv_screens), dimuat sekali
+  const [screens, setScreens] = useState(null)
+
   const [message, setMessage] = useState({ type: '', text: '' })
 
   // Delete confirmation state
@@ -30,6 +138,10 @@ export default function TVPamfletPage() {
 
   useEffect(() => {
     loadPamflets()
+    fetch('/api/tv-screens')
+      .then(res => res.json())
+      .then(data => setScreens(Object.fromEntries(data.map(r => [r.slug, r]))))
+      .catch(() => setScreens({}))
   }, [])
 
   const loadPamflets = async () => {
@@ -87,6 +199,7 @@ export default function TVPamfletPage() {
       form.append('file', selectedFile)
       form.append('title', imgTitle.trim())
       form.append('duration', String(imgDuration))
+      form.append('target_layar', JSON.stringify(target))
 
       const res = await fetch('/api/tv-pamflets', { method: 'POST', body: form })
       const data = await res.json()
@@ -121,6 +234,7 @@ export default function TVPamfletPage() {
           title: ytTitle.trim(),
           url: ytUrl.trim(),
           duration: ytDuration,
+          target_layar: target,
         }),
       })
       const data = await res.json()
@@ -180,12 +294,36 @@ export default function TVPamfletPage() {
     }
   }
 
+  // ============ EDIT TARGET LAYAR ============
+  const handleEditTarget = async (pamflet, newTarget) => {
+    try {
+      const res = await fetch(`/api/tv-pamflets/${pamflet.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_layar: newTarget }),
+      })
+      if (!res.ok) throw new Error('Gagal mengupdate')
+      setPamflets(prev => prev.map(p => p.id === pamflet.id ? { ...p, target_layar: newTarget } : p))
+    } catch {
+      showMessage('error', 'Gagal mengupdate layar tujuan')
+    }
+  }
+
+  const targetPicker = (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--text)' }}>
+        Tampilkan di
+      </label>
+      <LayarPicker value={target} onChange={setTarget} />
+    </div>
+  )
+
   return (
     <div>
       <div className="page-header">
         <div className="page-title-wrap">
           <h1 className="page-title">TV Pamflet</h1>
-          <p className="page-subtitle">Kelola gambar dan video YouTube yang ditampilkan di TV Display.</p>
+          <p className="page-subtitle">Kelola gambar, video YouTube, dan pengaturan tiap TV Display (Gedung USC, Kolam Renang, SSFC).</p>
         </div>
       </div>
 
@@ -294,6 +432,8 @@ export default function TVPamfletPage() {
                 </div>
               </div>
 
+              {targetPicker}
+
               {previewUrl && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden', aspectRatio: '16/9', background: '#000' }}>
@@ -382,6 +522,8 @@ export default function TVPamfletPage() {
                   Tips: Gunakan durasi lebih lama (30-60 dtk) untuk video
                 </p>
               </div>
+
+              {targetPicker}
 
               <button
                 onClick={handleSaveYoutube}
@@ -480,6 +622,9 @@ export default function TVPamfletPage() {
                           {pamflet.type === 'youtube' ? 'YouTube' : 'Gambar'}
                         </span>
                       </div>
+                      <div style={{ marginBottom: '0.375rem' }}>
+                        <LayarPicker compact value={pamflet.target_layar || []} onChange={(v) => handleEditTarget(pamflet, v)} />
+                      </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-2)' }}>Durasi:</label>
                         <select
@@ -527,11 +672,25 @@ export default function TVPamfletPage() {
               <li>Tambah video YouTube → cukup paste URL, sistem auto-embed</li>
               <li>TV Display refresh otomatis setiap 5 menit</li>
               <li>Hapus pamflet → gambar/video ikut terhapus dari daftar</li>
-              <li>Ubah durasi langsung dari daftar di atas</li>
+              <li>Ubah durasi & layar tujuan langsung dari daftar di atas</li>
+              <li>Alamat TV: /agenda/tv (Gedung USC){TV_LAYAR_UNIT.map(s => `, /agenda/tv/${s} (${TV_LAYAR[s].nama})`).join('')}</li>
             </ul>
           </div>
         </div>
       </div>
+
+      {/* Pengaturan layar unit */}
+      <h2 style={{ fontSize: '1.125rem', fontWeight: 600, margin: '2.5rem 0 1rem' }}>Pengaturan Layar</h2>
+      {screens === null ? (
+        <p style={{ color: 'var(--text-3)' }}>Memuat...</p>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+          {TV_LAYAR_UNIT.map(slug => (
+            <ScreenSettings key={slug} slug={slug} initial={screens[slug]}
+              onSaved={(t) => showMessage('success', t)} onError={(t) => showMessage('error', t)} />
+          ))}
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }

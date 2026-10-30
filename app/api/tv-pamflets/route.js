@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { compressImage } from '@/lib/image'
+import { TV_LAYAR_SLUGS, sanitizeTargetLayar } from '@/lib/tvLayar'
 
 function getServiceClient() {
   return createClient(
@@ -50,13 +51,19 @@ function parseYouTubeUrl(url) {
 }
 
 // GET /api/tv-pamflets — list active pamflets (public, no auth needed)
-export async function GET() {
+// ?layar=<slug> → hanya pamflet untuk semua layar (target kosong) atau layar itu.
+export async function GET(request) {
   try {
     const supabase = getServiceClient()
-    const { data, error } = await supabase
+    const layar = new URL(request.url).searchParams.get('layar')
+    let query = supabase
       .from('tv_pamflets')
-      .select('id, title, src_url, type, duration, order_num')
+      .select('id, title, src_url, type, duration, order_num, target_layar')
       .eq('is_active', true)
+    if (TV_LAYAR_SLUGS.includes(layar)) {
+      query = query.or(`target_layar.eq.{},target_layar.cs.{${layar}}`)
+    }
+    const { data, error } = await query
       .order('order_num', { ascending: true })
       .order('created_at', { ascending: true })
 
@@ -81,6 +88,7 @@ export async function POST(request) {
       const title = (body.title || '').trim()
       const url = (body.url || '').trim()
       const duration = Math.max(5, Math.min(60, parseInt(body.duration || '15', 10)))
+      const target_layar = sanitizeTargetLayar(body.target_layar)
       
       if (!title || !url) {
         return NextResponse.json({ error: 'Judul dan URL YouTube wajib diisi' }, { status: 400 })
@@ -108,6 +116,7 @@ export async function POST(request) {
           type: 'youtube',
           storage_path: null,
           duration,
+          target_layar,
           order_num: nextOrder,
           is_active: true,
         })
@@ -123,6 +132,8 @@ export async function POST(request) {
       const file = formData.get('file')
       const title = (formData.get('title') || '').trim()
       const duration = Math.max(5, Math.min(60, parseInt(formData.get('duration') || '15', 10)))
+      let target_layar = []
+      try { target_layar = sanitizeTargetLayar(JSON.parse(formData.get('target_layar') || '[]')) } catch {}
 
       if (!file || !title) {
         return NextResponse.json({ error: 'File dan judul wajib diisi' }, { status: 400 })
@@ -171,6 +182,7 @@ export async function POST(request) {
           type: 'image',
           storage_path: storagePath,
           duration,
+          target_layar,
           order_num: nextOrder,
           is_active: true,
         })

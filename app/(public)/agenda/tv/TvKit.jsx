@@ -98,6 +98,46 @@ export function TvProgress({ pct, p, height = 6 }) {
   )
 }
 
+// QR masukan pengunjung (kritik-saran & penilaian)
+export function TvQrRow({ p, qrSize = 96, padding = '18px 28px' }) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://managementusc.vercel.app'
+  return (
+    <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 24, padding, borderTop: `1px solid ${p.line}` }}>
+      {[
+        { path: '/kritik-saran', label: 'Kritik & Saran' },
+        { path: '/penilaian', label: 'Nilai Fasilitas' },
+      ].map(q => (
+        <div key={q.path} style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
+          <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(origin + q.path)}`} alt={`QR ${q.label}`}
+            style={{ width: qrSize, height: qrSize, borderRadius: 12, background: '#fff', padding: 6, flexShrink: 0 }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+            <span style={{ fontSize: 22, fontWeight: 700 }}>{q.label}</span>
+            <span style={{ fontSize: 17, color: p.ink2 }}>Pindai dengan kamera HP</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Ticker INFO di kaki layar
+export function TvTicker({ text }) {
+  return (
+    <footer style={{ height: 76, flexShrink: 0, display: 'flex', alignItems: 'center', background: '#f5b915', color: '#0a1430', overflow: 'hidden' }}>
+      <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 32px', background: '#0a1430', color: '#f5b915', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 600, letterSpacing: '.1em', flexShrink: 0, position: 'relative', zIndex: 1 }}>INFO</span>
+      <div style={{ flex: 1, overflow: 'hidden', fontSize: 26, fontWeight: 600 }}>
+        <div style={{ display: 'flex', whiteSpace: 'nowrap', width: 'max-content', animation: 'simdirMarquee 45s linear infinite' }}>
+          <span style={{ paddingRight: 80, paddingLeft: 32 }}>{text}</span>
+          <span style={{ paddingRight: 80, paddingLeft: 32 }}>{text}</span>
+        </div>
+      </div>
+      <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 24px', background: '#0a1430', color: '#9aa6cc', fontSize: 15, flexShrink: 0, position: 'relative', zIndex: 1 }}>
+        Made by <strong style={{ color: '#f5b915', marginLeft: 6 }}>Rahmat Iqbal</strong>
+      </span>
+    </footer>
+  )
+}
+
 export function TvLoading({ error }) {
   return (
     <div style={{ height: '100vh', background: '#0a1430', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 24, fontFamily: 'var(--font-sans)' }}>

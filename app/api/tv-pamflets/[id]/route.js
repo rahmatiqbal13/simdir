@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { sanitizeTargetLayar } from '@/lib/tvLayar'
 
 function getServiceClient() {
   return createClient(
@@ -37,7 +38,7 @@ export async function DELETE(request, { params }) {
   }
 }
 
-// PATCH /api/tv-pamflets/[id] — update title, duration, atau order
+// PATCH /api/tv-pamflets/[id] — update title, duration, order, atau target layar
 export async function PATCH(request, { params }) {
   try {
     const { id } = params
@@ -49,6 +50,7 @@ export async function PATCH(request, { params }) {
     if (body.duration !== undefined) updates.duration = Math.max(5, Math.min(60, body.duration))
     if (body.is_active !== undefined) updates.is_active = body.is_active
     if (body.order_num !== undefined) updates.order_num = body.order_num
+    if (body.target_layar !== undefined) updates.target_layar = sanitizeTargetLayar(body.target_layar)
 
     const { data, error } = await supabase
       .from('tv_pamflets')

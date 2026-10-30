@@ -5,299 +5,11 @@ import { supabase } from '@/lib/supabase/client'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
 import { MONTHS, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading } from './TvKit'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker } from './TvKit'
+import { MediaRotator, useNetworkStatus } from './MediaRotator'
 
 const ROWS_PER_PAGE = 4
 const ROTATE_SEC = 15
-
-// ============ NETWORK STATUS ============
-function useNetworkStatus() {
-  const [isOnline, setIsOnline] = useState(true)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const update = () => setIsOnline(navigator.onLine)
-    update()
-    window.addEventListener('online', update)
-    window.addEventListener('offline', update)
-    return () => {
-      window.removeEventListener('online', update)
-      window.removeEventListener('offline', update)
-    }
-  }, [])
-  return isOnline
-}
-
-// ============ MEDIA ROTATOR ============
-const MediaRotator = ({ p, onState }) => {
-  const [idx, setIdx]             = useState(0)
-  const [fading, setFading]       = useState(false)
-  const [imgErr, setImgErr]       = useState(false)
-  const [dbPamflets, setDbPamflets] = useState([])
-  const playerRef   = useRef(null)
-  const timerRef    = useRef(null)
-  const plLenRef    = useRef(0)
-  const plIdxRef    = useRef(0)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    const load = async () => {
-      try {
-        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-        const res = await fetch(`${baseUrl}/api/tv-pamflets`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
-          cache: 'no-cache'
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setDbPamflets(data || [])
-        }
-      } catch (err) {
-        console.warn('Failed to load TV pamflets:', err)
-      }
-    }
-    
-    load()
-    const id = setInterval(load, 5 * 60 * 1000)
-    return () => clearInterval(id)
-  }, [])
-
-  const playlist = useMemo(() => {
-    return dbPamflets.map(p => {
-      if (p.type === 'youtube') {
-        return { type: 'youtube', url: p.src_url, title: p.title, duration: p.duration * 1000 }
-      }
-      return { type: 'image', src: p.src_url, title: p.title, duration: p.duration * 1000 }
-    })
-  }, [dbPamflets])
-
-  const playlistRef = useRef(playlist)
-  useEffect(() => { playlistRef.current = playlist }, [playlist])
-
-  const cur = playlist.length > 0 ? playlist[idx % Math.max(1, playlist.length)] : null
-
-  const next = useCallback(() => {
-    setFading(true)
-    setTimeout(() => {
-      setIdx(p => (p + 1) % Math.max(1, playlistRef.current.length))
-      setImgErr(false)
-      setFading(false)
-    }, 600)
-  }, [])
-
-  const nextRef = useRef(next)
-  useEffect(() => { nextRef.current = next }, [next])
-
-  useEffect(() => {
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (cur?.type === 'youtube') return
-    const dur = cur?.duration || 15000
-    timerRef.current = setInterval(() => nextRef.current(), dur)
-    return () => clearInterval(timerRef.current)
-  }, [idx, cur])
-
-  // Auto-reload halaman setiap 60 menit untuk mencegah stuck di Android TV
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const id = setTimeout(() => {
-      console.log('[TV] Auto-reload after 60 minutes')
-      window.location.reload()
-    }, 60 * 60 * 1000)
-    return () => clearTimeout(id)
-  }, [])
-
-  // Watchdog: cek player masih hidup setiap 2 menit, jika tidak reload halaman
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (cur?.type !== 'youtube') return
-    const id = setInterval(() => {
-      try {
-        const player = playerRef.current
-        const state = player?.getPlayerState?.()
-        // -1 = unstarted, 0 = ended, 1 = playing, 2 = paused, 3 = buffering, 5 = cued
-        // Jika null/undefined atau error, anggap player mati
-        if (state === undefined || state === null) {
-          console.warn('[TV Watchdog] Player state invalid, reloading...')
-          window.location.reload()
-        }
-      } catch {
-        console.warn('[TV Watchdog] Player check failed, reloading...')
-        window.location.reload()
-      }
-    }, 2 * 60 * 1000)
-    return () => clearInterval(id)
-  }, [cur?.type])
-
-  // Network recovery: re-init player saat koneksi kembali. Cuma
-  // menghancurkan player lama tidak cukup — effect di bawah baru jalan lagi
-  // kalau cur?.url/cur?.type berubah, yang tidak terjadi cuma karena koneksi
-  // pulih. reinitNonce dipakai supaya effect itu ikut re-run walau URL sama.
-  const [reinitNonce, setReinitNonce] = useState(0)
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const handleOnline = () => {
-      console.log('[TV] Network online, re-init player...')
-      if (playerRef.current?.destroy) {
-        try { playerRef.current.destroy() } catch {}
-        playerRef.current = null
-      }
-      ytUrlRef.current = null
-      setReinitNonce((n) => n + 1)
-    }
-    window.addEventListener('online', handleOnline)
-    return () => window.removeEventListener('online', handleOnline)
-  }, [])
-
-  const ytUrlRef = useRef(null)
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') return
-    if (cur?.type !== 'youtube') {
-      if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null }
-      ytUrlRef.current = null
-      return
-    }
-    const url = cur.url
-    if (ytUrlRef.current === url && playerRef.current) return
-    ytUrlRef.current = url
-    const listMatch = url.match(/list=([^&]+)/)
-    const listId = listMatch?.[1] || ''
-    const init = () => {
-      if (playerRef.current?.destroy) { playerRef.current.destroy(); playerRef.current = null }
-      plLenRef.current = 0
-      plIdxRef.current = 0
-      
-      if (!window.YT?.Player) {
-        console.warn('YouTube API not available')
-        return
-      }
-      
-      try {
-        playerRef.current = new window.YT.Player('yt-tv-player', {
-          playerVars: { listType: 'playlist', list: listId, autoplay: 1, mute: 1, rel: 0, modestbranding: 1, controls: 0, iv_load_policy: 3 },
-          events: {
-            onReady: (e) => {
-              try {
-                e.target.mute()
-                const tryLen = () => {
-                  const pl = e.target.getPlaylist?.()
-                  if (pl?.length) { plLenRef.current = pl.length; return }
-                  setTimeout(tryLen, 800)
-                }
-                tryLen()
-              } catch (err) {
-                console.warn('YouTube onReady error:', err)
-              }
-            },
-            onStateChange: (e) => {
-              try {
-                e.target.mute()
-                try { plIdxRef.current = e.target.getPlaylistIndex() } catch {}
-                if (!plLenRef.current) {
-                  try { plLenRef.current = e.target.getPlaylist()?.length || 0 } catch {}
-                }
-                if (e.data === 0) {
-                  const isLast = plLenRef.current > 0
-                    ? plIdxRef.current >= plLenRef.current - 1
-                    : true
-                  if (isLast) setTimeout(() => nextRef.current(), 1000)
-                }
-              } catch (err) {
-                console.warn('YouTube onStateChange error:', err)
-              }
-            },
-            onError: (e) => {
-              console.warn('YouTube player error:', e.data)
-              // Error codes: 2=invalid param, 5=HTML5 error, 100=not found, 101/150=embed not allowed
-              // Jika error, reload halaman setelah 5 detik
-              setTimeout(() => {
-                console.warn('[TV] Reloading due to YouTube error')
-                window.location.reload()
-              }, 5000)
-            },
-          },
-        })
-      } catch (err) {
-        console.warn('YouTube Player init error:', err)
-      }
-    }
-    
-    if (window.YT?.Player) { 
-      init() 
-    } else {
-      const prev = window.onYouTubeIframeAPIReady
-      window.onYouTubeIframeAPIReady = () => { 
-        try {
-          prev?.(); 
-          init() 
-        } catch (err) {
-          console.warn('YouTube API ready error:', err)
-        }
-      }
-      if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-        try {
-          const tag = document.createElement('script'); 
-          tag.src = 'https://www.youtube.com/iframe_api'; 
-          document.head?.appendChild?.(tag)
-        } catch (err) {
-          console.warn('Failed to load YouTube API:', err)
-        }
-      }
-    }
-    return () => { 
-      if (playerRef.current?.destroy) { 
-        try {
-          playerRef.current.destroy(); 
-          playerRef.current = null 
-        } catch (err) {
-          console.warn('YouTube destroy error:', err)
-        }
-      } 
-    }
-  }, [cur?.url, cur?.type, reinitNonce])
-
-  const total = playlist.length
-
-  // Laporkan item aktif ke induk (judul, indeks, durasi) untuk bar segmen
-  // dan keterangan di bawah media.
-  const onStateRef = useRef(onState)
-  useEffect(() => { onStateRef.current = onState }, [onState])
-  useEffect(() => {
-    onStateRef.current?.({ idx: total ? idx % total : 0, total, cur, startedAt: Date.now() })
-  }, [idx, total, cur])
-
-  return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: p.video }}>
-      {!cur && (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, color: p.ink4 }}>
-          <svg viewBox="0 0 24 24" width="72" height="72" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="2" /><path d="M21 15l-5-5L5 21" /></svg>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 19, letterSpacing: '.06em' }}>BELUM ADA MEDIA · ATUR DI TV PAMFLET</span>
-        </div>
-      )}
-      {cur?.type === 'youtube' && (
-        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease', background: '#000' }}>
-          <div id="yt-tv-player" style={{ width: '100%', height: '100%' }} />
-        </div>
-      )}
-      {cur?.type === 'image' && (
-        <div style={{ position: 'absolute', inset: 0, opacity: fading ? 0 : 1, transition: 'opacity 0.6s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {imgErr ? (
-            <div style={{ color: p.ink4, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 19, letterSpacing: '.06em' }}>
-              GAMBAR TIDAK DITEMUKAN
-            </div>
-          ) : (
-            <img src={cur.src} alt={cur.title} onError={() => setImgErr(true)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-          )}
-        </div>
-      )}
-      {cur && (
-        <span style={{ position: 'absolute', top: 24, left: 24, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, letterSpacing: '.08em', padding: '6px 14px', borderRadius: 8, background: '#f5b915', color: '#0a1430' }}>
-          {cur.type === 'youtube' ? 'VIDEO' : 'PAMFLET'}
-        </span>
-      )}
-    </div>
-  )
-}
 
 // ============ HALAMAN UTAMA ============
 // TV Publik (Redesign 02 · 2a): agenda terbuka di kiri (40%), media di kanan
@@ -422,8 +134,6 @@ export default function AgendaTVPage() {
   // Show fatal error only if truly no data
   if (error && agenda.length === 0) return <TvLoading error={!isOnline ? `${error} · koneksi terputus` : error} />
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://managementusc.vercel.app'
-
   return (
     <TvStage scale={scale} p={p}>
       {/* ── HEADER ── */}
@@ -478,22 +188,7 @@ export default function AgendaTVPage() {
               )
             })}
           </div>
-          {/* QR masukan pengunjung */}
-          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 24, padding: '18px 28px', borderTop: `1px solid ${p.line}` }}>
-            {[
-              { path: '/kritik-saran', label: 'Kritik & Saran' },
-              { path: '/penilaian', label: 'Nilai Fasilitas' },
-            ].map(q => (
-              <div key={q.path} style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(origin + q.path)}`} alt={`QR ${q.label}`}
-                  style={{ width: 96, height: 96, borderRadius: 12, background: '#fff', padding: 6, flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                  <span style={{ fontSize: 22, fontWeight: 700 }}>{q.label}</span>
-                  <span style={{ fontSize: 17, color: p.ink2 }}>Pindai dengan kamera HP</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TvQrRow p={p} />
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '18px 28px', background: p.head }}>
             <TvProgress pct={(elapsed / ROTATE_SEC) * 100} p={p} />
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: p.ink2 }}>{ROTATE_SEC - elapsed}s</span>
@@ -510,7 +205,7 @@ export default function AgendaTVPage() {
             ))}
           </div>
           <div style={{ flex: 1, minHeight: 0, borderRadius: 24, overflow: 'hidden', border: `1px solid ${p.line}`, position: 'relative' }}>
-            <MediaRotator p={p} onState={setMedia} />
+            <MediaRotator p={p} onState={setMedia} layar="usc" />
           </div>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
@@ -526,19 +221,7 @@ export default function AgendaTVPage() {
         </div>
       </div>
 
-      {/* ── FOOTER / TICKER ── */}
-      <footer style={{ height: 76, flexShrink: 0, display: 'flex', alignItems: 'center', background: '#f5b915', color: '#0a1430', overflow: 'hidden' }}>
-        <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 32px', background: '#0a1430', color: '#f5b915', fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 600, letterSpacing: '.1em', flexShrink: 0, position: 'relative', zIndex: 1 }}>INFO</span>
-        <div style={{ flex: 1, overflow: 'hidden', fontSize: 26, fontWeight: 600 }}>
-          <div style={{ display: 'flex', whiteSpace: 'nowrap', width: 'max-content', animation: 'simdirMarquee 45s linear infinite' }}>
-            <span style={{ paddingRight: 80, paddingLeft: 32 }}>{marqueeText}</span>
-            <span style={{ paddingRight: 80, paddingLeft: 32 }}>{marqueeText}</span>
-          </div>
-        </div>
-        <span style={{ height: '100%', display: 'flex', alignItems: 'center', padding: '0 24px', background: '#0a1430', color: '#9aa6cc', fontSize: 15, flexShrink: 0, position: 'relative', zIndex: 1 }}>
-          Made by <strong style={{ color: '#f5b915', marginLeft: 6 }}>Rahmat Iqbal</strong>
-        </span>
-      </footer>
+      <TvTicker text={marqueeText} />
     </TvStage>
   )
 }

@@ -157,6 +157,8 @@ function isPublicPath(pathname, method) {
   if (pathname.startsWith('/api/auth/')) return true
   // Dipakai oleh tampilan TV publik (/agenda/tv) — hanya method baca yang publik.
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
+  // Jam buka/status/running text layar TV unit (/agenda/tv/<slug>) — baca publik.
+  if (pathname === '/api/tv-screens' && method === 'GET') return true
   // Nama instansi/logo ditampilkan di halaman publik (TV, agenda) — baca publik.
   if (pathname === '/api/app-settings' && method === 'GET') return true
   // Public feedback submission endpoint
@@ -288,7 +290,7 @@ export async function middleware(request) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
-  if (pathname.startsWith('/api/tv-pamflets') && !TV_PAMFLET_API_ROLES.includes(role)) {
+  if ((pathname.startsWith('/api/tv-pamflets') || pathname.startsWith('/api/tv-screens')) && !TV_PAMFLET_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 
