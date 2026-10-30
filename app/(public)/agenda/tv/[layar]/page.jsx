@@ -138,8 +138,8 @@ export default function TvLayarPage() {
   if (error && agenda.length === 0) return <TvLoading error={!isOnline ? `${error} · koneksi terputus` : error} />
 
   const nowMin = now ? now.getHours() * 60 + now.getMinutes() : null
-  const buka = toMin(screen?.jam_buka)
-  const tutup = toMin(screen?.jam_tutup)
+  const buka = toMin(status?.buka)
+  const tutup = toMin(status?.tutup)
   const openPct = status?.range && nowMin != null && tutup > buka ? Math.max(0, Math.min(100, (nowMin - buka) / (tutup - buka) * 100)) : 0
   const hours = status?.range ? Array.from({ length: Math.max(0, Math.ceil(tutup / 60) - Math.floor(buka / 60)) }, (_, i) => Math.floor(buka / 60) + i) : []
 
@@ -188,7 +188,7 @@ export default function TvLayarPage() {
                     <div style={{ position: 'absolute', top: '50%', left: `${openPct}%`, width: 32, height: 32, margin: '-16px 0 0 -16px', borderRadius: '50%', background: '#f7b500', border: '5px solid #fff' }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 17, color: p.ink2 }}>
-                    <span>{jam(screen.jam_buka)}</span><span>{jam(screen.jam_tutup)}</span>
+                    <span>{jam(status.buka)}</span><span>{jam(status.tutup)}</span>
                   </div>
                 </div>
               ))}

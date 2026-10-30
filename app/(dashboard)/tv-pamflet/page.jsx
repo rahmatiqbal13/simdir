@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import ConfirmModal from '@/app/components/ConfirmModal'
-import { TV_LAYAR, TV_LAYAR_SLUGS, TV_LAYAR_UNIT } from '@/lib/tvLayar'
+import { TV_LAYAR, TV_LAYAR_SLUGS, TV_LAYAR_UNIT, HARI } from '@/lib/tvLayar'
 
 // Pilih layar TV tujuan. Kosong = tampil di semua TV.
 function LayarPicker({ value, onChange, compact = false }) {
@@ -30,14 +30,16 @@ function LayarPicker({ value, onChange, compact = false }) {
 // Pengaturan operasional satu layar unit (tabel tv_screens)
 function ScreenSettings({ slug, initial, onSaved, onError }) {
   const [f, setF] = useState(() => ({
-    jam_buka: initial?.jam_buka?.slice(0, 5) || '',
-    jam_tutup: initial?.jam_tutup?.slice(0, 5) || '',
+    // Jadwal lama (tanpa per hari) → semua hari buka dengan jam_buka/jam_tutup
+    jadwal: initial?.jadwal || HARI.map(() => ({ status: 'buka', buka: initial?.jam_buka?.slice(0, 5) || '', tutup: initial?.jam_tutup?.slice(0, 5) || '' })),
     tutup_sementara: !!initial?.tutup_sementara,
     catatan: initial?.catatan || '',
     running_text: initial?.running_text || '',
   }))
   const [saving, setSaving] = useState(false)
   const set = (k, v) => setF(prev => ({ ...prev, [k]: v }))
+  const setHari = (i, patch) => setF(prev => ({ ...prev, jadwal: prev.jadwal.map((h, j) => (j === i ? { ...h, ...patch } : h)) }))
+  const salinKeSemua = (i) => setF(prev => ({ ...prev, jadwal: prev.jadwal.map(() => ({ ...prev.jadwal[i] })) }))
   const input = { width: '100%', padding: '0.5rem', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '0.875rem', boxSizing: 'border-box' }
   const label = { display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.375rem', color: 'var(--text)' }
 
@@ -66,20 +68,39 @@ function ScreenSettings({ slug, initial, onSaved, onError }) {
         <a href={`/agenda/tv/${slug}`} target="_blank" rel="noreferrer" style={{ fontSize: '0.8125rem', color: 'var(--primary)' }}>Buka layar ↗</a>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
-        <div>
-          <label style={label}>Jam buka</label>
-          <input type="time" value={f.jam_buka} onChange={(e) => set('jam_buka', e.target.value)} style={input} />
+      <div style={{ marginBottom: '1rem' }}>
+        <label style={label}>Jam operasional</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+          {[1, 2, 3, 4, 5, 6, 0].map(i => {
+            const h = f.jadwal[i]
+            const buka = h.status === 'buka'
+            return (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '64px 132px minmax(0,1fr) minmax(0,1fr) auto', gap: '0.375rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{HARI[i]}</span>
+                <select value={h.status} onChange={(e) => setHari(i, { status: e.target.value })} aria-label={`Status ${HARI[i]}`}
+                  style={{ ...input, color: buka ? 'var(--text)' : 'var(--danger)' }}>
+                  <option value="buka">Buka</option>
+                  <option value="libur">Libur</option>
+                  <option value="tutup_sementara">Tutup sementara</option>
+                </select>
+                <input type="time" value={h.buka || ''} onChange={(e) => setHari(i, { buka: e.target.value })} disabled={!buka} aria-label={`Jam buka ${HARI[i]}`} style={{ ...input, opacity: buka ? 1 : 0.4 }} />
+                <input type="time" value={h.tutup || ''} onChange={(e) => setHari(i, { tutup: e.target.value })} disabled={!buka} aria-label={`Jam tutup ${HARI[i]}`} style={{ ...input, opacity: buka ? 1 : 0.4 }} />
+                <button type="button" onClick={() => salinKeSemua(i)} title={`Terapkan jadwal ${HARI[i]} ke semua hari`}
+                  style={{ padding: '0.5rem 0.625rem', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', color: 'var(--text-2)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  Semua hari
+                </button>
+              </div>
+            )
+          })}
         </div>
-        <div>
-          <label style={label}>Jam tutup</label>
-          <input type="time" value={f.jam_tutup} onChange={(e) => set('jam_tutup', e.target.value)} style={input} />
-        </div>
+        <span style={{ display: 'block', marginTop: '0.375rem', fontSize: '0.75rem', color: 'var(--text-3)' }}>
+          &ldquo;Semua hari&rdquo; menyalin jadwal baris itu ke tujuh hari. Isi catatan di bawah untuk alasan libur/tutup.
+        </span>
       </div>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 500, marginBottom: '1rem', cursor: 'pointer' }}>
         <input type="checkbox" checked={f.tutup_sementara} onChange={(e) => set('tutup_sementara', e.target.checked)} />
-        Tutup sementara (perawatan, acara khusus, dll.)
+        Tutup sementara hari ini & seterusnya (semua hari, sampai dimatikan)
       </label>
 
       <div style={{ marginBottom: '1rem' }}>
@@ -684,7 +705,7 @@ export default function TVPamfletPage() {
       {screens === null ? (
         <p style={{ color: 'var(--text-3)' }}>Memuat...</p>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', gap: '2rem' }}>
           {TV_LAYAR_UNIT.map(slug => (
             <ScreenSettings key={slug} slug={slug} initial={screens[slug]}
               onSaved={(t) => showMessage('success', t)} onError={(t) => showMessage('error', t)} />

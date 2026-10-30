@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { TV_LAYAR_UNIT } from '@/lib/tvLayar'
+import { TV_LAYAR_UNIT, sanitizeJadwal } from '@/lib/tvLayar'
 
 function getServiceClient() {
   return createClient(
@@ -11,7 +11,7 @@ function getServiceClient() {
 
 const TIME_RE = /^\d{2}:\d{2}(:\d{2})?$/
 
-// PATCH /api/tv-screens/[slug] — simpan jam buka, status, catatan, running text
+// PATCH /api/tv-screens/[slug] — simpan jadwal per hari, status, catatan, running text
 export async function PATCH(request, { params }) {
   try {
     const { slug } = await params
@@ -27,6 +27,12 @@ export async function PATCH(request, { params }) {
           return NextResponse.json({ error: 'Format jam harus HH:MM' }, { status: 400 })
         }
         row[k] = body[k] || null
+      }
+    }
+    if (body.jadwal !== undefined) {
+      row.jadwal = body.jadwal === null ? null : sanitizeJadwal(body.jadwal)
+      if (body.jadwal !== null && !row.jadwal) {
+        return NextResponse.json({ error: 'Jadwal tidak valid — hari yang buka wajib punya jam buka & tutup' }, { status: 400 })
       }
     }
     if (body.tutup_sementara !== undefined) row.tutup_sementara = !!body.tutup_sementara
