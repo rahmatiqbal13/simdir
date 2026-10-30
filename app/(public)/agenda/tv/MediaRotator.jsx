@@ -287,7 +287,7 @@ export const MediaRotator = ({ p, onState, layar = 'usc' }) => {
         </div>
       )}
       {cur && (
-        <span style={{ position: 'absolute', top: 24, left: 24, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, letterSpacing: '.08em', padding: '6px 14px', borderRadius: 8, background: '#f5b915', color: '#0a1430' }}>
+        <span style={{ position: 'absolute', top: 24, left: 24, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, letterSpacing: '.08em', padding: '6px 14px', borderRadius: 8, background: '#f7b500', color: '#0a1430' }}>
           {cur.type === 'youtube' ? 'VIDEO' : 'PAMFLET'}
         </span>
       )}

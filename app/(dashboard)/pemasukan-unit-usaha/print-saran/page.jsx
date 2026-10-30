@@ -54,9 +54,9 @@ function SaranPrintContent() {
       </div>
 
       <div className="invoice-print-container" style={{ maxWidth: '210mm', margin: '0 auto', padding: '15mm', background: 'white', boxSizing: 'border-box', color: '#1e293b' }}>
-        <div style={{ borderBottom: '4px solid #1e3a8a', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ borderBottom: '4px solid #2b3990', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a8a' }}>{appName}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2b3990' }}>{appName}</div>
             <div style={{ fontSize: '0.9375rem', color: '#64748b', marginTop: 4 }}>Saran Anggaran — Simulasi Pengambilan Dana</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -76,7 +76,7 @@ function SaranPrintContent() {
         <div style={{ marginBottom: '2rem' }}>
           <SectionTitle>RINGKASAN KEUANGAN</SectionTitle>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem' }}>
-            <Kpi label={`Total Pendapatan ${tahun}`} value={formatRupiah(totalIncome)} color="#1e3a8a" bg="#eff6ff" />
+            <Kpi label={`Total Pendapatan ${tahun}`} value={formatRupiah(totalIncome)} color="#2b3990" bg="#eff6ff" />
             <Kpi label={`Dana Diambil (${pct}%)`} value={formatRupiah(taken)} color="#16a34a" bg="#f0fdf4" />
             <Kpi label={`Sisa Dana (${remainingPct}%)`} value={formatRupiah(remaining)} color="#ca8a04" bg="#fffbeb" />
           </div>
@@ -102,7 +102,7 @@ function SaranPrintContent() {
           <SectionTitle>RINCIAN PEROLEHAN PER UNIT</SectionTitle>
           <table style={{ width: '100%', fontSize: '0.8125rem', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
             <thead>
-              <tr style={{ background: '#1e3a8a', color: 'white' }}>
+              <tr style={{ background: '#2b3990', color: 'white' }}>
                 {['No', 'Unit Usaha', 'Total Pemasukan', `Diambil (${pct}%)`, 'Sisa', 'Proporsi'].map((h) => (
                   <th key={h} style={{ border: '1px solid #cbd5e1', padding: '8px 10px', textAlign: h === 'Unit Usaha' ? 'left' : 'center' }}>{h}</th>
                 ))}

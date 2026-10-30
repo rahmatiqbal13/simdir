@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useToast } from '@/app/components/Toast'
 
 const FACILITY_COLORS = {
-  'Achilles Gym Hub': { bg: '#dbeafe', text: '#1e3a8a' },
+  'Achilles Gym Hub': { bg: '#dbeafe', text: '#2b3990' },
   'Kolam Renang Unesa': { bg: '#dcfce7', text: '#047857' },
   'Driving Golf Unesa': { bg: '#fef3c7', text: '#b45309' },
   'SSFC': { bg: '#fce7f3', text: '#9d174d' },
@@ -205,7 +205,7 @@ export default function KritikSaranAdminPage() {
         <Link
           href="/kelola-penilaian/pertanyaan"
           style={{
-            padding: '8px 16px', background: '#eff6ff', color: '#1e3a8a',
+            padding: '8px 16px', background: '#eff6ff', color: '#2b3990',
             borderRadius: '8px', fontSize: '13px', fontWeight: 600,
             textDecoration: 'none', border: '1px solid #dbeafe',
             whiteSpace: 'nowrap',
@@ -217,7 +217,7 @@ export default function KritikSaranAdminPage() {
 
       {/* Stats Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <StatCard label="Total Masuk" value={totalItems} bg="#eff6ff" color="#1e3a8a" />
+        <StatCard label="Total Masuk" value={totalItems} bg="#eff6ff" color="#2b3990" />
         <StatCard label="Belum Dibaca" value={totalBaru} bg="#fef2f2" color="#dc2626" />
         <StatCard label="Rata-rata Rating" value={avgRating} bg="#f0fdf4" color="#047857" suffix="/5" />
         <StatCard label="Total Fasilitas" value={Object.keys(statsByFasilitas).length} bg="#fefce8" color="#b45309" />
@@ -523,8 +523,8 @@ export default function KritikSaranAdminPage() {
 
               {/* Overall */}
               <div style={{ background: '#eff6ff', borderRadius: '8px', padding: '0.75rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e3a8a' }}>Overall Rating</span>
-                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e3a8a' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#2b3990' }}>Overall Rating</span>
+                <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#2b3990' }}>
                   ⭐ {selectedItem.overall_rating || '-'}/5
                 </span>
               </div>
@@ -571,7 +571,7 @@ export default function KritikSaranAdminPage() {
                   onClick={handleSaveTanggapan}
                   disabled={updateLoading}
                   style={{
-                    marginTop: '0.75rem', padding: '0.625rem 1.25rem', background: '#1e3a8a',
+                    marginTop: '0.75rem', padding: '0.625rem 1.25rem', background: '#2b3990',
                     color: 'white', border: 'none', borderRadius: '8px', fontSize: '0.875rem',
                     fontWeight: 600, cursor: 'pointer', width: '100%',
                   }}

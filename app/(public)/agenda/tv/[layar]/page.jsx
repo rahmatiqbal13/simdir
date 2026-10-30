@@ -3,29 +3,30 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin } from '@/lib/tvLayar'
+import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin, agendaDiLayar } from '@/lib/tvLayar'
 import { MONTHS, formatTime, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from '../shared'
 import { getUnitCodeFromPenyelenggara } from '../unit-colors'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker } from '../TvKit'
+import { tvPalette, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader } from '../TvKit'
 import { MediaRotator, useNetworkStatus } from '../MediaRotator'
 
 const ROWS_PER_PAGE = 4
 const ROTATE_SEC = 15
 
 const jam = (t) => formatTime(t).replace(':', '.')
+const dur = (m) => { const h = Math.floor(m / 60), mm = m % 60; return h ? `${h} j ${mm} m` : `${mm} m` }
 
 // ============ HALAMAN TV UNIT ============
 // TV per lokasi unit (Kolam Renang, SSFC): status buka/tutup + jadwal HARI INI
 // di kiri (40%), pamflet untuk layar ini di kanan (60%), running text di bawah.
-// Agenda = agenda publik (tampil_publik) yang penyelenggaranya unit ini.
+// Agenda = agenda publik yang dipilih untuk layar ini (lihat agendaDiLayar).
 export default function TvLayarPage() {
   const { layar } = useParams()
   const cfg = TV_LAYAR_UNIT.includes(layar) ? TV_LAYAR[layar] : null
 
   const scale                 = useStageScale()
   const { isDark, toggle }    = useTheme()
-  const p                     = isDark ? TV_DARK : TV_LIGHT
+  const p                     = tvPalette(layar, isDark)
   const now                   = useClock()
   const weather               = useWeather()
   const isOnline              = useNetworkStatus()
@@ -56,7 +57,7 @@ export default function TvLayarPage() {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
       }
-      else { setAgenda((data || []).filter(a => getUnitCodeFromPenyelenggara(a.penyelenggara) === cfg.unit)); setError(null) }
+      else { setAgenda((data || []).filter(a => agendaDiLayar(a, layar, getUnitCodeFromPenyelenggara(a.penyelenggara)))); setError(null) }
     } catch (e) {
       console.error('Load error:', e)
       setError('Terjadi kesalahan')
@@ -137,43 +138,70 @@ export default function TvLayarPage() {
   if (error && agenda.length === 0) return <TvLoading error={!isOnline ? `${error} · koneksi terputus` : error} />
 
   const nowMin = now ? now.getHours() * 60 + now.getMinutes() : null
+  const buka = toMin(screen?.jam_buka)
+  const tutup = toMin(screen?.jam_tutup)
+  const openPct = status?.range && nowMin != null && tutup > buka ? Math.max(0, Math.min(100, (nowMin - buka) / (tutup - buka) * 100)) : 0
+  const hours = status?.range ? Array.from({ length: Math.max(0, Math.ceil(tutup / 60) - Math.floor(buka / 60)) }, (_, i) => Math.floor(buka / 60) + i) : []
 
   return (
     <TvStage scale={scale} p={p}>
       {/* ── HEADER ── */}
-      <header style={{ height: 128, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 28, padding: '0 56px', borderBottom: `1px solid ${p.line}`, boxShadow: `inset 0 6px 0 ${cfg.accent}` }}>
-        <img src={logoUrl} alt="Logo" style={{ width: 72, height: 72, objectFit: 'contain', background: '#fff', borderRadius: 16, padding: 6 }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, letterSpacing: '-.02em', lineHeight: 1 }}>{cfg.judul}</span>
-          <span style={{ fontSize: 21, color: p.ink2 }}>{cfg.sapaan}</span>
-        </div>
-        {!isOnline && <TvOffline />}
-        <TvWeather weather={weather} p={p} />
-        <TvClock now={now} p={p} />
-        <TvThemeButton isDark={isDark} onToggle={toggle} p={p} />
-      </header>
+      <TvHeader layar={layar} p={p} logoUrl={logoUrl} title={cfg.judul} sub={cfg.sapaan}>
+        {(hp) => <>
+          {!isOnline && <TvOffline />}
+          <TvWeather weather={weather} p={hp} />
+          <TvClock now={now} p={hp} />
+          <TvThemeButton isDark={isDark} onToggle={toggle} p={hp} />
+        </>}
+      </TvHeader>
 
       {/* ── MAIN ── */}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '40fr 60fr', gap: 36, padding: '32px 56px' }}>
         {/* Kiri: status + jadwal hari ini + QR */}
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 24, overflow: 'hidden' }}>
           {status && (
-            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 24, padding: '22px 28px', background: status.open ? (isDark ? '#0f3a2a' : '#dcf5e8') : (isDark ? '#3a1618' : '#fde4e4') }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 46, fontWeight: 700, letterSpacing: '.02em', color: status.open ? p.ongoing : '#e5484d', lineHeight: 1 }}>{status.title}</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-                {status.range && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 600 }}>{status.range}</span>}
-                <span style={{ fontSize: 20, color: p.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{status.sub}</span>
+            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 18, padding: '24px 30px 22px', background: status.open ? (isDark ? '#0f3a2a' : '#dcf5e8') : (isDark ? '#3a1618' : '#fde4e4') }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 52, fontWeight: 700, letterSpacing: '-.01em', color: status.open ? (isDark ? '#3ddc97' : '#0b7a4b') : '#e5484d', lineHeight: 1 }}>{status.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+                  {status.range && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 26, fontWeight: 600 }}>{status.range}</span>}
+                  <span style={{ fontSize: 20, color: p.ink2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {status.sub}{status.open && !screen?.catatan && nowMin != null ? ` · ${dur(tutup - nowMin)} lagi` : ''}
+                  </span>
+                </div>
               </div>
+              {status.range && (layar === 'ssfc' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    {hours.map(h => (
+                      <div key={h} style={{ flex: 1, height: 28, borderRadius: 5, background: nowMin >= (h + 1) * 60 ? p.accent : nowMin >= h * 60 ? '#f7b500' : p.line }} />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 17, color: p.ink2 }}>
+                    {hours.filter((h, i) => i % 3 === 0).concat(hours.at(-1) + 1).map(h => <span key={h}>{String(h).padStart(2, '0')}</span>)}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ position: 'relative', height: 14, borderRadius: 7, background: p.track }}>
+                    <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${openPct}%`, borderRadius: 7, background: '#38bdf8' }} />
+                    <div style={{ position: 'absolute', top: '50%', left: `${openPct}%`, width: 32, height: 32, margin: '-16px 0 0 -16px', borderRadius: '50%', background: '#f7b500', border: '5px solid #fff' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--font-mono)', fontSize: 17, color: p.ink2 }}>
+                    <span>{jam(screen.jam_buka)}</span><span>{jam(screen.jam_tutup)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           {cuacaBuruk && (
-            <div style={{ flexShrink: 0, padding: '14px 28px', background: badai ? '#e5484d' : '#f5b915', color: badai ? '#fff' : '#0a1430', fontSize: 21, fontWeight: 700 }}>
+            <div style={{ flexShrink: 0, padding: '14px 28px', background: badai ? '#e5484d' : '#f7b500', color: badai ? '#fff' : '#121735', fontSize: 22, fontWeight: 700 }}>
               {badai ? '⚠ Badai petir — demi keselamatan, harap keluar dari kolam' : '⚠ Hujan — kolam dapat ditutup sementara demi keselamatan'}
             </div>
           )}
 
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: '22px 28px 14px' }}>
-            <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: 600, letterSpacing: '-.01em' }}>{cfg.jadwalLabel}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 30, fontWeight: layar === 'ssfc' ? 700 : 600, letterSpacing: '-.01em', textTransform: layar === 'ssfc' ? 'uppercase' : 'none' }}>{cfg.jadwalLabel}</span>
             {pages > 1 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: p.ink2 }}>{pg + 1} / {pages}</span>}
           </div>
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
@@ -187,18 +215,45 @@ export default function TvLayarPage() {
               const selesai = toMin(a.waktu_selesai)
               const live = nowMin != null && mulai != null && nowMin >= mulai && (selesai == null || nowMin < selesai)
               const lewat = nowMin != null && selesai != null && nowMin >= selesai
-              return (
-                <div key={a.id} style={{ flex: 1, maxHeight: 140, display: 'grid', gridTemplateColumns: '150px minmax(0,1fr)', gap: 22, alignItems: 'center', padding: '0 28px', borderTop: `1px solid ${p.line}`, background: live ? p.ongoingRow : 'transparent', opacity: lewat ? 0.45 : 1 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontFamily: 'var(--font-mono)' }}>
-                    <span style={{ fontSize: 32, fontWeight: 600, lineHeight: 1, color: live ? p.ongoing : p.ink }}>{a.waktu_mulai ? jam(a.waktu_mulai) : 'Sehari'}</span>
-                    {a.waktu_selesai && <span style={{ fontSize: 19, color: p.ink2 }}>s.d. {jam(a.waktu_selesai)}</span>}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 600, lineHeight: 1.15, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{a.judul}</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 20, color: p.ink2, minWidth: 0 }}>
-                      {live && <span style={{ fontSize: 17, fontWeight: 700, padding: '3px 12px', borderRadius: 99, background: isDark ? '#12392a' : '#dcf5e8', color: p.ongoing, flexShrink: 0 }}>Sekarang</span>}
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.lokasi}</span>
+              const waktu = (
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 2, fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: 31, fontWeight: 600, lineHeight: 1, color: live ? p.ongoing : 'inherit' }}>{a.waktu_mulai ? jam(a.waktu_mulai) : 'Sehari'}</span>
+                  {a.waktu_selesai && <span style={{ fontSize: 18, color: p.ink2 }}>s.d. {jam(a.waktu_selesai)}</span>}
+                </div>
+              )
+              const row = { flex: 1, maxHeight: 140, display: 'grid', gap: 18, borderTop: `1px solid ${p.line}`, background: live ? p.ongoingRow : 'transparent', opacity: lewat ? 0.42 : 1 }
+              const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
+              if (layar === 'ssfc') {
+                const pill = live ? (selesai != null ? `${dur(selesai - nowMin)} lagi` : 'Sekarang') : lewat ? 'Selesai' : mulai != null && nowMin != null && nowMin < mulai ? `Mulai ${dur(mulai - nowMin)}` : null
+                return (
+                  <div key={a.id} style={{ ...row, gridTemplateColumns: '10px 130px minmax(0,1fr)', gap: 20, alignItems: 'center', padding: '0 30px 0 0' }}>
+                    <div style={{ alignSelf: 'stretch', background: live ? '#f7b500' : lewat ? 'transparent' : p.accent }} />
+                    {waktu}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+                        <span style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, letterSpacing: '-.01em', textTransform: 'uppercase', lineHeight: 1.1, ...ellipsis }}>{a.judul}</span>
+                        <span style={{ fontSize: 19, color: p.ink2, ...ellipsis }}>{a.lokasi}</span>
+                      </div>
+                      {pill && <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, padding: '7px 13px', borderRadius: 9, background: live ? '#f7b500' : p.head, color: live ? '#121735' : p.ink2 }}>{pill}</span>}
                     </div>
+                  </div>
+                )
+              }
+
+              return (
+                <div key={a.id} style={{ ...row, gridTemplateColumns: '120px 32px minmax(0,1fr)', alignItems: 'stretch', padding: '0 30px' }}>
+                  {waktu}
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: 15, borderLeft: `2px dashed ${p.line2}` }} />
+                    <div style={{ position: 'relative', width: 26, height: 26, borderRadius: '50%', background: live ? p.ongoing : p.panel, border: `4px solid ${live ? p.ongoing : lewat ? p.line2 : '#38bdf8'}` }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 6, minWidth: 0 }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, lineHeight: 1.2, ...ellipsis }}>{a.judul}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 19, color: p.ink2, minWidth: 0 }}>
+                      {live && <span style={{ fontSize: 17, fontWeight: 700, padding: '3px 12px', borderRadius: 99, background: p.ongoingRow, color: p.ongoing, flexShrink: 0 }}>Sekarang</span>}
+                      <span style={ellipsis}>{a.lokasi}</span>
+                    </span>
                   </div>
                 </div>
               )
@@ -233,7 +288,7 @@ export default function TvLayarPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             {Array.from({ length: Math.max(1, media.total) }, (_, i) => (
               <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: p.track, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: !media.total ? '0%' : i < media.idx ? '100%' : i === media.idx ? `${mediaPct}%` : '0%', background: '#f5b915', transition: 'width 1s linear' }} />
+                <div style={{ height: '100%', width: !media.total ? '0%' : i < media.idx ? '100%' : i === media.idx ? `${mediaPct}%` : '0%', background: p.accent, transition: 'width 1s linear' }} />
               </div>
             ))}
           </div>
@@ -242,11 +297,11 @@ export default function TvLayarPage() {
           </div>
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 36, fontWeight: 600, letterSpacing: '-.01em', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 34, fontWeight: layar === 'ssfc' ? 700 : 600, letterSpacing: '-.01em', lineHeight: 1.1, textTransform: layar === 'ssfc' ? 'uppercase' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {media.cur?.title || cfg.judul}
               </span>
               <span style={{ fontSize: 21, color: p.ink2 }}>
-                {media.cur ? (media.cur.type === 'youtube' ? 'Video · YouTube' : 'Informasi') : 'Unesa Science Center'}
+                {media.cur?.type === 'youtube' ? 'Video · YouTube' : `Informasi · ${cfg.judul}`}
               </span>
             </div>
             {media.total > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 20, color: p.ink2, flexShrink: 0 }}>{media.idx + 1} / {media.total}</span>}
@@ -254,7 +309,7 @@ export default function TvLayarPage() {
         </div>
       </div>
 
-      <TvTicker text={marqueeText} />
+      <TvTicker text={marqueeText} layar={layar} />
     </TvStage>
   )
 }

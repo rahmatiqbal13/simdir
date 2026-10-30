@@ -110,7 +110,7 @@ export default function PWAInstallPrompt() {
       >✕</button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #f5b915, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #f7b500, #d97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <span style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a' }}>S</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,7 +121,7 @@ export default function PWAInstallPrompt() {
 
       <button
         onClick={handleInstallClick}
-        style={{ display: 'block', width: '100%', marginTop: '12px', padding: '9px 16px', background: '#f5b915', border: 'none', borderRadius: '8px', color: '#0f172a', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
+        style={{ display: 'block', width: '100%', marginTop: '12px', padding: '9px 16px', background: '#f7b500', border: 'none', borderRadius: '8px', color: '#0f172a', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
       >
         Install Sekarang
       </button>

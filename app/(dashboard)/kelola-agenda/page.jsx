@@ -7,7 +7,8 @@ import { useFocusTrap } from '@/app/components/useFocusTrap'
 import ConfirmModal from '@/app/components/ConfirmModal'
 import { EmptyStateAgenda, EmptyStateError } from '@/app/components/EmptyState'
 import { usePimpinanList } from '@/lib/hooks/usePimpinanList'
-import { getUnitColor } from '@/app/(public)/agenda/tv/unit-colors'
+import { getUnitColor, getUnitCodeFromPenyelenggara } from '@/app/(public)/agenda/tv/unit-colors'
+import { TV_LAYAR, TV_LAYAR_SLUGS, agendaDiLayar } from '@/lib/tvLayar'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -107,6 +108,13 @@ const dateShort = (iso) => {
 }
 const cleanPic = (p) => (p ? p.replace(/^Manual: /, '') : '')
 const isPimpinan = (a) => !!(a.dihadiri_pimpinan || a.jenis === 'pimpinan')
+
+// Layar TV tempat agenda muncul: semua agenda di TV Internal, sisanya
+// mengikuti tampil_publik + target_layar (lihat agendaDiLayar).
+const tampilDi = (a) => {
+  const unit = getUnitCodeFromPenyelenggara(a.penyelenggara)
+  return ['Internal', ...TV_LAYAR_SLUGS.filter(s => agendaDiLayar(a, s, unit)).map(s => TV_LAYAR[s].nama)]
+}
 const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : 'USC')
 
 // Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
@@ -244,21 +252,32 @@ function AgendaList({ items, canEdit, onEdit, onDelete }) {
   })
 }
 
+function Check({ on, onClick, label }) {
+  return (
+    <button type="button" role="checkbox" aria-checked={on} aria-label={label} onClick={onClick} className={`ka-check ${on ? 'on' : ''}`}>
+      {on && <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5 9-10" /></svg>}
+    </button>
+  )
+}
+
 // ============ TAMPILAN TABEL ============
-function AgendaTable({ items, canEdit, onEdit, onDelete }) {
+function AgendaTable({ items, canEdit, onEdit, onDelete, selected, onToggle, onToggleAll }) {
+  const allOn = items.length > 0 && items.every(a => selected.has(a.id))
   return (
     <div className="ka-table-wrap">
       <div className={`ka-trow ka-thead ${canEdit ? '' : 'no-actions'}`}>
-        <span>Agenda</span><span>Jenis</span><span>Waktu</span><span>Lokasi</span><span>Status</span>{canEdit && <span>Aksi</span>}
+        {canEdit && <Check on={allOn} onClick={onToggleAll} label="Pilih semua di halaman ini" />}
+        <span>Agenda</span><span>Jenis</span><span>Waktu</span><span className="ka-tampil">Tampil di</span><span>Status</span>{canEdit && <span>Aksi</span>}
       </div>
       {items.map(a => {
         const pill = STATUS_PILL[a._st]
         const unit = getUnitColor(a.jenis, a.penyelenggara, a.dihadiri_pimpinan)
         return (
-          <div key={a.id} className={`ka-trow ${canEdit ? '' : 'no-actions'}`} style={{ background: a._st === 'ongoing' ? 'var(--success-50)' : undefined, opacity: a._st === 'completed' ? 0.6 : 1 }}>
+          <div key={a.id} className={`ka-trow ${canEdit ? '' : 'no-actions'}`} style={{ background: selected.has(a.id) ? 'var(--primary-50)' : a._st === 'ongoing' ? 'var(--success-50)' : undefined, opacity: a._st === 'completed' && !selected.has(a.id) ? 0.6 : 1 }}>
+            {canEdit && <Check on={selected.has(a.id)} onClick={() => onToggle(a.id)} label={`Pilih ${a.judul}`} />}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
               <span className="truncate" style={{ fontWeight: 600, fontSize: 14.5 }}>{a.judul}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-3)', fontSize: 12.5 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: unit.border }} />{penyelenggaraLabel(a)}</span>
+              <span className="truncate" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-3)', fontSize: 12.5 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: unit.border, flexShrink: 0 }} />{penyelenggaraLabel(a)}{a.lokasi ? ` · ${a.lokasi}` : ''}</span>
             </div>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               <span className="ka-badge" style={{ background: a.jenis === 'eksternal' ? 'var(--warning-50)' : 'var(--primary-50)', color: a.jenis === 'eksternal' ? 'var(--warning)' : 'var(--primary)' }}>{a.jenis === 'eksternal' ? 'Eksternal' : 'Internal'}</span>
@@ -268,7 +287,9 @@ function AgendaTable({ items, canEdit, onEdit, onDelete }) {
               <span>{dateShort(a.tanggal_mulai)}</span>
               <span className="mono" style={{ fontSize: 12, color: 'var(--primary)' }}>{timeRange(a)}</span>
             </div>
-            <span className="truncate" style={{ color: 'var(--text-2)' }}>{a.lokasi || '—'}</span>
+            <div className="ka-tampil" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {tampilDi(a).map(t => <span key={t} className="ka-badge" style={{ background: 'var(--primary-50)', color: 'var(--primary)' }}>{t}</span>)}
+            </div>
             <span className={`status-pill ${pill.cls}`} style={{ justifySelf: 'start' }}>{pill.label}</span>
             {canEdit && <RowActions a={a} onEdit={onEdit} onDelete={onDelete} />}
           </div>
@@ -318,6 +339,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     pic_select: item?.pic?.startsWith('Manual: ') ? 'lainnya' : (item?.pic && PIC_LIST.some(p => p.value === item.pic) ? item.pic : ''),
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
     tampil_publik: item?.tampil_publik || false,
+    target_layar: item?.target_layar || [],
   })
   const [error, setError] = useState('')
   const [showLink, setShowLink] = useState(!!item?.link_meeting)
@@ -419,6 +441,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       disposisi: dihadiriPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
       pic: dihadiriPimpinan ? null : picValue,
       tampil_publik: form.tampil_publik,
+      // Hanya dikirim bila dipilih / perlu dikosongkan, '{}' = otomatis
+      ...((form.target_layar.length || item?.target_layar?.length) && { target_layar: form.tampil_publik ? form.target_layar : [] }),
     }
     onSave(newItem)
   }
@@ -600,6 +624,27 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                   </div>
                   <button type="button" role="switch" aria-checked={form.tampil_publik} aria-label="Tampilkan di TV Publik" className="switch" onClick={() => setForm(f => ({ ...f, tampil_publik: !f.tampil_publik }))} />
                 </div>
+                {form.tampil_publik && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-2)' }}>
+                    <span style={{ fontWeight: 600 }}>Layar TV:</span>
+                    <button type="button" aria-pressed={!form.target_layar.length} onClick={() => setForm(f => ({ ...f, target_layar: [] }))}
+                      className={`ka-layar ${!form.target_layar.length ? 'on' : ''}`}>Otomatis</button>
+                    {TV_LAYAR_SLUGS.map(sl => {
+                      const on = form.target_layar.includes(sl)
+                      return (
+                        <button key={sl} type="button" aria-pressed={on} className={`ka-layar ${on ? 'on' : ''}`}
+                          onClick={() => setForm(f => ({ ...f, target_layar: on ? f.target_layar.filter(x => x !== sl) : [...f.target_layar, sl] }))}>
+                          {TV_LAYAR[sl].nama}
+                        </button>
+                      )
+                    })}
+                    {!form.target_layar.length && (
+                      <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
+                        → {tampilDi({ ...form, penyelenggara: form.unit_kerja }).slice(1).join(', ')}
+                      </span>
+                    )}
+                  </div>
+                )}
               </FormStep>
             </div>
 
@@ -617,7 +662,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Internal</span>
-                <div style={{ background: '#101d42', borderRadius: 12, padding: '12px 14px', boxShadow: `inset 4px 0 0 ${pvColor}`, display: 'flex', flexDirection: 'column', gap: 5, color: '#fff' }}>
+                <div style={{ background: '#0b0f2a', borderRadius: 12, padding: '12px 14px', boxShadow: `inset 4px 0 0 ${pvColor}`, display: 'flex', flexDirection: 'column', gap: 5, color: '#fff' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{pv.title}</span>
                   <span style={{ fontSize: 11.5, color: '#9aa6cc' }}><span style={{ fontWeight: 700, color: pvColor }}>{dihadiriPimpinan ? 'Pimpinan' : pvUnitName}</span> · {pv.lokasi}</span>
                 </div>
@@ -625,8 +670,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Publik</span>
                 {form.tampil_publik ? (
-                  <div style={{ background: '#101d42', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '44px minmax(0,1fr)', gap: 12, alignItems: 'center', color: '#fff' }}>
-                    <div style={{ height: 46, borderRadius: 9, background: '#1a2a5c', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ background: '#0b0f2a', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '44px minmax(0,1fr)', gap: 12, alignItems: 'center', color: '#fff' }}>
+                    <div style={{ height: 46, borderRadius: 9, background: '#f7b500', color: '#121735', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                       <span className="mono" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', opacity: .8 }}>{pv.mon}</span>
                       <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600, lineHeight: 1 }}>{pv.day}</span>
                     </div>
@@ -699,7 +744,8 @@ export default function AgendaManagePage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [jenisFilter, setJenisFilter] = useState('all')
   const [pimpinanOnlyFilter, setPimpinanOnlyFilter] = useState(false)
-  const [viewMode, setViewMode] = useState('list')
+  const [viewMode, setViewMode] = useState('table')
+  const [selected, setSelected] = useState(() => new Set())
   const [currentPage, setCurrentPage] = useState(1)
   const [userRole, setUserRole] = useState('admin')
   const [confirmDeleteId, setConfirmDeleteId] = useState(null)
@@ -720,7 +766,7 @@ export default function AgendaManagePage() {
   }, [])
 
   // Halaman kembali ke 1 setiap filter berubah
-  useEffect(() => { setCurrentPage(1) }, [searchQuery, statusFilter, jenisFilter, pimpinanOnlyFilter])
+  useEffect(() => { setCurrentPage(1); setSelected(new Set()) }, [searchQuery, statusFilter, jenisFilter, pimpinanOnlyFilter])
 
   const canEdit = ['super_admin', 'admin'].includes(userRole)
 
@@ -784,10 +830,31 @@ export default function AgendaManagePage() {
     setConfirmDeleteId(id)
   }
 
-  const deletingAgendaItem = confirmDeleteId ? agenda.find(a => a.id === confirmDeleteId) : null
+  const toggleOne = (id) => setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleAll = () => setSelected(prev => paginatedAgenda.every(a => prev.has(a.id)) ? new Set() : new Set(paginatedAgenda.map(a => a.id)))
+
+  // Aksi massal: jalankan per agenda, laporkan berapa yang berhasil
+  const runBulk = async (fn, okMsg) => {
+    setOperationLoading(true)
+    const items = agenda.filter(a => selected.has(a.id))
+    const results = await Promise.allSettled(items.map(fn))
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed) showError(`${failed} dari ${items.length} agenda gagal diproses`)
+    else success(okMsg(items.length))
+    setSelected(new Set())
+    setOperationLoading(false)
+  }
+  const bulkShowOnTv = () => runBulk(a => updateAgenda(a.id, { tampil_publik: true }), n => `${n} agenda ditampilkan di TV Publik`)
+  const bulkDuplicate = () => runBulk(({ id, created_at, updated_at, _st, ...rest }) => addAgenda({ ...rest, judul: `${rest.judul} (salinan)` }), n => `${n} agenda diduplikat`)
+
+  const deletingAgendaItem = confirmDeleteId && confirmDeleteId !== 'bulk' ? agenda.find(a => a.id === confirmDeleteId) : null
 
   const confirmDeleteAction = async () => {
     if (!confirmDeleteId) return
+    if (confirmDeleteId === 'bulk') {
+      setConfirmDeleteId(null)
+      return runBulk(a => deleteAgenda(a.id), n => `${n} agenda dihapus`)
+    }
     setOperationLoading(true)
     try {
       await deleteAgenda(confirmDeleteId)
@@ -931,7 +998,7 @@ export default function AgendaManagePage() {
             </div>
             {viewMode === 'table' && (
               <div className="ka-only-desktop">
-                <AgendaTable items={paginatedAgenda} canEdit={canEdit} onEdit={handleEdit} onDelete={handleDelete} />
+                <AgendaTable items={paginatedAgenda} canEdit={canEdit} onEdit={handleEdit} onDelete={handleDelete} selected={selected} onToggle={toggleOne} onToggleAll={toggleAll} />
               </div>
             )}
             <div className="ka-pager">
@@ -948,6 +1015,16 @@ export default function AgendaManagePage() {
         )}
       </div>
 
+      {canEdit && selected.size > 0 && (
+        <div className="ka-bulk" role="toolbar" aria-label="Aksi untuk agenda terpilih">
+          <span style={{ fontSize: 14, fontWeight: 600, marginRight: 10 }}><span style={{ color: '#f7b500' }}>{selected.size}</span> dipilih</span>
+          <button type="button" onClick={bulkShowOnTv} disabled={operationLoading}>Tampilkan di TV</button>
+          <button type="button" onClick={bulkDuplicate} disabled={operationLoading}>Duplikat</button>
+          <button type="button" className="danger" onClick={() => setConfirmDeleteId('bulk')} disabled={operationLoading}>Hapus</button>
+          <button type="button" className="ghost" onClick={() => setSelected(new Set())} aria-label="Batal pilih">×</button>
+        </div>
+      )}
+
       {showModal && (
         <AgendaModal item={editingItem} onSave={handleSave} onClose={() => { setShowModal(false); setEditingItem(null) }} isSaving={operationLoading} />
       )}
@@ -956,7 +1033,9 @@ export default function AgendaManagePage() {
         open={!!confirmDeleteId}
         title="Hapus Agenda"
         message={
-          deletingAgendaItem
+          confirmDeleteId === 'bulk'
+            ? <><strong>{selected.size} agenda</strong> terpilih akan dihapus permanen. Lanjutkan?</>
+            : deletingAgendaItem
             ? <>Agenda <strong>{deletingAgendaItem.judul}</strong> akan dihapus permanen. Lanjutkan?</>
             : 'Agenda ini akan dihapus permanen. Lanjutkan?'
         }

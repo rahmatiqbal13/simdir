@@ -16,7 +16,7 @@ export default function LoginError({ error, reset }) {
       minHeight: '100vh',
       padding: '2rem',
       textAlign: 'center',
-      background: 'linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%)'
+      background: 'linear-gradient(135deg, #2b3990 0%, #0f172a 100%)'
     }}>
       <div style={{
         width: '80px',
@@ -44,8 +44,8 @@ export default function LoginError({ error, reset }) {
         onClick={reset}
         style={{
           padding: '0.625rem 1.25rem',
-          background: '#f5b915',
-          color: '#1e3a8a',
+          background: '#f7b500',
+          color: '#2b3990',
           border: 'none',
           borderRadius: '10px',
           fontWeight: '600',

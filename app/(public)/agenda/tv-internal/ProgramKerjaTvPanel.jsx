@@ -164,7 +164,7 @@ export default function ProgramKerjaTvPanel({ items, p, isDark }) {
           <div style={{ display: 'flex', gap: 6, overflow: 'hidden' }}>
             {puiTabs.map((tab, i) => (
               <button key={tab.kode} type="button" onClick={() => { setCurrentTab(i); setProgress(0) }} aria-current={i === safeTab ? 'true' : undefined}
-                style={{ fontSize: 15, fontWeight: 700, padding: '5px 12px', borderRadius: 99, border: 0, cursor: 'pointer', whiteSpace: 'nowrap', background: i === safeTab ? '#f5b915' : 'transparent', color: i === safeTab ? '#0a1430' : p.ink2, fontFamily: 'var(--font-sans)' }}>
+                style={{ fontSize: 15, fontWeight: 700, padding: '5px 12px', borderRadius: 99, border: 0, cursor: 'pointer', whiteSpace: 'nowrap', background: i === safeTab ? '#f7b500' : 'transparent', color: i === safeTab ? '#0a1430' : p.ink2, fontFamily: 'var(--font-sans)' }}>
                 {tab.label.replace(/^PUI(PT)?\s+/i, '')}
               </button>
             ))}
@@ -201,7 +201,7 @@ export default function ProgramKerjaTvPanel({ items, p, isDark }) {
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ height: 14, borderRadius: 7, background: p.track, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, totalPct || 0)}%`, background: '#f5b915', borderRadius: 7 }} />
+                <div style={{ height: '100%', width: `${Math.min(100, totalPct || 0)}%`, background: '#f7b500', borderRadius: 7 }} />
               </div>
               <span style={{ fontSize: 18, color: p.ink2 }}>SPJ {fmtRupiah(totalSpj)} dari {fmtRupiah(totalAnggaran)}</span>
             </div>
@@ -211,7 +211,7 @@ export default function ProgramKerjaTvPanel({ items, p, isDark }) {
 
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 16, padding: '16px 26px', background: p.head, marginTop: 'auto' }}>
         <div style={{ flex: 1, height: 6, borderRadius: 3, background: p.track, overflow: 'hidden' }}>
-          <div style={{ height: '100%', width: `${progress}%`, background: '#f5b915', borderRadius: 3, transition: 'width 0.1s linear' }} />
+          <div style={{ height: '100%', width: `${progress}%`, background: '#f7b500', borderRadius: 3, transition: 'width 0.1s linear' }} />
         </div>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 17, color: p.ink2 }}>PUI {safeTab + 1} / {puiTabs.length}</span>
       </div>

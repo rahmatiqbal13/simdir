@@ -43,7 +43,7 @@ export default function PublicError({ error, reset }) {
         onClick={reset}
         style={{
           padding: '0.625rem 1.25rem',
-          background: '#1e3a8a',
+          background: '#2b3990',
           color: '#fff',
           border: 'none',
           borderRadius: '10px',

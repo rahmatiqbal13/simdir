@@ -225,7 +225,7 @@ export default function PrintInvoicePage() {
           justifyContent: 'space-between', 
           alignItems: 'flex-start',
           marginBottom: '2rem',
-          borderBottom: '3px solid #1e3a8a',
+          borderBottom: '3px solid #2b3990',
           paddingBottom: '1.5rem',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -241,7 +241,7 @@ export default function PrintInvoicePage() {
               />
             )}
             <div>
-              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e3a8a' }}>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#2b3990' }}>
                 INVOICE
               </div>
               <div style={{ fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
@@ -409,11 +409,11 @@ export default function PrintInvoicePage() {
               display: 'flex', 
               justifyContent: 'space-between', 
               padding: '1rem 0',
-              borderTop: '2px solid #1e3a8a',
+              borderTop: '2px solid #2b3990',
               marginTop: '0.5rem',
             }}>
               <span style={{ fontWeight: 700, fontSize: '1.125rem' }}>TOTAL</span>
-              <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#1e3a8a', fontFamily: 'monospace' }}>
+              <span style={{ fontWeight: 700, fontSize: '1.25rem', color: '#2b3990', fontFamily: 'monospace' }}>
                 {formatRupiah(invoice.total)}
               </span>
             </div>

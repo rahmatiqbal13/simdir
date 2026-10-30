@@ -92,7 +92,6 @@ const ROTATE_SEC = 10        // carousel berganti tiap 10 detik
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
 const MONL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 const DOW = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
-const DOW_CAL = ['SN', 'SL', 'RB', 'KM', 'JM', 'SB', 'MG']
 
 const pad2 = (n) => String(n).padStart(2, '0')
 const keyOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
@@ -115,7 +114,7 @@ function countdown(a, now) {
   const days = Math.round((parseDay(a.tanggal_mulai) - today) / 864e5)
   if (days >= 1) return { label: days === 1 ? 'Besok' : `${days} hari lagi`, bg: 'var(--info-50)', fg: 'var(--info)' }
   const h = Math.floor(diff / 36e5), m = Math.floor((diff % 36e5) / 6e4)
-  return { label: `${h ? `${h} jam ` : ''}${m} mnt lagi`, bg: 'var(--usc-yellow)', fg: '#0e1a3a' }
+  return { label: `${h ? `${h} jam ` : ''}${m} mnt lagi`, bg: 'var(--usc-yellow)', fg: '#121735' }
 }
 
 const IconCal = ({ size = 16 }) => <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="3" y1="10" x2="21" y2="10" /><line x1="12" y1="14" x2="12" y2="18" /><line x1="10" y1="16" x2="14" y2="16" /></svg>
@@ -130,7 +129,7 @@ function AgendaCard({ a, now, todayKey }) {
   const done = getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'completed'
   const color = getUnitColor(a.jenis === 'eksternal' ? 'eksternal' : 'internal', a.penyelenggara, false).border
   return (
-    <article className="ap-card" style={{ opacity: done ? 0.6 : 1 }}>
+    <article className="ap-card" style={{ opacity: done ? 0.6 : 1, '--uc': color }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div className={`ap-date ${isToday ? 'today' : ''}`}>
           <span className="date-block-mon">{MON[d.getMonth()]}</span>
@@ -185,8 +184,7 @@ export default function AgendaPage() {
   const [error, setError] = useState(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [range, setRange] = useState('all')        // all | today | week
-  const [day, setDay] = useState(null)              // 'YYYY-MM-DD' dari kalender
-  const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1) })
+  const [day, setDay] = useState(null)              // 'YYYY-MM-DD' dari chip hari
   const [page, setPage] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -277,35 +275,12 @@ export default function AgendaPage() {
   const goTo = (i) => { setPage(((i % pages) + pages) % pages); setElapsed(0) }
   useEffect(() => { setPage(0); setElapsed(0) }, [showCompleted, day, range])
 
-  // Agenda unggulan: yang paling dekat & belum lewat jam mulainya
-  const feat = active.find(a => new Date(`${a.tanggal_mulai}T${a.waktu_mulai || '00:00:00'}`) > now) || active[0]
-  const featCd = useMemo(() => {
-    if (!feat) return ''
-    const diff = new Date(`${feat.tanggal_mulai}T${feat.waktu_mulai || '00:00:00'}`) - now
-    if (diff <= 0) return 'Sedang berlangsung'
-    const d = Math.floor(diff / 864e5), h = Math.floor((diff % 864e5) / 36e5), m = Math.floor((diff % 36e5) / 6e4)
-    return d > 0 ? `${d} hari ${h} jam` : `${h} jam ${pad2(m)} mnt`
-  }, [feat, now])
-  const featWhen = feat ? (feat.tanggal_mulai === todayKey ? 'Hari ini' : `${DOW[parseDay(feat.tanggal_mulai).getDay()]}, ${parseDay(feat.tanggal_mulai).getDate()} ${MON[parseDay(feat.tanggal_mulai).getMonth()]}`) : ''
 
-  // Sel kalender (Senin di kiri)
-  const cells = useMemo(() => {
-    const y = calMonth.getFullYear(), m = calMonth.getMonth()
-    const off = (new Date(y, m, 1).getDay() + 6) % 7, nd = new Date(y, m + 1, 0).getDate()
-    const out = Array.from({ length: off }, () => null)
-    for (let n = 1; n <= nd; n++) {
-      const k = `${y}-${pad2(m + 1)}-${pad2(n)}`
-      out.push({ n, k, has: agenda.some(a => onDay(a, k)), past: k < todayKey, today: k === todayKey })
-    }
-    return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calMonth, agenda, todayKey])
-
-  // Strip 7 hari untuk mobile
-  const week = Array.from({ length: 7 }, (_, i) => {
+  // Chip 8 hari di hero (v3): klik untuk menyaring, klik lagi untuk batal
+  const week = Array.from({ length: 8 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i)
     const k = keyOf(d)
-    return { k, dow: DOW[d.getDay()].slice(0, 3), n: d.getDate(), has: agenda.some(a => onDay(a, k)) }
+    return { k, top: i === 0 ? 'Hari ini' : i === 1 ? 'Besok' : DOW[d.getDay()].slice(0, 3), n: `${d.getDate()} ${MON[d.getMonth()]}`, count: agenda.filter(a => onDay(a, k)).length }
   })
 
   const pickDay = (k, past) => {
@@ -319,6 +294,8 @@ export default function AgendaPage() {
 
   return (
     <div className="ap">
+      {/* Pita biru v3: header + hero */}
+      <div className="ap-band">
       <header className="ap-header">
         <Link href="/agenda" className="ap-brand">
           <img src={logoUrl} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
@@ -334,7 +311,7 @@ export default function AgendaPage() {
           <Link href="/penilaian">Penilaian</Link>
         </nav>
         <div style={{ flex: 1 }} />
-        <ThemeToggle style={{ width: 42, height: 42, borderRadius: 10, color: 'var(--text)' }} />
+        <ThemeToggle style={{ width: 44, height: 44, borderRadius: 12, color: '#fff' }} />
         <a href="/agenda/tv" className="ap-tvbtn">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="2" y="7" width="20" height="15" rx="2" /><polyline points="17 2 12 7 7 2" /></svg>
           Mode TV
@@ -342,71 +319,28 @@ export default function AgendaPage() {
         <Link href="/login" className="btn btn-primary ap-login">Masuk</Link>
       </header>
 
-      <main className="ap-main">
         <div className="ap-hero">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <span className="eyebrow ap-eyebrow">{dateEyebrow}</span>
-            <h1 className="ap-title">Agenda kegiatan</h1>
-            <p className="ap-lede">Kelas, kunjungan, dan acara Unesa Science Center yang terbuka untuk umum. {weekCount} agenda dalam 7 hari ke depan.</p>
+            <h1 className="ap-title">Apa yang terjadi di USC minggu ini.</h1>
+            <p className="ap-lede">Kegiatan terbuka di Gedung USC, Kolam Renang, SSFC, dan Laboratorium Terpadu. {weekCount} agenda dalam 7 hari ke depan — pilih hari untuk menyaring.</p>
           </div>
-          {feat && (
-            <div className="now-card ap-feat">
-              <span className="now-card-eyebrow">Berikutnya · {featWhen}</span>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 360 }}>
-                <span className="ap-feat-title">{feat.judul}</span>
-                <span style={{ fontSize: 14.5, color: '#cfd8f3' }}>{timeRange(feat)} WIB{feat.lokasi ? ` · ${feat.lokasi}` : ''}</span>
-              </div>
-              <div className="ap-feat-foot">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 12.5, color: '#cfd8f3' }}>Dimulai dalam</span>
-                  <span className="mono ap-feat-cd">{featCd}</span>
-                </div>
-                <button type="button" className="ap-feat-btn" onClick={() => downloadIcs(feat)}><IconCal />Tambah ke kalender</button>
-              </div>
-            </div>
-          )}
+          <div className="ap-days" role="group" aria-label="Pilih hari">
+            {week.map(w => (
+              <button key={w.k} type="button" onClick={() => pickDay(w.k, false)} aria-pressed={day === w.k} className={`ap-day ${day === w.k ? 'active' : ''}`}>
+                <span style={{ fontSize: 12.5, fontWeight: 600, opacity: .8 }}>{w.top}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{w.n}</span>
+                <span className="mono" style={{ fontSize: 11, opacity: .75 }}>{w.count ? `${w.count} agenda` : '—'}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Strip 7 hari (mobile) */}
-        <div className="ap-week" role="group" aria-label="Pilih tanggal">
-          {week.map(w => (
-            <button key={w.k} type="button" onClick={() => pickDay(w.k, false)} aria-pressed={day === w.k} className={`ap-week-day ${day === w.k ? 'active' : ''}`}>
-              <span style={{ fontSize: 11.5, fontWeight: 600, opacity: .8 }}>{w.dow}</span>
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600, lineHeight: 1 }}>{w.n}</span>
-              <span className="ap-dot" style={{ background: w.has ? (day === w.k ? 'var(--usc-yellow)' : 'var(--primary)') : 'transparent' }} />
-            </button>
-          ))}
-        </div>
+      </div>
+
+      <main className="ap-main">
 
         <div className="ap-grid">
-          <aside className="ap-aside">
-            <div className="ap-panel">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'var(--font-display)', fontSize: 19, fontWeight: 600 }}>{MONL[calMonth.getMonth()]} {calMonth.getFullYear()}</span>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button type="button" className="ap-calnav" aria-label="Bulan sebelumnya" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))}><IconChev dir="l" /></button>
-                  <button type="button" className="ap-calnav" aria-label="Bulan berikutnya" onClick={() => setCalMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))}><IconChev /></button>
-                </div>
-              </div>
-              <div className="ap-cal-head">{DOW_CAL.map(d => <span key={d}>{d}</span>)}</div>
-              <div className="ap-cal">
-                {cells.map((c, i) => c ? (
-                  <button key={c.k} type="button" onClick={() => pickDay(c.k, c.past)} aria-pressed={day === c.k} aria-label={`${c.n} ${MONL[calMonth.getMonth()]}${c.has ? ', ada agenda' : ''}`}
-                    className={`ap-cal-cell ${day === c.k ? 'sel' : ''} ${c.today ? 'today' : ''} ${c.past ? 'past' : ''}`}>
-                    {c.n}
-                    <span className="ap-dot" style={{ background: c.has ? (day === c.k ? 'var(--usc-yellow)' : 'var(--primary)') : 'transparent' }} />
-                  </button>
-                ) : <span key={`e${i}`} />)}
-              </div>
-              <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>Titik = ada agenda. Klik tanggal untuk memfilter.</span>
-            </div>
-            <div className="ap-panel" style={{ gap: 10 }}>
-              <span className="eyebrow" style={{ fontSize: 11.5, letterSpacing: '.1em' }}>Sedang berkunjung?</span>
-              <Link href="/daftar-tamu" className="ap-visit">Isi buku tamu<span>→</span></Link>
-              <Link href="/penilaian" className="ap-visit">Nilai fasilitas<span>→</span></Link>
-              <Link href="/kritik-saran" className="ap-visit" style={{ borderBottom: 0 }}>Kirim kritik &amp; saran<span>→</span></Link>
-            </div>
-          </aside>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 0 }}>
             <div className="ap-filters">
@@ -416,7 +350,7 @@ export default function AgendaPage() {
                 </button>
               ))}
               {day && (
-                <button type="button" className="chip" onClick={() => setDay(null)} style={{ background: 'var(--usc-yellow)', borderColor: 'var(--usc-yellow)', color: '#0e1a3a', fontWeight: 700 }} aria-label="Hapus filter tanggal">
+                <button type="button" className="chip" onClick={() => setDay(null)} style={{ background: 'var(--usc-yellow)', borderColor: 'var(--usc-yellow)', color: '#121735', fontWeight: 700 }} aria-label="Hapus filter tanggal">
                   {parseDay(day).getDate()} {MON[parseDay(day).getMonth()]}<span style={{ fontSize: 17, lineHeight: 1 }}>×</span>
                 </button>
               )}
@@ -472,6 +406,19 @@ export default function AgendaPage() {
               </div>
             )}
           </div>
+        </div>
+        <div className="ap-services">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, justifyContent: 'center' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 600 }}>Sedang di USC?</span>
+            <span style={{ fontSize: 14.5, color: 'var(--text-2)' }}>Tiga layanan ini bisa diisi dari ponsel Anda.</span>
+          </div>
+          {[['/daftar-tamu', 'Buku tamu', 'Check-in kunjungan'], ['/kritik-saran', 'Kritik & saran', 'Sampaikan masukan'], ['/penilaian', 'Penilaian', 'Nilai fasilitas kami']].map(([href, t, d]) => (
+            <Link key={href} href={href} className="ap-service">
+              <span className="mono" style={{ fontSize: 12, color: 'var(--primary)' }}>{href}</span>
+              <span style={{ fontSize: 17, fontWeight: 600 }}>{t} →</span>
+              <span style={{ fontSize: 13.5, color: 'var(--text-2)' }}>{d}</span>
+            </Link>
+          ))}
         </div>
       </main>
       <footer className="ap-footer"><span>© {now.getFullYear()} {brandName}</span><span>Semua waktu dalam WIB</span></footer>

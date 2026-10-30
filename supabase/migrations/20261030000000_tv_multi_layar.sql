@@ -22,6 +22,10 @@ CREATE TABLE IF NOT EXISTS tv_screens (
 ALTER TABLE tv_screens ENABLE ROW LEVEL SECURITY;
 
 -- TV adalah halaman publik; tulis hanya lewat API route (service role).
+-- DROP dulu agar migrasi aman dijalankan ulang.
+DROP POLICY IF EXISTS "Public read tv_screens" ON tv_screens;
+DROP POLICY IF EXISTS "Service role write tv_screens" ON tv_screens;
+
 CREATE POLICY "Public read tv_screens"
   ON tv_screens FOR SELECT USING (true);
 

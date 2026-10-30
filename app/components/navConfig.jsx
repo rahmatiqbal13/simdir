@@ -177,10 +177,10 @@ export const NAV_ICONS = {
 // yang sedang login) otomatis disembunyikan, lihat getGroupedSidebarItems().
 export const NAV_GROUPS = [
   { key: 'utama', label: 'Utama' },
-  { key: 'agenda-publikasi', label: 'Agenda & Publikasi' },
+  { key: 'agenda-publikasi', label: 'Agenda' },
   { key: 'layanan-publik', label: 'Layanan Publik' },
-  { key: 'keuangan-dokumen', label: 'Keuangan & Dokumen' },
-  { key: 'laporan', label: 'Laporan & Pengaturan' },
+  { key: 'keuangan-dokumen', label: 'Keuangan' },
+  { key: 'laporan', label: 'Laporan' },
 ]
 
 // Setiap entri navigasi yang mungkin ada di aplikasi, sekali saja.

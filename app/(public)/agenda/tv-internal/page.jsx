@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { UNIT_COLORS, getUnitColor } from '../tv/unit-colors'
 import { MONTHS, useStageScale, useTheme, useClock, sortActiveAgenda, getAgendaStatus } from '../tv/shared'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvProgress, TvLoading } from '../tv/TvKit'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvProgress, TvLoading, TvHeader } from '../tv/TvKit'
 
 const ROWS_PER_PAGE = 6
 const ROTATE_SEC = 15
@@ -20,15 +20,11 @@ export default function AgendaTVInternalPage() {
   const now = useClock()
   const weather = useWeather()
 
-  const [brandName, setBrandName] = useState('Direktorat Unesa Science Center')
   const [logoUrl, setLogoUrl]     = useState('/images/logo USC.png')
   useEffect(() => {
     fetch('/api/app-settings')
       .then((res) => res.json())
-      .then((data) => {
-        if (data.brand_name) setBrandName(data.brand_name)
-        if (data.logo_url) setLogoUrl(data.logo_url)
-      })
+      .then((data) => { if (data.logo_url) setLogoUrl(data.logo_url) })
       .catch(() => {})
   }, [])
 
@@ -126,19 +122,13 @@ export default function AgendaTVInternalPage() {
     <TvStage scale={scale} p={p}>
       {/* ── HEADER ── */}
       <header style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', borderBottom: `1px solid ${p.line}` }}>
-        <div style={{ height: 116, display: 'flex', alignItems: 'center', gap: 28, padding: '0 48px' }}>
-          <img src={logoUrl} alt={brandName} style={{ width: 64, height: 64, objectFit: 'contain', background: '#fff', borderRadius: 14, padding: 5 }} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 38, letterSpacing: '-.02em', lineHeight: 1 }}>Agenda Direktorat</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 600, letterSpacing: '.12em', padding: '5px 12px', borderRadius: 8, background: '#e5484d', color: '#fff' }}>INTERNAL</span>
-            </div>
-            <span style={{ fontSize: 20, color: p.ink2 }}>Semua agenda unit kerja · tidak untuk ditampilkan di area publik</span>
-          </div>
-          <TvWeather weather={weather} p={p} iconSize={42} tempSize={32} labelSize={18} height={68} city={false} />
-          <TvClock now={now} p={p} size={50} dateSize={20} short />
-          <TvThemeButton isDark={isDark} onToggle={toggle} p={p} size={68} />
-        </div>
+        <TvHeader p={p} logoUrl={logoUrl} height={112} title="Agenda Internal" badge="STAF SAJA" sub="Semua agenda unit kerja · tidak untuk area publik">
+          {(hp) => <>
+            <TvWeather weather={weather} p={hp} iconSize={42} tempSize={32} labelSize={18} height={68} city={false} />
+            <TvClock now={now} p={hp} size={50} dateSize={20} short />
+            <TvThemeButton isDark={isDark} onToggle={toggle} p={hp} size={68} />
+          </>}
+        </TvHeader>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 48px', borderTop: `1px solid ${p.line}`, overflow: 'hidden' }}>
           {Object.entries(UNIT_COLORS).map(([key, uc]) => (
             <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, fontWeight: 600, color: p.ink2, whiteSpace: 'nowrap', flexShrink: 0 }}>
@@ -197,7 +187,7 @@ export default function AgendaTVInternalPage() {
           <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 18, padding: '16px 26px', background: p.head }}>
             <div style={{ display: 'flex', gap: 10 }}>
               {Array.from({ length: pages }, (_, i) => (
-                <span key={i} style={{ height: 10, width: i === pg ? 36 : 10, borderRadius: 5, background: i === pg ? (isDark ? '#f5b915' : '#1e3a8a') : p.dotIdle, transition: 'width .25s' }} />
+                <span key={i} style={{ height: 10, width: i === pg ? 36 : 10, borderRadius: 5, background: i === pg ? (isDark ? p.accent : '#2b3990') : p.dotIdle, transition: 'width .25s' }} />
               ))}
             </div>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 17, color: p.ink2 }}>Halaman {pg + 1} / {pages}</span>

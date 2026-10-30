@@ -71,9 +71,9 @@ function PrintDashboardContent() {
       </div>
 
       <div className="invoice-print-container" style={{ maxWidth: '210mm', margin: '0 auto', padding: '15mm', background: 'white', boxSizing: 'border-box', color: '#1e293b' }}>
-        <div style={{ borderBottom: '4px solid #1e3a8a', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ borderBottom: '4px solid #2b3990', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a8a' }}>{appName}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2b3990' }}>{appName}</div>
             <div style={{ fontSize: '0.9375rem', color: '#64748b', marginTop: 4 }}>Laporan Pemasukan Unit Usaha</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -93,7 +93,7 @@ function PrintDashboardContent() {
         </div>
 
         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '1.25rem', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e3a8a', marginBottom: 8 }}>NARASI LAPORAN</div>
+          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#2b3990', marginBottom: 8 }}>NARASI LAPORAN</div>
           <p style={{ fontSize: '0.875rem', color: '#1e40af', lineHeight: 1.6, margin: 0 }}>
             Pada tahun anggaran <strong>{tahun}</strong>, {appName} mencatat total pendapatan dari <strong>{totalUnits} unit usaha</strong> sebesar{' '}
             <strong>{formatRupiah(displayGrand.totalIncome)}</strong>. Dari total target yang ditetapkan sebesar <strong>{formatRupiah(displayGrand.annualTarget)}</strong>,
@@ -116,7 +116,7 @@ function PrintDashboardContent() {
                 <Tooltip formatter={(v) => formatRupiah(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="Pemasukan" fill="#10b981" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="Target" fill="#1e3a8a" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="Target" fill="#2b3990" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -126,7 +126,7 @@ function PrintDashboardContent() {
           <SectionTitle>RINGKASAN PER UNIT USAHA</SectionTitle>
           <table style={{ width: '100%', fontSize: '0.8125rem', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
             <thead>
-              <tr style={{ background: '#1e3a8a', color: 'white' }}>
+              <tr style={{ background: '#2b3990', color: 'white' }}>
                 {['No', 'Unit Usaha', 'Target', 'Realisasi', 'Capaian', 'Status'].map((h) => (
                   <th key={h} style={{ border: '1px solid #cbd5e1', padding: '8px 10px', textAlign: h === 'Unit Usaha' ? 'left' : 'center' }}>{h}</th>
                 ))}
@@ -160,7 +160,7 @@ function PrintDashboardContent() {
 
         {activeUnits.map((u) => (
           <div key={u.unit.id} style={{ pageBreakBefore: 'always', paddingTop: '1rem' }}>
-            <div style={{ borderBottom: '2px solid #1e3a8a', paddingBottom: '0.75rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ borderBottom: '2px solid #2b3990', paddingBottom: '0.75rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontSize: '1.125rem', fontWeight: 800 }}>{u.unit.name}</div>
                 <div style={{ fontSize: '0.8125rem', color: '#64748b' }}>Detail Pemasukan Bulanan — Tahun {tahun}</div>

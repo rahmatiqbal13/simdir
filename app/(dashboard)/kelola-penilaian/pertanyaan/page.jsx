@@ -7,7 +7,7 @@ import ConfirmModal from '@/app/components/ConfirmModal'
 
 // Must match the FACILITIES array in the public page (app/(public)/penilaian/page.jsx)
 const FACILITIES = [
-  { id: 'achilles-gym', name: 'Achilles Gym Hub', icon: '🏋️', color: '#dbeafe', textColor: '#1e3a8a' },
+  { id: 'achilles-gym', name: 'Achilles Gym Hub', icon: '🏋️', color: '#dbeafe', textColor: '#2b3990' },
   { id: 'kolam-renang', name: 'Kolam Renang Unesa', icon: '🏊', color: '#dcfce7', textColor: '#047857' },
   { id: 'driving-golf', name: 'Driving Golf Unesa', icon: '⛳', color: '#fef3c7', textColor: '#b45309' },
   { id: 'ulabk', name: 'ULABK', icon: '📖', color: '#fff7ed', textColor: '#c2410c' },
@@ -304,7 +304,7 @@ export default function PertanyaanKritikSaranPage() {
                 borderRadius: '10px', border: '2px solid',
                 borderColor: selectedFacility === f.name ? '#3b82f6' : 'var(--border)',
                 background: selectedFacility === f.name ? '#eff6ff' : 'var(--surface)',
-                color: selectedFacility === f.name ? '#1e3a8a' : 'var(--text-3)',
+                color: selectedFacility === f.name ? '#2b3990' : 'var(--text-3)',
                 fontSize: '14px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
               }}
             >
@@ -362,7 +362,7 @@ export default function PertanyaanKritikSaranPage() {
                   padding: '5px 10px', borderRadius: '6px', border: '1.5px solid',
                   borderColor: newTipe === opt.value ? '#3b82f6' : 'var(--border)',
                   background: newTipe === opt.value ? '#eff6ff' : 'var(--surface)',
-                  color: newTipe === opt.value ? '#1e3a8a' : 'var(--text-3)',
+                  color: newTipe === opt.value ? '#2b3990' : 'var(--text-3)',
                   fontSize: '12px', fontWeight: newTipe === opt.value ? '600' : '400',
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
@@ -433,7 +433,7 @@ export default function PertanyaanKritikSaranPage() {
                 type="checkbox"
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                style={{ width: '16px', height: '16px', accentColor: '#1e3a8a', cursor: 'pointer' }}
+                style={{ width: '16px', height: '16px', accentColor: '#2b3990', cursor: 'pointer' }}
               />
               Aktif
             </label>
@@ -441,7 +441,7 @@ export default function PertanyaanKritikSaranPage() {
               onClick={handleAdd}
               disabled={saving || !newQuestion.trim()}
               style={{
-                padding: '10px 20px', background: saving || !newQuestion.trim() ? '#93c5fd' : '#1e3a8a',
+                padding: '10px 20px', background: saving || !newQuestion.trim() ? '#93c5fd' : '#2b3990',
                 color: 'white', border: 'none', borderRadius: '8px', fontSize: '14px',
                 fontWeight: '600', cursor: saving || !newQuestion.trim() ? 'not-allowed' : 'pointer',
                 whiteSpace: 'nowrap',
@@ -545,7 +545,7 @@ export default function PertanyaanKritikSaranPage() {
                           onClick={() => handleUpdate(q.id)}
                           disabled={saving}
                           style={{
-                            padding: '6px 12px', background: '#1e3a8a', color: 'white',
+                            padding: '6px 12px', background: '#2b3990', color: 'white',
                             border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
                             cursor: 'pointer',
                           }}
@@ -744,7 +744,7 @@ export default function PertanyaanKritikSaranPage() {
         marginTop: '1.5rem', padding: '1rem', background: '#eff6ff', borderRadius: '10px',
         border: '1px solid #dbeafe',
       }}>
-        <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#1e3a8a', margin: '0 0 8px' }}>
+        <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#2b3990', margin: '0 0 8px' }}>
           💡 Cara Kerja
         </h4>
         <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '13px', color: '#374151', lineHeight: '1.6' }}>

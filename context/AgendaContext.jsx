@@ -72,6 +72,8 @@ export function AgendaProvider({ children }) {
         pic: item.pic || null,
         status: item.status || 'upcoming',
         tampil_publik: item.tampil_publik ?? false,
+        // Kosong = otomatis (default kolom); dikirim hanya bila dipilih
+        ...(item.target_layar?.length && { target_layar: item.target_layar }),
         created_by: user?.id || null
       };
 

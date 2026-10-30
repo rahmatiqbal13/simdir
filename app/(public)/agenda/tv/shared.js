@@ -34,7 +34,7 @@ export const sortActiveAgenda = (agenda) =>
 // ============ TEMA ============
 export const DARK = {
   bg: '#0a1228', bg2: '#0f1a3a', card: '#142a5e', card2: '#1a3370',
-  border: 'rgba(255,255,255,0.08)', accent: '#f5b915', primary: '#4f7df9',
+  border: 'rgba(255,255,255,0.08)', accent: '#f7b500', primary: '#4f7df9',
   text: '#ffffff', text2: 'rgba(255,255,255,0.7)', text3: 'rgba(255,255,255,0.5)',
   success: '#10b981',
   stageBg: 'radial-gradient(ellipse 1920px 600px at 20% 0%, rgba(79,125,249,0.18), transparent 60%), radial-gradient(ellipse 800px 600px at 100% 100%, rgba(245,185,21,0.12), transparent 65%), linear-gradient(180deg, #0a1228 0%, #0f1a3a 100%)',
@@ -45,12 +45,12 @@ export const DARK = {
   featuredBorder: 'rgba(245,185,21,0.3)',
   footerBg: 'linear-gradient(90deg, rgba(245,185,21,0.16), rgba(79,125,249,0.16))',
   statusOngoingBg: 'rgba(16,185,129,0.2)', statusOngoingFg: '#34d399',
-  statusSoonBg: 'rgba(245,185,21,0.2)', statusSoonFg: '#f5b915',
+  statusSoonBg: 'rgba(245,185,21,0.2)', statusSoonFg: '#f7b500',
   statusUpcomingBg: 'rgba(79,125,249,0.2)', statusUpcomingFg: '#4f7df9',
 }
 export const LIGHT = {
   bg: '#f5f7fb', bg2: '#ffffff', card: '#ffffff', card2: '#f8fafc',
-  border: '#e4e7ee', accent: '#c98800', primary: '#1e3a8a',
+  border: '#e4e7ee', accent: '#c98800', primary: '#2b3990',
   text: '#0f172a', text2: '#475569', text3: '#64748b',
   success: '#047857',
   stageBg: 'radial-gradient(ellipse 1920px 600px at 20% 0%, rgba(30,58,138,0.08), transparent 60%), radial-gradient(ellipse 800px 600px at 100% 100%, rgba(245,185,21,0.10), transparent 65%), linear-gradient(180deg, #f5f7fb 0%, #ffffff 100%)',
@@ -62,7 +62,7 @@ export const LIGHT = {
   footerBg: 'linear-gradient(90deg, rgba(245,185,21,0.18), rgba(30,58,138,0.10))',
   statusOngoingBg: 'rgba(4,120,87,0.12)', statusOngoingFg: '#047857',
   statusSoonBg: 'rgba(245,185,21,0.18)', statusSoonFg: '#b45309',
-  statusUpcomingBg: 'rgba(30,58,138,0.10)', statusUpcomingFg: '#1e3a8a',
+  statusUpcomingBg: 'rgba(30,58,138,0.10)', statusUpcomingFg: '#2b3990',
 }
 
 // ============ HOOKS ============

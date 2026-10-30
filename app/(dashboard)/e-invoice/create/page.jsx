@@ -701,8 +701,8 @@ export default function CreateInvoicePage() {
                 {/* Left - Logo & Company */}
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-                    <div style={{ width: 60, height: 60, background: '#1e3a8a', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ color: '#f5b915', fontSize: 24, fontWeight: 800 }}>USC</span>
+                    <div style={{ width: 60, height: 60, background: '#2b3990', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#f7b500', fontSize: 24, fontWeight: 800 }}>USC</span>
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Unesa Science Center</div>

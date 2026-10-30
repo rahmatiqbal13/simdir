@@ -9,6 +9,7 @@ import { OnboardingFlow, useOnboarding, RestartOnboardingButton } from '@/app/co
 import { SkeletonDashboard } from '@/app/components/Skeleton';
 import { useWeather, weatherInfo, WeatherIcon } from '@/app/components/Weather';
 import { getPaletteItems } from '@/app/components/navConfig';
+import { UNIT_COLORS, getUnitColor } from '@/app/(public)/agenda/tv/unit-colors';
 
 gsap.registerPlugin(useGSAP);
 
@@ -325,6 +326,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      <TodayTimeline agenda={active} now={now} />
+
       {/* ── AGENDA + KOLOM KANAN ───────────────────────────────────────── */}
       <div className="db2-main">
         <div className="card db2-agenda">
@@ -489,3 +492,68 @@ const IconGuests    = () => <svg {...svgP}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 
 const IconTv        = () => <svg {...svgP} style={{ width: 16, height: 16 }}><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
 const IconPlus      = () => <svg {...svgP} strokeWidth={2.2} style={{ width: 16, height: 16 }}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IconArrow     = () => <svg {...svgP} style={{ width: 16, height: 16, flexShrink: 0 }}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+
+// ── Timeline "Hari ini di USC" (v3): blok per agenda hari ini, 07.00–17.00 ──
+const TL_START = 7 * 60, TL_END = 17 * 60, TL_ROWS = 3;
+function TodayTimeline({ agenda, now }) {
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const today = agenda.filter(a => a._st === 'ongoing' && a.waktu_mulai);
+  // Susun blok ke baris pertama yang belum terpakai pada rentang waktunya
+  const rowsEnd = [];
+  const blocks = today.map(a => {
+    const [h1, m1] = a.waktu_mulai.split(':').map(Number);
+    const [h2, m2] = (a.waktu_selesai || '').split(':').map(Number);
+    const s = Math.max(TL_START, h1 * 60 + m1);
+    const e = Math.min(TL_END, Number.isFinite(h2) ? h2 * 60 + (m2 || 0) : s + 60);
+    if (e <= s) return null;
+    let row = rowsEnd.findIndex(end => end <= s);
+    if (row === -1) row = rowsEnd.length;
+    if (row >= TL_ROWS) return null;
+    rowsEnd[row] = e;
+    const uc = getUnitColor(a.jenis, a.penyelenggara, a.dihadiri_pimpinan);
+    return { a, s, e, row, c: uc.border, live: nowMin >= s && nowMin < e, past: nowMin >= e };
+  }).filter(Boolean);
+  const pct = (m) => `${((m - TL_START) / (TL_END - TL_START)) * 100}%`;
+  const hours = Array.from({ length: (TL_END - TL_START) / 60 + 1 }, (_, i) => String(7 + i).padStart(2, '0'));
+
+  return (
+    <div className="card db2-only-desktop" style={{ padding: '22px 26px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 14 }}>
+          <h2 className="db2-h3">Hari ini di USC</h2>
+          <span className="mono" style={{ fontSize: 13, color: 'var(--text-3)' }}>{today.length} kegiatan</span>
+        </div>
+        <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--text-2)', flexWrap: 'wrap' }}>
+          {Object.entries(UNIT_COLORS).slice(0, 6).map(([k, u]) => (
+            <span key={k} style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: u.border }} />{u.name}</span>
+          ))}
+        </div>
+      </div>
+      <div className="mono" style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-3)' }}>
+        {hours.map(h => <span key={h} style={{ width: 0, display: 'flex', justifyContent: 'center' }}>{h}</span>)}
+      </div>
+      <div style={{ position: 'relative', height: TL_ROWS * 66 + 14, backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px)', backgroundSize: '10% 100%', borderRight: '1px solid var(--border)' }}>
+        {blocks.length === 0 && (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', fontSize: 14, color: 'var(--text-3)' }}>Tidak ada agenda berjam hari ini.</div>
+        )}
+        {blocks.map(b => (
+          <div key={b.a.id} style={{ position: 'absolute', left: pct(b.s), width: `calc(${pct(b.e)} - ${pct(b.s)})`, top: 4 + b.row * 70, height: 62, padding: 3 }}>
+            <Link href="/kelola-agenda" title={b.a.judul} style={{ height: '100%', borderRadius: 12, background: `color-mix(in srgb, ${b.c} 16%, var(--surface))`, color: 'var(--text)', padding: '9px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3, opacity: b.past ? 0.5 : 1, boxShadow: b.live ? `0 0 0 2px ${b.c}` : 'none', overflow: 'hidden', textDecoration: 'none' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.a.judul}</span>
+              <span className="mono" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: b.c, flexShrink: 0 }} />{fmtTime(b.a.waktu_mulai)}{b.a.waktu_selesai ? `–${fmtTime(b.a.waktu_selesai)}` : ''}
+              </span>
+            </Link>
+          </div>
+        ))}
+        {nowMin >= TL_START && nowMin <= TL_END && (
+          <div style={{ position: 'absolute', top: -6, bottom: -6, left: pct(nowMin), width: 2, background: '#e5484d' }}>
+            <span className="mono" style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: 11.5, fontWeight: 600, background: '#e5484d', color: '#fff', padding: '1px 6px', borderRadius: 5 }}>
+              {String(now.getHours()).padStart(2, '0')}.{String(now.getMinutes()).padStart(2, '0')}
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

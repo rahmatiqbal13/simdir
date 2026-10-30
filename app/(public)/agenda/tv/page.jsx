@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
+import { agendaDiLayar } from '@/lib/tvLayar'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
 import { MONTHS, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker } from './TvKit'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader } from './TvKit'
 import { MediaRotator, useNetworkStatus } from './MediaRotator'
 
 const ROWS_PER_PAGE = 4
@@ -47,7 +48,7 @@ export default function AgendaTVPage() {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
       }
-      else { setAgenda(data || []); setError(null) }
+      else { setAgenda((data || []).filter(a => agendaDiLayar(a, 'usc'))); setError(null) }
     } catch (e) {
       console.error('Load error:', e)
       setError('Terjadi kesalahan')
@@ -137,17 +138,14 @@ export default function AgendaTVPage() {
   return (
     <TvStage scale={scale} p={p}>
       {/* ── HEADER ── */}
-      <header style={{ height: 128, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 28, padding: '0 56px', borderBottom: `1px solid ${p.line}` }}>
-        <img src={logoUrl} alt={brandName} style={{ width: 72, height: 72, objectFit: 'contain', background: '#fff', borderRadius: 16, padding: 6 }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 40, letterSpacing: '-.02em', lineHeight: 1 }}>Unesa Science Center</span>
-          <span style={{ fontSize: 21, color: p.ink2 }}>Selamat datang — agenda &amp; informasi untuk pengunjung</span>
-        </div>
-        {!isOnline && <TvOffline />}
-        <TvWeather weather={weather} p={p} />
-        <TvClock now={now} p={p} />
-        <TvThemeButton isDark={isDark} onToggle={toggle} p={p} />
-      </header>
+      <TvHeader p={p} logoUrl={logoUrl} title="Unesa Science Center" sub="Selamat datang — agenda & informasi untuk pengunjung">
+        {(hp) => <>
+          {!isOnline && <TvOffline />}
+          <TvWeather weather={weather} p={hp} />
+          <TvClock now={now} p={hp} />
+          <TvThemeButton isDark={isDark} onToggle={toggle} p={hp} />
+        </>}
+      </TvHeader>
 
       {/* ── MAIN ── */}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '40fr 60fr', gap: 36, padding: '32px 56px' }}>
@@ -170,7 +168,7 @@ export default function AgendaTVPage() {
               const c = tvStatusColor(st, p)
               return (
                 <div key={a.id} style={{ flex: 1, maxHeight: 170, display: 'grid', gridTemplateColumns: '96px minmax(0,1fr)', gap: 22, alignItems: 'center', padding: '0 28px', borderTop: `1px solid ${p.line}` }}>
-                  <div style={{ height: 92, borderRadius: 18, background: ongoing ? '#0b7a4b' : p.blockBg, color: ongoing ? '#fff' : p.blockFg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ height: 96, borderRadius: 22, background: ongoing ? '#f7b500' : p.blockBg, color: ongoing ? '#121735' : p.blockFg, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 17, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', opacity: .8 }}>{MONTHS[d.getMonth()]}</span>
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 600, lineHeight: 1 }}>{d.getDate()}</span>
                   </div>
@@ -200,7 +198,7 @@ export default function AgendaTVPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             {Array.from({ length: Math.max(1, media.total) }, (_, i) => (
               <div key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: p.track, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: !media.total ? '0%' : i < media.idx ? '100%' : i === media.idx ? `${mediaPct}%` : '0%', background: '#f5b915', transition: 'width 1s linear' }} />
+                <div style={{ height: '100%', width: !media.total ? '0%' : i < media.idx ? '100%' : i === media.idx ? `${mediaPct}%` : '0%', background: p.accent, transition: 'width 1s linear' }} />
               </div>
             ))}
           </div>

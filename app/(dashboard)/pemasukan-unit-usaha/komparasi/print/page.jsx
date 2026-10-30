@@ -129,9 +129,9 @@ function PrintKomparasiContent() {
       </div>
 
       <div className="invoice-print-container" style={{ maxWidth: '210mm', margin: '0 auto', padding: '15mm', background: 'white', boxSizing: 'border-box', color: '#1e293b' }}>
-        <div style={{ borderBottom: '4px solid #1e3a8a', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ borderBottom: '4px solid #2b3990', paddingBottom: '1.5rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a8a' }}>{appName}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#2b3990' }}>{appName}</div>
             <div style={{ fontSize: '0.9375rem', color: '#64748b', marginTop: 4 }}>Laporan Pemasukan Unit Usaha</div>
           </div>
           <div style={{ textAlign: 'right' }}>
@@ -162,7 +162,7 @@ function PrintKomparasiContent() {
         </div>
 
         <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '1.25rem', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1e3a8a', marginBottom: 8 }}>NARASI LAPORAN</div>
+          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#2b3990', marginBottom: 8 }}>NARASI LAPORAN</div>
           <p style={{ fontSize: '0.875rem', color: '#1e40af', lineHeight: 1.6, margin: 0 }}>
             Total pemasukan <strong>{unitName}</strong> pada tahun <strong>{yearB}</strong> sebesar <strong>{formatRupiah(totalB)}</strong>,{' '}
             dibandingkan tahun <strong>{yearA}</strong> sebesar <strong>{formatRupiah(totalA)}</strong>.{' '}
@@ -186,7 +186,7 @@ function PrintKomparasiContent() {
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} angle={selectedUnit ? 0 : -35} textAnchor={selectedUnit ? 'middle' : 'end'} interval={0} height={selectedUnit ? 30 : 70} />
                 <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={45} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey={keyA} fill="#1e3a8a" radius={[3, 3, 0, 0]} isAnimationActive={false} />
+                <Bar dataKey={keyA} fill="#2b3990" radius={[3, 3, 0, 0]} isAnimationActive={false} />
                 <Bar dataKey={keyB} fill="#10b981" radius={[3, 3, 0, 0]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
@@ -202,7 +202,7 @@ function PrintKomparasiContent() {
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#6b7280' }} axisLine={false} tickLine={false} angle={selectedUnit ? 0 : -35} textAnchor={selectedUnit ? 'middle' : 'end'} interval={0} height={selectedUnit ? 30 : 70} />
                 <YAxis tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={45} />
                 <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="4 2" />
-                <Line type="monotone" dataKey="Pertumbuhan (%)" stroke="#1e3a8a" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} isAnimationActive={false} />
+                <Line type="monotone" dataKey="Pertumbuhan (%)" stroke="#2b3990" strokeWidth={2} dot={{ r: 3 }} connectNulls={false} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -212,7 +212,7 @@ function PrintKomparasiContent() {
           <SectionTitle>{selectedUnit ? 'RINCIAN PER BULAN' : 'RINCIAN PER UNIT USAHA'}</SectionTitle>
           <table style={{ width: '100%', fontSize: '0.8125rem', borderCollapse: 'collapse', border: '1px solid #cbd5e1' }}>
             <thead>
-              <tr style={{ background: '#1e3a8a', color: 'white' }}>
+              <tr style={{ background: '#2b3990', color: 'white' }}>
                 {['No', selectedUnit ? 'Bulan' : 'Unit Usaha', keyA, keyB, 'Selisih', '%'].map((h) => (
                   <th key={h} style={{ ...cell, padding: '8px 10px', textAlign: h === 'Bulan' || h === 'Unit Usaha' ? 'left' : 'center' }}>{h}</th>
                 ))}
