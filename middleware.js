@@ -159,6 +159,7 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
   // Jam buka/status/running text layar TV unit (/agenda/tv/<slug>) — baca publik.
   if (pathname === '/api/tv-screens' && method === 'GET') return true
+  if (pathname === '/api/tv-version' && method === 'GET') return true
   // Nama instansi/logo ditampilkan di halaman publik (TV, agenda) — baca publik.
   if (pathname === '/api/app-settings' && method === 'GET') return true
   // Public feedback submission endpoint

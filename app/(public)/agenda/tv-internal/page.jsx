@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase/client'
 import { UNIT_COLORS, getUnitColor } from '../tv/unit-colors'
 import { MONTHS, useStageScale, useTheme, useClock, sortActiveAgenda, getAgendaStatus } from '../tv/shared'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvProgress, TvLoading, TvHeader } from '../tv/TvKit'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvProgress, TvLoading, TvHeader, useTvAutoReload } from '../tv/TvKit'
 
 const ROWS_PER_PAGE = 6
 const ROTATE_SEC = 15
@@ -14,6 +14,7 @@ const ROTATE_SEC = 15
 // panel media/pamflet, tanpa login, dan tanpa entri menu (akses lewat URL
 // langsung). Lihat docs/superpowers/specs/2026-07-10-agenda-tv-public-internal-split-design.md
 export default function AgendaTVInternalPage() {
+  useTvAutoReload()
   const scale = useStageScale()
   const { isDark, toggle } = useTheme()
   const p = isDark ? TV_DARK : TV_LIGHT

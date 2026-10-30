@@ -7,7 +7,7 @@ import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin, agendaDiLayar } from '@/
 import { MONTHS, formatTime, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from '../shared'
 import { getUnitCodeFromPenyelenggara } from '../unit-colors'
 import { useWeather } from '@/app/components/Weather'
-import { tvPalette, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader } from '../TvKit'
+import { tvPalette, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader, useTvAutoReload } from '../TvKit'
 import { MediaRotator, useNetworkStatus } from '../MediaRotator'
 
 const ROWS_PER_PAGE = 4
@@ -24,6 +24,7 @@ export default function TvLayarPage() {
   const { layar } = useParams()
   const cfg = TV_LAYAR_UNIT.includes(layar) ? TV_LAYAR[layar] : null
 
+  useTvAutoReload()
   const scale                 = useStageScale()
   const { isDark, toggle }    = useTheme()
   const p                     = tvPalette(layar, isDark)

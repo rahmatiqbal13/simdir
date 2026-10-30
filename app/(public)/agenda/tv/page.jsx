@@ -6,7 +6,7 @@ import { agendaDiLayar } from '@/lib/tvLayar'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
 import { MONTHS, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
 import { useWeather } from '@/app/components/Weather'
-import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader } from './TvKit'
+import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader, useTvAutoReload } from './TvKit'
 import { MediaRotator, useNetworkStatus } from './MediaRotator'
 
 const ROWS_PER_PAGE = 4
@@ -16,6 +16,7 @@ const ROTATE_SEC = 15
 // TV Publik (Redesign 02 · 2a): agenda terbuka di kiri (40%), media di kanan
 // (60%), ticker INFO di bawah. Hanya agenda bertanda "Tampilkan di TV Publik".
 export default function AgendaTVPage() {
+  useTvAutoReload()
   const scale                 = useStageScale()
   const { isDark, toggle }    = useTheme()
   const p                     = isDark ? TV_DARK : TV_LIGHT

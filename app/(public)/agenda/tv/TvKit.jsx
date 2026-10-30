@@ -5,6 +5,7 @@
 // panggung tetap 1920×1080 lalu di-scale agar pas di layar apa pun, jadi
 // semua ukuran di sini dalam piksel desain.
 
+import { useEffect } from 'react'
 import { WeatherIcon, weatherInfo } from '@/app/components/Weather'
 import { MONTHS_L, DAYS } from './shared'
 
@@ -40,6 +41,25 @@ export const tvPalette = (layar, isDark) => ({ ...(isDark ? TV_DARK : TV_LIGHT),
 
 export const TV_STATUS_LABEL = { ongoing: 'Berlangsung', upcoming_soon: 'Segera', upcoming: 'Mendatang' }
 export const tvStatusColor = (st, p) => (st === 'ongoing' ? p.ongoing : st === 'upcoming_soon' ? p.soon : p.upcoming)
+
+// Muat ulang layar otomatis saat agenda/pamflet/pengaturan/deploy berubah.
+// Gagal fetch (offline) diabaikan — dicoba lagi pada putaran berikutnya.
+export function useTvAutoReload(intervalMs = 30000) {
+  useEffect(() => {
+    let first = null
+    const check = () => fetch('/api/tv-version', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d?.v) return
+        if (first === null) first = d.v
+        else if (d.v !== first) window.location.reload()
+      })
+      .catch(() => {})
+    check()
+    const id = setInterval(check, intervalMs)
+    return () => clearInterval(id)
+  }, [intervalMs])
+}
 
 // Panggung 1920×1080 yang di-scale & dipusatkan
 export function TvStage({ scale, p, children }) {
