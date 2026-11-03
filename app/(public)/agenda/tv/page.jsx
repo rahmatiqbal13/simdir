@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase/client'
 import { agendaDiLayar } from '@/lib/tvLayar'
 // MEDIA_CONFIG dihapus — semua media (gambar + YouTube) sekarang dari /api/tv-pamflets
-import { MONTHS, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
+import { MONTHS, tvAgendaMeta, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from './shared'
 import { useWeather } from '@/app/components/Weather'
 import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader, useTvAutoReload } from './TvKit'
 import { MediaRotator, useNetworkStatus } from './MediaRotator'
@@ -180,7 +180,7 @@ export default function AgendaTVPage() {
                         <span style={{ fontSize: 17, fontWeight: 700, padding: '3px 12px', borderRadius: 99, background: ongoing ? (isDark ? '#12392a' : '#dcf5e8') : (isDark ? '#3a2e0a' : '#fdf0cc'), color: c, flexShrink: 0 }}>{TV_STATUS_LABEL[st]}</span>
                       )}
                       <span style={{ fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{a.waktu_mulai ? a.waktu_mulai.slice(0, 5).replace(':', '.') : 'Sepanjang hari'}</span>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.lokasi}</span>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tvAgendaMeta(a)}</span>
                     </div>
                   </div>
                 </div>

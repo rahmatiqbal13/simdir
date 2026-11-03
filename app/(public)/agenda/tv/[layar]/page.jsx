@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin, agendaDiLayar } from '@/lib/tvLayar'
-import { MONTHS, formatTime, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from '../shared'
+import { MONTHS, tvAgendaMeta, formatTime, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from '../shared'
 import { getUnitCodeFromPenyelenggara } from '../unit-colors'
 import { useWeather } from '@/app/components/Weather'
 import { tvPalette, TvStage, TvClock, TvWeather, TvThemeButton, TvOffline, TvProgress, TvLoading, TvQrRow, TvTicker, TvHeader, useTvAutoReload } from '../TvKit'
@@ -234,7 +234,7 @@ export default function TvLayarPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
                         <span style={{ fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700, letterSpacing: '-.01em', textTransform: 'uppercase', lineHeight: 1.1, ...ellipsis }}>{a.judul}</span>
-                        <span style={{ fontSize: 19, color: p.ink2, ...ellipsis }}>{a.lokasi}</span>
+                        <span style={{ fontSize: 19, color: p.ink2, ...ellipsis }}>{tvAgendaMeta(a)}</span>
                       </div>
                       {pill && <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, padding: '7px 13px', borderRadius: 9, background: live ? '#f7b500' : p.head, color: live ? '#121735' : p.ink2 }}>{pill}</span>}
                     </div>
@@ -253,7 +253,7 @@ export default function TvLayarPage() {
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, lineHeight: 1.2, ...ellipsis }}>{a.judul}</span>
                     <span style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 19, color: p.ink2, minWidth: 0 }}>
                       {live && <span style={{ fontSize: 17, fontWeight: 700, padding: '3px 12px', borderRadius: 99, background: p.ongoingRow, color: p.ongoing, flexShrink: 0 }}>Sekarang</span>}
-                      <span style={ellipsis}>{a.lokasi}</span>
+                      <span style={ellipsis}>{tvAgendaMeta(a)}</span>
                     </span>
                   </div>
                 </div>

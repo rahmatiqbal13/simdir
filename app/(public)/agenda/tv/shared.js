@@ -26,6 +26,14 @@ export const getAgendaStatus = (mulai, selesai) => {
 
 // Buang agenda yang sudah lewat (completed) dan urutkan berdasarkan tanggal+jam
 // mulai. Dipakai oleh kedua halaman TV supaya urutan/filter tampilan konsisten.
+// Baris info agenda di TV publik/unit: lokasi · penyelenggara (kecuali
+// disembunyikan lewat tampil_penyelenggara) · penanggung jawab bila ada.
+export const tvAgendaMeta = (a) => {
+  const pj = a.dihadiri_pimpinan || a.jenis === 'pimpinan' ? a.nama_pimpinan : (a.pic || '').replace(/^Manual: /, '')
+  const org = a.tampil_penyelenggara !== false ? (a.penyelenggara || '').replace(/^External - /, '') : ''
+  return [a.lokasi, org, pj && `PJ: ${pj}`].filter(Boolean).join(' · ')
+}
+
 export const sortActiveAgenda = (agenda) =>
   agenda
     .filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'completed')

@@ -340,6 +340,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
     tampil_publik: item?.tampil_publik || false,
     target_layar: item?.target_layar || [],
+    tampil_penyelenggara: item?.tampil_penyelenggara !== false,
   })
   const [error, setError] = useState('')
   const [showLink, setShowLink] = useState(!!item?.link_meeting)
@@ -441,6 +442,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       disposisi: dihadiriPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
       pic: dihadiriPimpinan ? null : picValue,
       tampil_publik: form.tampil_publik,
+      // Dikirim hanya bila disembunyikan / perlu dikembalikan (default kolom = true)
+      ...((!form.tampil_penyelenggara || item?.tampil_penyelenggara === false) && { tampil_penyelenggara: form.tampil_penyelenggara }),
       // Hanya dikirim bila dipilih / perlu dikosongkan, '{}' = otomatis
       ...((form.target_layar.length || item?.target_layar?.length) && { target_layar: form.tampil_publik ? form.target_layar : [] }),
     }
@@ -624,6 +627,15 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                   </div>
                   <button type="button" role="switch" aria-checked={form.tampil_publik} aria-label="Tampilkan di TV Publik" className="switch" onClick={() => setForm(f => ({ ...f, tampil_publik: !f.tampil_publik }))} />
                 </div>
+                {form.tampil_publik && (
+                  <div className="ka-toggle-row" style={{ border: '1px solid var(--border)' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 700 }}>Tampilkan penyelenggara di TV</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Nama unit/penyelenggara di bawah judul. Penanggung jawab (PIC) selalu tampil bila diisi.</span>
+                    </div>
+                    <button type="button" role="switch" aria-checked={form.tampil_penyelenggara} aria-label="Tampilkan penyelenggara di TV" className="switch" onClick={() => setForm(f => ({ ...f, tampil_penyelenggara: !f.tampil_penyelenggara }))} />
+                  </div>
+                )}
                 {form.tampil_publik && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-2)' }}>
                     <span style={{ fontWeight: 600 }}>Layar TV:</span>
