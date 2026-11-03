@@ -115,7 +115,7 @@ const tampilDi = (a) => {
   const unit = getUnitCodeFromPenyelenggara(a.penyelenggara)
   return ['Internal', ...TV_LAYAR_SLUGS.filter(s => agendaDiLayar(a, s, unit)).map(s => TV_LAYAR[s].nama)]
 }
-const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : 'USC')
+const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : '—')
 
 // Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
 // cuma tanggalnya (event 14:00-16:00 sebelumnya sudah "Berlangsung" sejak
@@ -330,8 +330,9 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     lokasi: item?.lokasi || '',
     link_meeting: item?.link_meeting || '',
     deskripsi: item?.deskripsi || '',
-    unit_kerja: item?.jenis === 'internal' ? (UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : 'lainnya') : '',
-    unit_kerja_manual: item?.jenis === 'internal' && !UNIT_KERJA_LIST.some(u => u.value === item?.penyelenggara) ? item?.penyelenggara : '',
+    // Penyelenggara opsional: kosong tetap kosong, bukan 'lainnya'
+    unit_kerja: item?.jenis === 'internal' && item?.penyelenggara ? (UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara) ? item.penyelenggara : 'lainnya') : '',
+    unit_kerja_manual: item?.jenis === 'internal' && item?.penyelenggara && !UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara) ? item.penyelenggara : '',
     penyelenggara_eksternal: item?.jenis === 'eksternal' ? item.penyelenggara.replace('External - ', '') : '',
     pimpinan_select: '',
     pimpinan_manual: '',
@@ -387,10 +388,6 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       form.waktu_selesai <= form.waktu_mulai
     ) {
       setError('Jam selesai harus lebih besar dari jam mulai (untuk agenda di hari yang sama)')
-      return
-    }
-    if (jenis === 'internal' && !form.unit_kerja) {
-      setError('Unit kerja penyelenggara wajib dipilih')
       return
     }
     if (jenis === 'internal' && form.unit_kerja === 'lainnya' && !form.unit_kerja_manual.trim()) {
@@ -539,12 +536,12 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                   </div>
                   {jenis === 'internal' ? (
                     <div className="field">
-                      <label htmlFor="ka-unit">Unit kerja penyelenggara <span className="pub-req">*</span></label>
+                      <label htmlFor="ka-unit">Unit kerja penyelenggara <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(opsional)</span></label>
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                         <span style={{ position: 'absolute', left: 14, width: 10, height: 10, borderRadius: 3, background: form.unit_kerja ? pvColor : 'var(--border-strong)', pointerEvents: 'none' }} />
                         <select id="ka-unit" value={form.unit_kerja} style={{ paddingLeft: 34 }}
-                          onChange={(e) => { setForm({ ...form, unit_kerja: e.target.value }); setShowManualUnitKerja(e.target.value === 'lainnya') }} required>
-                          <option value="">Pilih unit kerja…</option>
+                          onChange={(e) => { setForm({ ...form, unit_kerja: e.target.value }); setShowManualUnitKerja(e.target.value === 'lainnya') }}>
+                          <option value="">Tanpa penyelenggara</option>
                           {UNIT_KERJA_LIST.map(unit => <option key={unit.value} value={unit.value}>{unit.label}</option>)}
                         </select>
                       </div>

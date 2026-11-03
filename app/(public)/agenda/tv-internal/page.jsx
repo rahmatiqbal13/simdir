@@ -159,7 +159,8 @@ export default function AgendaTVInternalPage() {
               const d = new Date(a.tanggal_mulai)
               const unitLabel = (a.dihadiri_pimpinan || a.jenis === 'pimpinan')
                 ? (a.nama_pimpinan || 'Pimpinan')
-                : ((a.penyelenggara || '').replace(/^External - /, '') || uc.name)
+                : (a.penyelenggara || '').replace(/^External - /, '')
+              const pj = (a.pic || '').replace(/^Manual: /, '')
               const t1 = a.waktu_mulai ? a.waktu_mulai.slice(0, 5).replace(':', '.') : ''
               const t2 = a.waktu_selesai ? a.waktu_selesai.slice(0, 5).replace(':', '.') : ''
               return (
@@ -174,8 +175,10 @@ export default function AgendaTVInternalPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 27, fontWeight: 600, lineHeight: 1.15, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{a.judul}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 18, color: p.ink2, minWidth: 0 }}>
-                      <span style={{ fontWeight: 700, color: uc.border, flexShrink: 0, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitLabel}</span>
-                      {a.lokasi && <><span>·</span><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.lokasi}</span></>}
+                      {unitLabel && <span style={{ fontWeight: 700, color: uc.border, flexShrink: 0, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitLabel}</span>}
+                      {[a.lokasi, pj && `PJ: ${pj}`].filter(Boolean).map((t, i) => (
+                        <span key={i} style={{ display: 'contents' }}>{(unitLabel || i > 0) && <span>·</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t}</span></span>
+                      ))}
                     </div>
                   </div>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 19, fontWeight: 700, color: c }}>
