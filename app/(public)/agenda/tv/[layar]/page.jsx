@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
-import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin, agendaDiLayar } from '@/lib/tvLayar'
+import { TV_LAYAR, TV_LAYAR_UNIT, getOpenStatus, toMin, agendaDiLayar, kelasHariIni } from '@/lib/tvLayar'
 import { MONTHS, tvAgendaMeta, formatTime, getAgendaStatus, sortActiveAgenda, useStageScale, useTheme, useClock } from '../shared'
 import { getUnitCodeFromPenyelenggara } from '../unit-colors'
 import { useWeather } from '@/app/components/Weather'
@@ -19,7 +19,8 @@ const dur = (m) => { const h = Math.floor(m / 60), mm = m % 60; return h ? `${h}
 // ============ HALAMAN TV UNIT ============
 // TV per lokasi unit (Kolam Renang, SSFC): status buka/tutup + jadwal HARI INI
 // di kiri (40%), pamflet untuk layar ini di kanan (60%), running text di bawah.
-// Agenda = agenda publik yang dipilih untuk layar ini (lihat agendaDiLayar).
+// Jadwal = agenda publik yang dipilih untuk layar ini (lihat agendaDiLayar)
+// + kelas rutin mingguan dari Agenda Kolam / Agenda SSFC (tv_kelas).
 export default function TvLayarPage() {
   const { layar } = useParams()
   const cfg = TV_LAYAR_UNIT.includes(layar) ? TV_LAYAR[layar] : null
@@ -42,6 +43,7 @@ export default function TvLayarPage() {
 
   const [agenda,  setAgenda]  = useState([])
   const [screen,  setScreen]  = useState(null)
+  const [kelas,   setKelas]   = useState([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState(null)
 
@@ -50,6 +52,10 @@ export default function TvLayarPage() {
     fetch('/api/tv-screens', { cache: 'no-cache' })
       .then((res) => res.json())
       .then((data) => setScreen(data.find(r => r.slug === layar) || null))
+      .catch(() => {})
+    fetch(`/api/tv-kelas?layar=${layar}`, { cache: 'no-cache' })
+      .then((res) => res.json())
+      .then((data) => setKelas(Array.isArray(data) ? data : []))
       .catch(() => {})
     try {
       if (!supabase) { setError('Supabase belum dikonfigurasi'); setLoading(false); return }
@@ -73,9 +79,13 @@ export default function TvLayarPage() {
   }, [load])
 
   const active = useMemo(() => sortActiveAgenda(agenda), [agenda])
+  // Kelas rutin hanya dihitung ulang saat hari berganti, bukan tiap detik jam
+  const dayKey = now ? now.toDateString() : null
+  const kelasToday = useMemo(() => kelasHariIni(kelas, screen, dayKey && new Date()), [kelas, screen, dayKey])
   const today = useMemo(() => active
     .filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) === 'ongoing')
-    .sort((a, b) => (toMin(a.waktu_mulai) ?? -1) - (toMin(b.waktu_mulai) ?? -1)), [active])
+    .concat(kelasToday)
+    .sort((a, b) => (toMin(a.waktu_mulai) ?? -1) - (toMin(b.waktu_mulai) ?? -1)), [active, kelasToday])
   const nextUp = useMemo(() => active
     .filter(a => getAgendaStatus(a.tanggal_mulai, a.tanggal_selesai) !== 'ongoing')
     .slice(0, 2), [active])

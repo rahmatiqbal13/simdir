@@ -17,6 +17,9 @@ const ROLE_RULES = [
   { prefix: '/laporan', roles: ['super_admin'] },
   { prefix: '/pengaturan', roles: ['super_admin'] },
   { prefix: '/tv-pamflet', roles: ['super_admin'] },
+  // Agenda Kolam / Agenda SSFC (kelas rutin mingguan TV unit). Path SENGAJA
+  // bukan '/agenda-…' karena semua '/agenda*' publik (lihat isPublicPath).
+  { prefix: '/jadwal-kelas', roles: ['super_admin'] },
   // Urutan di bawah ini SENGAJA dari yang paling spesifik ke paling umum
   // (ROLE_RULES.find() mengambil match pertama untuk pathname.startsWith,
   // jadi prefix yang lebih panjang wajib ditaruh lebih dulu):
@@ -56,6 +59,10 @@ const ROLE_RULES = [
 // Endpoint yang memodifikasi data tv-pamflet lewat service-role key dan tidak
 // punya pengecekan auth sendiri — harus ikut aturan role halaman /tv-pamflet.
 const TV_PAMFLET_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/tv-pamflet').roles
+
+// Endpoint kelas rutin TV unit lewat service-role key — tulis ikut aturan
+// role halaman /jadwal-kelas. GET publik (dipakai TV) lewat isPublicPath().
+const JADWAL_KELAS_API_ROLES = ROLE_RULES.find((r) => r.prefix === '/jadwal-kelas').roles
 
 // Endpoint yang mengubah nama instansi/logo lewat service-role key — ikut
 // aturan role halaman /pengaturan (super_admin saja).
@@ -159,6 +166,8 @@ function isPublicPath(pathname, method) {
   if (pathname === '/api/tv-pamflets' && method === 'GET') return true
   // Jam buka/status/running text layar TV unit (/agenda/tv/<slug>) — baca publik.
   if (pathname === '/api/tv-screens' && method === 'GET') return true
+  // Kelas rutin layar TV unit (/agenda/tv/<slug>) — baca publik.
+  if (pathname === '/api/tv-kelas' && method === 'GET') return true
   if (pathname === '/api/tv-version' && method === 'GET') return true
   // Nama instansi/logo ditampilkan di halaman publik (TV, agenda) — baca publik.
   if (pathname === '/api/app-settings' && method === 'GET') return true
@@ -292,6 +301,10 @@ export async function middleware(request) {
   }
 
   if ((pathname.startsWith('/api/tv-pamflets') || pathname.startsWith('/api/tv-screens')) && !TV_PAMFLET_API_ROLES.includes(role)) {
+    return withSecurityHeaders(forbiddenResponse(request, pathname))
+  }
+
+  if (pathname.startsWith('/api/tv-kelas') && !JADWAL_KELAS_API_ROLES.includes(role)) {
     return withSecurityHeaders(forbiddenResponse(request, pathname))
   }
 

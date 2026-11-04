@@ -26,6 +26,14 @@ export const NAV_ICONS = {
       <line x1="12" y1="17" x2="12" y2="21"/>
     </svg>
   ),
+  repeat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <polyline points="17 1 21 5 17 9"/>
+      <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+      <polyline points="7 23 3 19 7 15"/>
+      <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+    </svg>
+  ),
   chart: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="18" y1="20" x2="18" y2="10"/>
@@ -187,6 +195,8 @@ export const NAV_GROUPS = [
 export const ALL_NAV_ITEMS = [
   { key: 'dashboard', href: '/dashboard', label: 'Dashboard', shortLabel: 'Home', icon: 'dashboard', roles: ['super_admin', 'admin_keuangan', 'admin', 'pimpinan'], group: 'utama' },
   { key: 'kelola-agenda', href: '/kelola-agenda', label: 'Kelola Agenda', shortLabel: 'Agenda', icon: 'calendar', roles: ['super_admin', 'admin', 'pimpinan'], group: 'agenda-publikasi' },
+  { key: 'agenda-kolam', href: '/jadwal-kelas/kolam', label: 'Agenda Kolam', shortLabel: 'Kolam', icon: 'repeat', roles: ['super_admin'], group: 'agenda-publikasi' },
+  { key: 'agenda-ssfc', href: '/jadwal-kelas/ssfc', label: 'Agenda SSFC', shortLabel: 'SSFC', icon: 'repeat', roles: ['super_admin'], group: 'agenda-publikasi' },
   { key: 'tv-pamflet', href: '/tv-pamflet', label: 'TV Pamflet', shortLabel: 'TV', icon: 'tv', roles: ['super_admin'], group: 'agenda-publikasi' },
   { key: 'kelola-penilaian', href: '/kelola-penilaian', label: 'Penilaian Fasilitas', shortLabel: 'Penilaian', icon: 'star', roles: ['super_admin', 'pimpinan'], group: 'layanan-publik' },
   { key: 'pertanyaan-penilaian', href: '/kelola-penilaian/pertanyaan', label: 'Pertanyaan Penilaian', shortLabel: 'Pertanyaan', icon: 'help', roles: ['super_admin'], group: 'layanan-publik' },
@@ -208,7 +218,7 @@ export const ALL_NAV_ITEMS = [
 
 // Urutan tampil di sidebar desktop, per role.
 export const SIDEBAR_ORDER = {
-  super_admin: ['dashboard', 'kelola-agenda', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'memo', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-pimpinan', 'pengaturan-branding', 'pengaturan-metode-pembayaran'],
+  super_admin: ['dashboard', 'kelola-agenda', 'agenda-kolam', 'agenda-ssfc', 'tv-pamflet', 'kelola-penilaian', 'pertanyaan-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'e-invoice', 'e-kwitansi', 'rab', 'memo', 'pemasukan-unit-usaha', 'laporan', 'pengaturan-users', 'pengaturan-unit-kerja', 'pengaturan-pimpinan', 'pengaturan-branding', 'pengaturan-metode-pembayaran'],
   admin_keuangan: ['dashboard', 'pemasukan-unit-usaha', 'laporan'],
   admin: ['dashboard', 'kelola-agenda', 'kelola-tamu'],
   pimpinan: ['dashboard', 'kelola-agenda', 'kelola-penilaian', 'kelola-saran', 'kelola-tamu', 'program-kerja-pui', 'memo', 'laporan'],

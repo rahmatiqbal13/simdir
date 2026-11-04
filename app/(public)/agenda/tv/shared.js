@@ -28,10 +28,11 @@ export const getAgendaStatus = (mulai, selesai) => {
 // mulai. Dipakai oleh kedua halaman TV supaya urutan/filter tampilan konsisten.
 // Baris info agenda di TV publik/unit: lokasi · penyelenggara (kecuali
 // disembunyikan lewat tampil_penyelenggara) · penanggung jawab bila ada.
+// Kelas rutin (kelasHariIni) membawa `pelatih` sebagai ganti PJ.
 export const tvAgendaMeta = (a) => {
   const pj = a.dihadiri_pimpinan || a.jenis === 'pimpinan' ? a.nama_pimpinan : (a.pic || '').replace(/^Manual: /, '')
   const org = a.tampil_penyelenggara !== false ? (a.penyelenggara || '').replace(/^External - /, '') : ''
-  return [a.lokasi, org, pj && `PJ: ${pj}`].filter(Boolean).join(' · ')
+  return [a.lokasi, org, pj && `PJ: ${pj}`, a.pelatih && `Pelatih: ${a.pelatih}`].filter(Boolean).join(' · ')
 }
 
 export const sortActiveAgenda = (agenda) =>

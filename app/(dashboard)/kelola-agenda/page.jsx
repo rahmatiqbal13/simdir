@@ -8,7 +8,7 @@ import ConfirmModal from '@/app/components/ConfirmModal'
 import { EmptyStateAgenda, EmptyStateError } from '@/app/components/EmptyState'
 import { usePimpinanList } from '@/lib/hooks/usePimpinanList'
 import { getUnitColor, getUnitCodeFromPenyelenggara } from '@/app/(public)/agenda/tv/unit-colors'
-import { TV_LAYAR, TV_LAYAR_SLUGS, agendaDiLayar } from '@/lib/tvLayar'
+import { TV_LAYAR, TV_LAYAR_SLUGS, layarPublikAgenda } from '@/lib/tvLayar'
 
 // Data constants
 const UNIT_KERJA_LIST = [
@@ -109,12 +109,18 @@ const dateShort = (iso) => {
 const cleanPic = (p) => (p ? p.replace(/^Manual: /, '') : '')
 const isPimpinan = (a) => !!(a.dihadiri_pimpinan || a.jenis === 'pimpinan')
 
-// Layar TV tempat agenda muncul: semua agenda di TV Internal, sisanya
-// mengikuti tampil_publik + target_layar (lihat agendaDiLayar).
+// Layar TV tempat agenda muncul: TV Internal kecuali tampil_internal = false,
+// layar publik mengikuti tampil_publik + target_layar (lihat agendaDiLayar).
 const tampilDi = (a) => {
   const unit = getUnitCodeFromPenyelenggara(a.penyelenggara)
-  return ['Internal', ...TV_LAYAR_SLUGS.filter(s => agendaDiLayar(a, s, unit)).map(s => TV_LAYAR[s].nama)]
+  return [...(a.tampil_internal !== false ? ['Internal'] : []), ...layarPublikAgenda(a, unit).map(s => TV_LAYAR[s].nama)]
 }
+
+// Pilihan "Tampil di layar" di form agenda: TV Internal + layar publik
+const LAYAR_PILIHAN = [
+  { slug: 'internal', nama: 'TV Internal' },
+  ...TV_LAYAR_SLUGS.map(s => ({ slug: s, nama: s === 'usc' ? 'TV Publik (Gedung USC)' : `TV ${TV_LAYAR[s].nama}` })),
+]
 const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : '—')
 
 // Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
@@ -289,6 +295,7 @@ function AgendaTable({ items, canEdit, onEdit, onDelete, selected, onToggle, onT
             </div>
             <div className="ka-tampil" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
               {tampilDi(a).map(t => <span key={t} className="ka-badge" style={{ background: 'var(--primary-50)', color: 'var(--primary)' }}>{t}</span>)}
+              {!tampilDi(a).length && <span className="ka-badge" style={{ background: 'var(--surface-3)', color: 'var(--text-3)' }}>Tidak di TV</span>}
             </div>
             <span className={`status-pill ${pill.cls}`} style={{ justifySelf: 'start' }}>{pill.label}</span>
             {canEdit && <RowActions a={a} onEdit={onEdit} onDelete={onDelete} />}
@@ -339,13 +346,21 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     disposisi_staff: item?.disposisi || '',
     pic_select: item?.pic?.startsWith('Manual: ') ? 'lainnya' : (item?.pic && PIC_LIST.some(p => p.value === item.pic) ? item.pic : ''),
     pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
-    tampil_publik: item?.tampil_publik || false,
-    target_layar: item?.target_layar || [],
+    // 'internal' + slug layar publik. Agenda lama (target_layar otomatis)
+    // dibuka dengan layar yang saat ini menampilkannya.
+    layar: [
+      ...(item?.tampil_internal !== false ? ['internal'] : []),
+      ...(item ? layarPublikAgenda(item, getUnitCodeFromPenyelenggara(item.penyelenggara)) : []),
+    ],
     tampil_penyelenggara: item?.tampil_penyelenggara !== false,
   })
   const [error, setError] = useState('')
   const [showLink, setShowLink] = useState(!!item?.link_meeting)
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+  const tampilInternal = form.layar.includes('internal')
+  const layarPublik = TV_LAYAR_SLUGS.filter(s => form.layar.includes(s))
+  const semuaLayar = LAYAR_PILIHAN.every(l => form.layar.includes(l.slug))
+  const toggleLayar = (slug) => setForm(f => ({ ...f, layar: f.layar.includes(slug) ? f.layar.filter(x => x !== slug) : [...f.layar, slug] }))
 
   // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
   // konstanta statis — jadi pimpinan_select/pimpinan_manual baru bisa
@@ -438,11 +453,12 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       nama_pimpinan: namaPimpinan,
       disposisi: dihadiriPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
       pic: dihadiriPimpinan ? null : picValue,
-      tampil_publik: form.tampil_publik,
+      tampil_publik: layarPublik.length > 0,
       // Dikirim hanya bila disembunyikan / perlu dikembalikan (default kolom = true)
+      ...((!tampilInternal || item?.tampil_internal === false) && { tampil_internal: tampilInternal }),
       ...((!form.tampil_penyelenggara || item?.tampil_penyelenggara === false) && { tampil_penyelenggara: form.tampil_penyelenggara }),
       // Hanya dikirim bila dipilih / perlu dikosongkan, '{}' = otomatis
-      ...((form.target_layar.length || item?.target_layar?.length) && { target_layar: form.tampil_publik ? form.target_layar : [] }),
+      ...((layarPublik.length || item?.target_layar?.length) && { target_layar: layarPublik }),
     }
     onSave(newItem)
   }
@@ -616,42 +632,33 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </FormStep>
 
               <FormStep n="05" title="Tampilan" last>
-                <div className="ka-toggle-row" style={{ border: '1px solid var(--border)' }}>
-                  <span style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{Icon.tv}</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 700 }}>Tampilkan di TV Publik</span>
-                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Muncul di layar lobi &amp; halaman /agenda. Agenda selalu tampil di TV Internal.</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--primary-50)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{Icon.tv}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 700 }}>Tampil di layar</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Pilih satu atau beberapa layar. Layar publik (Gedung USC, Kolam, SSFC) juga menampilkan agenda di halaman /agenda.</span>
+                    </div>
                   </div>
-                  <button type="button" role="switch" aria-checked={form.tampil_publik} aria-label="Tampilkan di TV Publik" className="switch" onClick={() => setForm(f => ({ ...f, tampil_publik: !f.tampil_publik }))} />
+                  <div role="group" aria-label="Tampil di layar" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button type="button" aria-pressed={semuaLayar} className={`ka-layar ${semuaLayar ? 'on' : ''}`}
+                      onClick={() => setForm(f => ({ ...f, layar: semuaLayar ? [] : LAYAR_PILIHAN.map(l => l.slug) }))}>Semua layar</button>
+                    {LAYAR_PILIHAN.map(l => {
+                      const on = form.layar.includes(l.slug)
+                      return <button key={l.slug} type="button" aria-pressed={on} className={`ka-layar ${on ? 'on' : ''}`} onClick={() => toggleLayar(l.slug)}>{l.nama}</button>
+                    })}
+                  </div>
+                  {!form.layar.length && (
+                    <span style={{ fontSize: 12.5, color: 'var(--warning)' }}>Agenda hanya tercatat di sistem, tidak tampil di TV mana pun.</span>
+                  )}
                 </div>
-                {form.tampil_publik && (
+                {layarPublik.length > 0 && (
                   <div className="ka-toggle-row" style={{ border: '1px solid var(--border)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
                       <span style={{ fontSize: 14.5, fontWeight: 700 }}>Tampilkan penyelenggara di TV</span>
-                      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Nama unit/penyelenggara di bawah judul. Penanggung jawab (PIC) selalu tampil bila diisi.</span>
+                      <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Nama unit/penyelenggara di bawah judul pada layar publik. Penanggung jawab (PIC) selalu tampil bila diisi.</span>
                     </div>
                     <button type="button" role="switch" aria-checked={form.tampil_penyelenggara} aria-label="Tampilkan penyelenggara di TV" className="switch" onClick={() => setForm(f => ({ ...f, tampil_penyelenggara: !f.tampil_penyelenggara }))} />
-                  </div>
-                )}
-                {form.tampil_publik && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-2)' }}>
-                    <span style={{ fontWeight: 600 }}>Layar TV:</span>
-                    <button type="button" aria-pressed={!form.target_layar.length} onClick={() => setForm(f => ({ ...f, target_layar: [] }))}
-                      className={`ka-layar ${!form.target_layar.length ? 'on' : ''}`}>Otomatis</button>
-                    {TV_LAYAR_SLUGS.map(sl => {
-                      const on = form.target_layar.includes(sl)
-                      return (
-                        <button key={sl} type="button" aria-pressed={on} className={`ka-layar ${on ? 'on' : ''}`}
-                          onClick={() => setForm(f => ({ ...f, target_layar: on ? f.target_layar.filter(x => x !== sl) : [...f.target_layar, sl] }))}>
-                          {TV_LAYAR[sl].nama}
-                        </button>
-                      )
-                    })}
-                    {!form.target_layar.length && (
-                      <span style={{ fontSize: 12.5, color: 'var(--text-3)' }}>
-                        → {tampilDi({ ...form, penyelenggara: form.unit_kerja }).slice(1).join(', ')}
-                      </span>
-                    )}
                   </div>
                 )}
               </FormStep>
@@ -671,14 +678,18 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Internal</span>
+                {tampilInternal ? (
                 <div style={{ background: '#0b0f2a', borderRadius: 12, padding: '12px 14px', boxShadow: `inset 4px 0 0 ${pvColor}`, display: 'flex', flexDirection: 'column', gap: 5, color: '#fff' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{pv.title}</span>
                   <span style={{ fontSize: 11.5, color: '#9aa6cc' }}><span style={{ fontWeight: 700, color: pvColor }}>{dihadiriPimpinan ? 'Pimpinan' : pvUnitName}</span> · {pv.lokasi}</span>
                 </div>
+                ) : (
+                  <div style={{ border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>Tidak tampil di TV Internal.</div>
+                )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Publik</span>
-                {form.tampil_publik ? (
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)' }}>TV Publik{layarPublik.length > 0 && ` · ${layarPublik.map(sl => TV_LAYAR[sl].nama).join(', ')}`}</span>
+                {layarPublik.length > 0 ? (
                   <div style={{ background: '#0b0f2a', borderRadius: 12, padding: '12px 14px', display: 'grid', gridTemplateColumns: '44px minmax(0,1fr)', gap: 12, alignItems: 'center', color: '#fff' }}>
                     <div style={{ height: 46, borderRadius: 9, background: '#f7b500', color: '#121735', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                       <span className="mono" style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', opacity: .8 }}>{pv.mon}</span>
@@ -690,7 +701,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                     </div>
                   </div>
                 ) : (
-                  <div style={{ border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>Tidak tampil di layar lobi.</div>
+                  <div style={{ border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>Tidak tampil di layar publik.</div>
                 )}
               </div>
             </aside>

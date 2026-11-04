@@ -41,7 +41,7 @@ export default function AgendaTVInternalPage() {
       if (err) {
         console.error('Supabase error:', err)
         setError('Gagal memuat agenda')
-      } else { setAgenda(data || []); setError(null) }
+      } else { setAgenda((data || []).filter(a => a.tampil_internal !== false)); setError(null) }
     } catch (e) {
       console.error('Load error:', e)
       setError('Terjadi kesalahan')

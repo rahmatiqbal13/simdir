@@ -114,7 +114,7 @@ function ScreenSettings({ slug, initial, onSaved, onError }) {
         <textarea value={f.running_text} onChange={(e) => set('running_text', e.target.value)} rows={4} maxLength={2000}
           placeholder={'Satu info per baris, mis.\nWajib bilas sebelum masuk kolam\nTiket pelajar Rp10.000'} style={{ ...input, resize: 'vertical', fontFamily: 'inherit' }} />
         <p style={{ fontSize: '0.75rem', color: 'var(--text-3)', marginTop: '0.375rem' }}>
-          Jadwal hari ini dari Kelola Agenda (penyelenggara {TV_LAYAR[slug].nama}, tampil publik) ikut otomatis.
+          Jadwal hari ini dari Kelola Agenda (penyelenggara {TV_LAYAR[slug].nama}, tampil publik) dan kelas rutin di menu Agenda {TV_LAYAR[slug].nama} ikut otomatis.
         </p>
       </div>
 
