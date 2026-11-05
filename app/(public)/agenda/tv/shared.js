@@ -30,9 +30,11 @@ export const getAgendaStatus = (mulai, selesai) => {
 // disembunyikan lewat tampil_penyelenggara) · penanggung jawab bila ada.
 // Kelas rutin (kelasHariIni) membawa `pelatih` sebagai ganti PJ.
 export const tvAgendaMeta = (a) => {
-  const pj = a.dihadiri_pimpinan || a.jenis === 'pimpinan' ? a.nama_pimpinan : (a.pic || '').replace(/^Manual: /, '')
+  // Agenda Pimpinan: PJ = pimpinan; kegiatan unit: PJ = PIC (+ pimpinan yang hadir)
+  const pj = a.jenis === 'pimpinan' ? a.nama_pimpinan : (a.pic || '').replace(/^Manual: /, '')
+  const hadir = a.jenis !== 'pimpinan' && a.dihadiri_pimpinan && a.nama_pimpinan
   const org = a.tampil_penyelenggara !== false ? (a.penyelenggara || '').replace(/^External - /, '') : ''
-  return [a.lokasi, org, pj && `PJ: ${pj}`, a.pelatih && `Pelatih: ${a.pelatih}`].filter(Boolean).join(' · ')
+  return [a.lokasi, org, hadir && `Dihadiri: ${hadir}`, pj && `PJ: ${pj}`, a.pelatih && `Pelatih: ${a.pelatih}`].filter(Boolean).join(' · ')
 }
 
 export const sortActiveAgenda = (agenda) =>

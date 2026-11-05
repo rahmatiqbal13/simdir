@@ -157,10 +157,19 @@ export default function AgendaTVInternalPage() {
               const uc = getUnitColor(a.jenis, a.penyelenggara, a.dihadiri_pimpinan)
               const c = tvStatusColor(st, p)
               const d = new Date(a.tanggal_mulai)
-              const unitLabel = (a.dihadiri_pimpinan || a.jenis === 'pimpinan')
+              // Agenda Pimpinan: label = nama pimpinan, penyelenggara = pengundang.
+              // Kegiatan unit dihadiri pimpinan: label tetap unit + "Dihadiri: …".
+              const agendaPimpinan = a.jenis === 'pimpinan'
+              const unitLabel = agendaPimpinan
                 ? (a.nama_pimpinan || 'Pimpinan')
                 : (a.penyelenggara || '').replace(/^External - /, '')
-              const pj = (a.pic || '').replace(/^Manual: /, '')
+              const pj = agendaPimpinan ? '' : (a.pic || '').replace(/^Manual: /, '')
+              const info = [
+                !agendaPimpinan && a.dihadiri_pimpinan && { t: `Dihadiri: ${a.nama_pimpinan || 'Pimpinan'}`, strong: true },
+                a.lokasi && { t: a.lokasi },
+                agendaPimpinan && a.penyelenggara && { t: a.penyelenggara },
+                pj && { t: `PJ: ${pj}` },
+              ].filter(Boolean)
               const t1 = a.waktu_mulai ? a.waktu_mulai.slice(0, 5).replace(':', '.') : ''
               const t2 = a.waktu_selesai ? a.waktu_selesai.slice(0, 5).replace(':', '.') : ''
               return (
@@ -176,8 +185,8 @@ export default function AgendaTVInternalPage() {
                     <span style={{ fontFamily: 'var(--font-display)', fontSize: 27, fontWeight: 600, lineHeight: 1.15, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{a.judul}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 18, color: p.ink2, minWidth: 0 }}>
                       {unitLabel && <span style={{ fontWeight: 700, color: uc.border, flexShrink: 0, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{unitLabel}</span>}
-                      {[a.lokasi, pj && `PJ: ${pj}`].filter(Boolean).map((t, i) => (
-                        <span key={i} style={{ display: 'contents' }}>{(unitLabel || i > 0) && <span>·</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t}</span></span>
+                      {info.map(({ t, strong }, i) => (
+                        <span key={i} style={{ display: 'contents' }}>{(unitLabel || i > 0) && <span>·</span>}<span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', ...(strong && { fontWeight: 700, color: uc.border, flexShrink: 0 }) }}>{t}</span></span>
                       ))}
                     </div>
                   </div>

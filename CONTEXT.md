@@ -136,9 +136,9 @@ div.wrapper (flex col, flex:1)
 | `waktu_selesai` | time | `HH:MM:SS` |
 | `lokasi` | text | Lokasi kegiatan |
 | `jenis` | text | `internal` / `eksternal` / `pimpinan` |
-| `penyelenggara` | text | Nama penyelenggara |
-| `pic` | text | Bisa berprefix `"Manual: "` |
-| `disposisi` | text | Diisi jika jenis=pimpinan |
+| `penyelenggara` | text | Nama penyelenggara (jenis=pimpinan: pengundang, opsional) |
+| `pic` | text | Satu atau lebih nama dipisah `"; "` (data lama bisa berprefix `"Manual: "`); kosong untuk jenis=pimpinan |
+| `disposisi` | text | Diisi jika agenda pimpinan atau dihadiri pimpinan |
 | `deskripsi` | text | Deskripsi singkat |
 
 ### Tabel lain yang ada

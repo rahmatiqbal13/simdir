@@ -78,6 +78,7 @@ const JENIS_OPTIONS = [
   { value: 'all', label: 'Semua' },
   { value: 'internal', label: 'Internal' },
   { value: 'eksternal', label: 'Eksternal' },
+  { value: 'pimpinan', label: 'Agenda Pimpinan' },
 ]
 
 const STATUS_PILL = {
@@ -124,7 +125,10 @@ const LAYAR_PILIHAN = [
   { slug: 'internal', nama: 'TV Internal' },
   ...TV_LAYAR_SLUGS.map(s => ({ slug: s, nama: s === 'usc' ? 'TV Publik (Gedung USC)' : `TV ${TV_LAYAR[s].nama}` })),
 ]
-const penyelenggaraLabel = (a) => (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : '—')
+// Agenda Pimpinan: penyelenggara = pengundang (opsional), jadi nama pimpinan didahulukan
+const penyelenggaraLabel = (a) => a.jenis === 'pimpinan'
+  ? [a.nama_pimpinan || 'Pimpinan', a.penyelenggara].filter(Boolean).join(' · ')
+  : (a.penyelenggara || '').replace(/^External - /, '') || (a.jenis === 'eksternal' ? 'Eksternal' : '—')
 
 // Gabungkan tanggal+jam supaya status memperhitungkan jam kejadian, bukan
 // cuma tanggalnya (event 14:00-16:00 sebelumnya sudah "Berlangsung" sejak
@@ -168,8 +172,9 @@ const dayGroupLabel = (iso) => {
 // Penanggung jawab yang ditampilkan: pimpinan (+ disposisi) atau PIC
 const personInfo = (a) => {
   if (isPimpinan(a)) {
-    const nama = a.nama_pimpinan || (a.jenis === 'pimpinan' ? a.penyelenggara : '') || 'Pimpinan'
-    return { text: a.disposisi ? `${nama} → ${a.disposisi}` : nama, color: 'var(--danger)' }
+    const nama = a.nama_pimpinan || 'Pimpinan'
+    const pic = a.jenis === 'pimpinan' ? '' : cleanPic(a.pic)
+    return { text: [a.disposisi ? `${nama} → ${a.disposisi}` : nama, pic && `PIC: ${pic}`].filter(Boolean).join(' · '), color: 'var(--danger)' }
   }
   return { text: cleanPic(a.pic) || '—', color: 'var(--text-2)' }
 }
@@ -193,7 +198,7 @@ const Icon = {
 function AgendaBadges({ a }) {
   return (
     <>
-      {isPimpinan(a) && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Pimpinan</span>}
+      {isPimpinan(a) && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>{a.jenis === 'pimpinan' ? 'Agenda Pimpinan' : 'Dihadiri pimpinan'}</span>}
       {a.tampil_publik && <span className="ka-badge" style={{ background: 'var(--primary-50)', color: 'var(--primary)' }}>TV Publik</span>}
       {a.jenis === 'eksternal' && <span className="ka-badge" style={{ background: 'var(--warning-50)', color: 'var(--warning)' }}>Eksternal</span>}
     </>
@@ -289,8 +294,10 @@ function AgendaTable({ items, canEdit, onEdit, onDelete, selected, onToggle, onT
               <span className="truncate" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-3)', fontSize: 12.5 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: unit.border, flexShrink: 0 }} />{penyelenggaraLabel(a)}{a.lokasi ? ` · ${a.lokasi}` : ''}</span>
             </div>
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              <span className="ka-badge" style={{ background: a.jenis === 'eksternal' ? 'var(--warning-50)' : 'var(--primary-50)', color: a.jenis === 'eksternal' ? 'var(--warning)' : 'var(--primary)' }}>{a.jenis === 'eksternal' ? 'Eksternal' : 'Internal'}</span>
-              {isPimpinan(a) && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Pimpinan</span>}
+              {a.jenis === 'pimpinan'
+                ? <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Agenda Pimpinan</span>
+                : <span className="ka-badge" style={{ background: a.jenis === 'eksternal' ? 'var(--warning-50)' : 'var(--primary-50)', color: a.jenis === 'eksternal' ? 'var(--warning)' : 'var(--primary)' }}>{a.jenis === 'eksternal' ? 'Eksternal' : 'Internal'}</span>}
+              {a.dihadiri_pimpinan && a.jenis !== 'pimpinan' && <span className="ka-badge" style={{ background: 'var(--danger-50)', color: 'var(--danger)' }}>Pimpinan</span>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <span>{dateShort(a.tanggal_mulai)}</span>
@@ -312,19 +319,15 @@ function AgendaTable({ items, canEdit, onEdit, onDelete, selected, onToggle, onT
 // ============ FORM AGENDA (panel geser kanan · tambah & edit) ============
 function AgendaModal({ item, onSave, onClose, isSaving }) {
   const modalRef = useFocusTrap(true, onClose)
-  // Data lama (sebelum dipisahnya "dihadiri pimpinan" dari `jenis`) masih
-  // bisa punya jenis === 'pimpinan' di database sampai migrasi dijalankan.
-  // Diperlakukan di sini sebagai jenis 'internal' + dihadiri pimpinan, nama
-  // pimpinan diambil dari kolom `penyelenggara` lama (satu-satunya tempat
-  // itu tersimpan sebelumnya) — supaya modal edit tetap benar untuk data
-  // lama maupun baru, dengan atau tanpa migrasi database sudah jalan.
-  const isLegacyPimpinan = item?.jenis === 'pimpinan'
-  const namaPimpinanValue = item?.nama_pimpinan || (isLegacyPimpinan ? item.penyelenggara : '')
+  // Dua kasus pimpinan: jenis 'pimpinan' = agenda milik pimpinan sendiri
+  // (pengingat di TV Internal, tanpa PIC unit); internal/eksternal +
+  // dihadiri_pimpinan = kegiatan unit yang dihadiri pimpinan (PIC tetap ada).
+  const namaPimpinanValue = item?.nama_pimpinan || ''
 
-  const [jenis, setJenis] = useState(isLegacyPimpinan ? 'internal' : (item?.jenis || 'internal'))
-  const [dihadiriPimpinan, setDihadiriPimpinan] = useState(
-    item?.dihadiri_pimpinan != null ? item.dihadiri_pimpinan : isLegacyPimpinan
-  )
+  const [jenis, setJenis] = useState(item?.jenis || 'internal')
+  const [dihadiriPimpinan, setDihadiriPimpinan] = useState(!!item?.dihadiri_pimpinan)
+  const isAgendaPimpinan = jenis === 'pimpinan'
+  const butuhPimpinan = isAgendaPimpinan || dihadiriPimpinan
   const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
   const [showManualUnitKerja, setShowManualUnitKerja] = useState(
@@ -344,6 +347,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     unit_kerja: item?.jenis === 'internal' && item?.penyelenggara ? (UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara) ? item.penyelenggara : 'lainnya') : '',
     unit_kerja_manual: item?.jenis === 'internal' && item?.penyelenggara && !UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara) ? item.penyelenggara : '',
     penyelenggara_eksternal: item?.jenis === 'eksternal' ? item.penyelenggara.replace('External - ', '') : '',
+    pengundang: item?.jenis === 'pimpinan' ? item.penyelenggara || '' : '',
     pimpinan_select: '',
     pimpinan_manual: '',
     disposisi_staff: item?.disposisi || '',
@@ -422,11 +426,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       setError('Nama penyelenggara eksternal wajib diisi')
       return
     }
-    if (dihadiriPimpinan && !form.pimpinan_select) {
+    if (butuhPimpinan && !form.pimpinan_select) {
       setError('Nama pimpinan wajib dipilih')
       return
     }
-    if (dihadiriPimpinan && form.pimpinan_select === 'lainnya' && !form.pimpinan_manual.trim()) {
+    if (butuhPimpinan && form.pimpinan_select === 'lainnya' && !form.pimpinan_manual.trim()) {
       setError('Nama pimpinan manual wajib diisi')
       return
     }
@@ -438,14 +442,15 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     const picValue = pics.join(PIC_SEP) || null
 
     const getPenyelenggara = () => {
+      if (isAgendaPimpinan) return form.pengundang.trim()
       if (jenis === 'internal') {
         return form.unit_kerja === 'lainnya' ? form.unit_kerja_manual : form.unit_kerja
       }
       return `External - ${form.penyelenggara_eksternal}`
     }
 
-    const namaPimpinan = dihadiriPimpinan
-      ? (form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select)
+    const namaPimpinan = butuhPimpinan
+      ?(form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select)
       : null
 
     const newItem = {
@@ -460,10 +465,12 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       jenis,
       penyelenggara: getPenyelenggara(),
       deskripsi: form.deskripsi,
-      dihadiri_pimpinan: dihadiriPimpinan,
+      // Agenda Pimpinan juga ditandai dihadiri_pimpinan supaya warna merah,
+      // filter "Pimpinan" & TV tetap memperlakukannya sebagai agenda pimpinan
+      dihadiri_pimpinan: butuhPimpinan,
       nama_pimpinan: namaPimpinan,
-      disposisi: dihadiriPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
-      pic: dihadiriPimpinan ? null : picValue,
+      disposisi: butuhPimpinan && form.disposisi_staff ? form.disposisi_staff : null,
+      pic: isAgendaPimpinan ? null : picValue,
       tampil_publik: layarPublik.length > 0,
       // Dikirim hanya bila disembunyikan / perlu dikembalikan (default kolom = true)
       ...((!tampilInternal || item?.tampil_internal === false) && { tampil_internal: tampilInternal }),
@@ -478,7 +485,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   const pvUnitName = jenis === 'internal'
     ? (form.unit_kerja === 'lainnya' ? form.unit_kerja_manual : form.unit_kerja) || 'Unit kerja'
     : form.penyelenggara_eksternal || 'Eksternal'
-  const pvColor = getUnitColor(jenis, jenis === 'internal' ? pvUnitName : '', dihadiriPimpinan).border
+  const pvPimpinan = (form.pimpinan_select === 'lainnya' ? form.pimpinan_manual : form.pimpinan_select) || 'Pimpinan'
+  const pvColor = getUnitColor(jenis, jenis === 'internal' ? pvUnitName : '', butuhPimpinan).border
   const pvDate = form.tanggal_mulai ? parseDay(form.tanggal_mulai) : null
   const pv = {
     title: form.judul || 'Judul agenda',
@@ -506,10 +514,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
           <div className="ka-panel-body">
             <div className="ka-form-main">
               <FormStep n="01" title="Kegiatan">
-                <div className="ka-grid-2">
+                <div className="ka-grid-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
                   {[
                     { v: 'internal', label: 'Internal', desc: 'Diselenggarakan unit kerja USC' },
                     { v: 'eksternal', label: 'Eksternal', desc: 'Instansi atau penyelenggara luar' },
+                    { v: 'pimpinan', label: 'Agenda Pimpinan', desc: 'Jadwal pimpinan sendiri, pengingat di TV Internal' },
                   ].map(j => (
                     <button key={j.v} type="button" onClick={() => setJenis(j.v)} aria-pressed={jenis === j.v}
                       className={`ka-choice ${jenis === j.v ? 'active' : ''}`}>
@@ -576,6 +585,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                         <input style={{ marginTop: 8 }} value={form.unit_kerja_manual} onChange={set('unit_kerja_manual')} placeholder="Nama unit kerja" required aria-label="Nama unit kerja manual" />
                       )}
                     </div>
+                  ) : isAgendaPimpinan ? (
+                    <div className="field">
+                      <label htmlFor="ka-undang">Pengundang / penyelenggara <span style={{ fontWeight: 400, color: 'var(--text-3)' }}>(opsional)</span></label>
+                      <input id="ka-undang" value={form.pengundang} onChange={set('pengundang')} placeholder="Contoh: Rektorat, Dinas Pemuda dan Olahraga" />
+                    </div>
                   ) : (
                     <div className="field">
                       <label htmlFor="ka-eks">Nama penyelenggara eksternal <span className="pub-req">*</span></label>
@@ -594,14 +608,16 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
               </FormStep>
 
               <FormStep n="04" title="Penanggung jawab">
+                {!isAgendaPimpinan && (
                 <div className="ka-toggle-row" style={{ background: 'var(--surface-2)' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
                     <span style={{ fontSize: 14.5, fontWeight: 700 }}>Dihadiri pimpinan</span>
-                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Agenda ditandai merah di TV Internal. PIC diganti nama pimpinan + disposisi.</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-2)' }}>Agenda ditandai merah di TV Internal dengan nama pimpinan. Unit & PIC tetap tercatat.</span>
                   </div>
                   <button type="button" role="switch" aria-checked={dihadiriPimpinan} aria-label="Dihadiri pimpinan" className="switch" onClick={() => setDihadiriPimpinan(v => !v)} />
                 </div>
-                {dihadiriPimpinan ? (
+                )}
+                {butuhPimpinan && (
                   <div className="ka-grid-2">
                     <div className="field">
                       <label htmlFor="ka-pim">Nama pimpinan <span className="pub-req">*</span></label>
@@ -622,7 +638,8 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                       </select>
                     </div>
                   </div>
-                ) : (
+                )}
+                {!isAgendaPimpinan && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div className="ka-grid-2">
                       <div className="field">
@@ -708,7 +725,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                 {tampilInternal ? (
                 <div style={{ background: '#0b0f2a', borderRadius: 12, padding: '12px 14px', boxShadow: `inset 4px 0 0 ${pvColor}`, display: 'flex', flexDirection: 'column', gap: 5, color: '#fff' }}>
                   <span style={{ fontFamily: 'var(--font-display)', fontSize: 15, fontWeight: 600, lineHeight: 1.2 }}>{pv.title}</span>
-                  <span style={{ fontSize: 11.5, color: '#9aa6cc' }}><span style={{ fontWeight: 700, color: pvColor }}>{dihadiriPimpinan ? 'Pimpinan' : pvUnitName}</span> · {pv.lokasi}</span>
+                  <span style={{ fontSize: 11.5, color: '#9aa6cc' }}><span style={{ fontWeight: 700, color: pvColor }}>{isAgendaPimpinan ? pvPimpinan : pvUnitName}</span>{dihadiriPimpinan && !isAgendaPimpinan && <> · <span style={{ fontWeight: 700, color: pvColor }}>Dihadiri: {pvPimpinan}</span></>} · {pv.lokasi}</span>
                 </div>
                 ) : (
                   <div style={{ border: '1px dashed var(--border-strong)', borderRadius: 12, padding: 16, fontSize: 13, color: 'var(--text-2)', textAlign: 'center' }}>Tidak tampil di TV Internal.</div>
@@ -768,7 +785,7 @@ function exportCsv(items) {
   const rows = items.map(a => [
     a.judul, a.jenis, penyelenggaraLabel(a), a.tanggal_mulai, a.tanggal_selesai,
     fmtHM(a.waktu_mulai), fmtHM(a.waktu_selesai), a.lokasi,
-    isPimpinan(a) ? (a.nama_pimpinan || '') : cleanPic(a.pic), a.disposisi || '',
+    [isPimpinan(a) && a.nama_pimpinan, cleanPic(a.pic)].filter(Boolean).join(' / '), a.disposisi || '',
     a.tampil_publik ? 'Ya' : 'Tidak', STATUS_PILL[a._st]?.label,
   ].map(esc).join(','))
   const blob = new Blob(['﻿' + [head.map(esc).join(','), ...rows].join('\n')], { type: 'text/csv;charset=utf-8' })
