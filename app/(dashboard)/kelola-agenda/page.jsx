@@ -106,7 +106,10 @@ const dateShort = (iso) => {
   const d = parseDay(iso)
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`
 }
-const cleanPic = (p) => (p ? p.replace(/^Manual: /, '') : '')
+const PIC_SEP = '; '
+// Data lama berformat "Manual: Nama" — prefix dibuang
+const splitPic = (p) => (p ? p.split(';').map(s => s.trim().replace(/^Manual: /, '')).filter(Boolean) : [])
+const cleanPic = (p) => splitPic(p).join(PIC_SEP)
 const isPimpinan = (a) => !!(a.dihadiri_pimpinan || a.jenis === 'pimpinan')
 
 // Layar TV tempat agenda muncul: TV Internal kecuali tampil_internal = false,
@@ -322,7 +325,7 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   const [dihadiriPimpinan, setDihadiriPimpinan] = useState(
     item?.dihadiri_pimpinan != null ? item.dihadiri_pimpinan : isLegacyPimpinan
   )
-  const [showManualPic, setShowManualPic] = useState(item?.pic?.startsWith('Manual: ') || false)
+  const [showManualPic, setShowManualPic] = useState(false)
   const [showManualPimpinan, setShowManualPimpinan] = useState(false)
   const [showManualUnitKerja, setShowManualUnitKerja] = useState(
     item?.jenis === 'internal' && !!item?.penyelenggara && !UNIT_KERJA_LIST.some(u => u.value === item.penyelenggara)
@@ -344,8 +347,9 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
     pimpinan_select: '',
     pimpinan_manual: '',
     disposisi_staff: item?.disposisi || '',
-    pic_select: item?.pic?.startsWith('Manual: ') ? 'lainnya' : (item?.pic && PIC_LIST.some(p => p.value === item.pic) ? item.pic : ''),
-    pic_manual: item?.pic?.startsWith('Manual: ') ? item.pic.replace('Manual: ', '') : '',
+    // PIC bisa lebih dari satu, disimpan di kolom `pic` dipisah PIC_SEP
+    pics: splitPic(item?.pic),
+    pic_manual: '',
     // 'internal' + slug layar publik. Agenda lama (target_layar otomatis)
     // dibuka dengan layar yang saat ini menampilkannya.
     layar: [
@@ -360,6 +364,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
   const tampilInternal = form.layar.includes('internal')
   const layarPublik = TV_LAYAR_SLUGS.filter(s => form.layar.includes(s))
   const semuaLayar = LAYAR_PILIHAN.every(l => form.layar.includes(l.slug))
+  const addPic = (nama) => {
+    const n = nama.trim()
+    if (n) setForm(f => (f.pics.includes(n) ? f : { ...f, pics: [...f.pics, n] }))
+  }
+  const removePic = (nama) => setForm(f => ({ ...f, pics: f.pics.filter(x => x !== nama) }))
   const toggleLayar = (slug) => setForm(f => ({ ...f, layar: f.layar.includes(slug) ? f.layar.filter(x => x !== slug) : [...f.layar, slug] }))
 
   // Daftar pimpinan sekarang dimuat dari /api/pimpinan (async), bukan
@@ -422,9 +431,11 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
       return
     }
 
-    const picValue = form.pic_select === 'lainnya'
-      ? `Manual: ${form.pic_manual}`
-      : form.pic_select
+    // Nama manual yang diketik tapi belum ditambahkan tetap ikut tersimpan
+    const pics = form.pic_manual.trim() && !form.pics.includes(form.pic_manual.trim())
+      ? [...form.pics, form.pic_manual.trim()]
+      : form.pics
+    const picValue = pics.join(PIC_SEP) || null
 
     const getPenyelenggara = () => {
       if (jenis === 'internal') {
@@ -612,19 +623,35 @@ function AgendaModal({ item, onSave, onClose, isSaving }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="ka-grid-2">
-                    <div className="field">
-                      <label htmlFor="ka-pic">PIC kegiatan</label>
-                      <select id="ka-pic" value={form.pic_select}
-                        onChange={(e) => { setForm({ ...form, pic_select: e.target.value }); setShowManualPic(e.target.value === 'lainnya') }}>
-                        <option value="">Pilih PIC…</option>
-                        {PIC_LIST.map(pic => <option key={pic.value} value={pic.value}>{pic.label}</option>)}
-                      </select>
-                    </div>
-                    {showManualPic && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="ka-grid-2">
                       <div className="field">
-                        <label htmlFor="ka-picm">Nama PIC</label>
-                        <input id="ka-picm" value={form.pic_manual} onChange={set('pic_manual')} placeholder="Masukkan nama PIC" />
+                        <label htmlFor="ka-pic">PIC kegiatan <span style={{ fontWeight: 400, color: 'var(--text-2)' }}>(bisa lebih dari satu)</span></label>
+                        <select id="ka-pic" value=""
+                          onChange={(e) => { if (e.target.value === 'lainnya') setShowManualPic(true); else addPic(e.target.value) }}>
+                          <option value="">{form.pics.length ? 'Tambah PIC lain…' : 'Pilih PIC…'}</option>
+                          {PIC_LIST.filter(p => !form.pics.includes(p.value)).map(pic => <option key={pic.value} value={pic.value}>{pic.label}</option>)}
+                        </select>
+                      </div>
+                      {showManualPic && (
+                        <div className="field">
+                          <label htmlFor="ka-picm">Nama PIC</label>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <input id="ka-picm" style={{ flex: 1 }} value={form.pic_manual} onChange={set('pic_manual')} placeholder="Masukkan nama PIC"
+                              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPic(form.pic_manual); setForm(f => ({ ...f, pic_manual: '' })) } }} />
+                            <button type="button" className="ka-layar" onClick={() => { addPic(form.pic_manual); setForm(f => ({ ...f, pic_manual: '' })) }}>Tambah</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {form.pics.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {form.pics.map(nama => (
+                          <button key={nama} type="button" className="ka-layar on" onClick={() => removePic(nama)} aria-label={`Hapus PIC ${nama}`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            {nama} <span aria-hidden="true">×</span>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
