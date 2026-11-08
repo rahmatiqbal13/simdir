@@ -8,6 +8,7 @@ import { useToast } from '@/app/components/Toast';
 import { formatRupiah, slugToNomor } from '@/lib/utils/format';
 import useAutosave from '@/app/components/useAutosave';
 import { safeLocalStorage } from '@/lib/localStorage';
+import { generateCustomerCode } from '@/lib/utils/customerCode';
 
 // ============ KOMPONEN ITEM ROW ============
 function InvoiceItemRow({ item, index, onUpdate, onRemove, canRemove }) {
@@ -107,6 +108,7 @@ export default function EditInvoicePage() {
   // Invoice data
   const [formData, setFormData] = useState({
     customer_id: '',
+    customer_name: '',
     tanggal_invoice: '',
     tanggal_jatuh_tempo: '',
     catatan: '',
@@ -196,7 +198,7 @@ export default function EditInvoicePage() {
         // Fetch customers first
         const { data: customersData, error: customersError } = await supabase
           .from('customers')
-          .select('id, kode_pelanggan, nama_pelanggan, alamat, telepon, email')
+          .select('id, kode_pelanggan, nama_pelanggan, alamat, telepon, email, npwp, jenis_pelanggan')
           .order('nama_pelanggan', { ascending: true });
 
         if (customersError) {
@@ -218,6 +220,7 @@ export default function EditInvoicePage() {
         setRealId(invoiceData.id);
         setFormData({
           customer_id: invoiceData.customer_id || '',
+          customer_name: (customersData || []).find(c => c.id === invoiceData.customer_id)?.nama_pelanggan || '',
           tanggal_invoice: invoiceData.tanggal_invoice || '',
           tanggal_jatuh_tempo: invoiceData.tanggal_jatuh_tempo || '',
           catatan: invoiceData.catatan || '',
@@ -393,8 +396,22 @@ export default function EditInvoicePage() {
 
   const { subtotal, ppnNilai, diskonNilai, pengirimanNilai, total } = calculateTotals();
 
-  // Get selected customer info
-  const selectedCustomer = customers.find(c => c.id === formData.customer_id);
+  // Nama pelanggan bisa diketik bebas. Kalau namanya cocok dengan pelanggan
+  // yang ada, invoice dipasang ke pelanggan itu; kalau tidak, saat simpan
+  // dibuat pelanggan baru (data kontak disalin dari pelanggan sebelumnya)
+  // supaya invoice lain milik pelanggan lama tidak ikut berubah namanya.
+  const baseCustomer = customers.find(c => c.id === formData.customer_id);
+  const customerNameInput = formData.customer_name ?? baseCustomer?.nama_pelanggan ?? '';
+  const normalizeName = (n) => (n || '').trim().replace(/\s+/g, ' ').toLowerCase();
+  const matchedCustomer = customerNameInput.trim()
+    ? (baseCustomer && normalizeName(baseCustomer.nama_pelanggan) === normalizeName(customerNameInput)
+        ? baseCustomer
+        : customers.find(c => normalizeName(c.nama_pelanggan) === normalizeName(customerNameInput)))
+    : null;
+  const isNewCustomerName = !!customerNameInput.trim() && !matchedCustomer;
+  const selectedCustomer = matchedCustomer || (isNewCustomerName && baseCustomer
+    ? { ...baseCustomer, nama_pelanggan: customerNameInput.trim() }
+    : null);
 
   // Metode aktif + metode yang sudah terpasang di invoice ini meski sudah
   // dinonaktifkan (supaya dropdown tidak diam-diam menghilangkan pilihan
@@ -476,8 +493,8 @@ export default function EditInvoicePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.customer_id) {
-      error('Silakan pilih pelanggan terlebih dahulu.');
+    if (!customerNameInput.trim()) {
+      error('Nama pelanggan wajib diisi.');
       return;
     }
 
@@ -503,12 +520,42 @@ export default function EditInvoicePage() {
     
     try {
       const status = getStatusFromStempel();
-      
+
+      // Tentukan pelanggan: pakai yang cocok, atau buat pelanggan baru
+      let customerId = matchedCustomer?.id;
+      if (!customerId) {
+        let createdCustomer = null;
+        let customerError = null;
+        for (let attempt = 0; attempt < 3 && !createdCustomer; attempt++) {
+          const result = await supabase
+            .from('customers')
+            .insert({
+              kode_pelanggan: generateCustomerCode(),
+              nama_pelanggan: customerNameInput.trim(),
+              email: baseCustomer?.email || null,
+              telepon: baseCustomer?.telepon || null,
+              alamat: baseCustomer?.alamat || null,
+              npwp: baseCustomer?.npwp || null,
+              jenis_pelanggan: baseCustomer?.jenis_pelanggan || 'perorangan',
+            })
+            .select('id')
+            .single();
+          createdCustomer = result.data;
+          customerError = result.error;
+          if (customerError?.message?.includes('duplicate key')) continue;
+          if (customerError) break;
+        }
+        if (customerError || !createdCustomer) {
+          throw new Error('Gagal menyimpan nama pelanggan baru: ' + (customerError?.message || 'Unknown error'));
+        }
+        customerId = createdCustomer.id;
+      }
+
       // Update invoice
       const { error: invoiceError } = await supabase
         .from('invoices')
         .update({
-          customer_id: formData.customer_id,
+          customer_id: customerId,
           tanggal_invoice: formData.tanggal_invoice,
           tanggal_jatuh_tempo: formData.tanggal_jatuh_tempo,
           status: status,
@@ -703,20 +750,28 @@ export default function EditInvoicePage() {
             <div className="card-body">
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Pilih Pelanggan *</label>
-                  <select
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({ ...formData, customer_id: e.target.value })}
-                    style={{ width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
+                  <label htmlFor="customer-name" style={{ fontSize: '0.875rem', fontWeight: 600 }}>Nama Pelanggan *</label>
+                  <input
+                    id="customer-name"
+                    type="text"
+                    list="customer-name-options"
+                    value={customerNameInput}
+                    onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                    placeholder="Ketik nama pelanggan atau pilih dari daftar"
+                    autoComplete="off"
+                    style={{ display: 'block', width: '100%', maxWidth: '400px', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '0.5rem', marginTop: '0.25rem' }}
                     required
-                  >
-                    <option value="">-- Pilih Pelanggan --</option>
+                  />
+                  <datalist id="customer-name-options">
                     {customers.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.nama_pelanggan}
-                      </option>
+                      <option key={c.id} value={c.nama_pelanggan} />
                     ))}
-                  </select>
+                  </datalist>
+                  {isNewCustomerName && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-2)', marginTop: '0.25rem' }}>
+                      Nama baru — akan disimpan sebagai pelanggan baru{baseCustomer ? ' (alamat & kontak disalin dari pelanggan sebelumnya)' : ''}. Invoice lain tidak ikut berubah.
+                    </div>
+                  )}
                 </div>
                 {selectedCustomer && (
                   <div style={{ 
