@@ -8,6 +8,7 @@ Folder ini berisi script utility dan setup untuk proyek SIMDIR.
 |------|-----------|-----------------|
 | `setup-supabase-auth.js` | Setup authentication Supabase | `node scripts/setup-supabase-auth.js` |
 | `test-legacy-jwt.js` | Test JWT legacy | `node scripts/test-legacy-jwt.js` |
+| `migrate-sirekap-backup.js` | Migrasi data dari file backup Sirekap | `node scripts/migrate-sirekap-backup.js <path-ke-file.backup.gz> [--dry-run]` |
 
 ## Cara Menjalankan Script
 

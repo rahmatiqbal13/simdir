@@ -21,16 +21,8 @@ simdir/
 │   ├── api/                   # API Routes
 │   └── login/                 # Login page
 │
-├── 📁 components/             # React Components
-│   ├── AgendaCard.tsx
-│   ├── CountdownDisplay.tsx
-│   └── StatusBadge.tsx
-│
 ├── 📁 context/                # React Contexts
 │   ├── AgendaContext.jsx
-│   ├── PencairanContext.jsx
-│   ├── ProgramKerjaContext.jsx
-│   ├── SuratContext.jsx
 │   ├── UnitKerjaContext.jsx
 │   └── UsersContext.jsx
 │
@@ -38,45 +30,47 @@ simdir/
 │   ├── hooks/
 │   │   └── useSupabase.js
 │   ├── supabase/
-│   │   ├── client.js
-│   │   └── server.js
-│   ├── auth.js
-│   ├── auth-middleware.js
+│   │   └── client.js
 │   ├── jwt-legacy.js
-│   ├── local-users.js
-│   └── agenda-status.ts
+│   └── local-users.js
 │
 ├── 📁 docs/                   # 📚 Dokumentasi
+│   ├── design/                # Mockup desain (HTML)
+│   ├── superpowers/           # Rencana & spesifikasi fitur
 │   ├── AGENTS.md
-│   ├── CONTEXT.md
+│   ├── DEPLOYMENT-TEST-GUIDE.md
 │   ├── DOKUMENTASI-SIMDIR.md
 │   ├── ERROR-400-500-FIX.md
 │   ├── JWT-SETUP-GUIDE.md
 │   ├── PRD_SIMDIR_v1.3_updated.md
+│   ├── PWA-README.md
 │   ├── SQL-README.md
 │   ├── SUPABASE-SETUP-GUIDE.md
 │   └── VERCEL-DEPLOY-TROUBLESHOOTING.md
 │
 ├── 📁 sql/                    # 🗄️ Database SQL
 │   ├── schema/
-│   │   └── supabase-schema.sql
+│   │   ├── supabase-schema.sql
+│   │   ├── create-spj-tables.sql
+│   │   └── integrasi-spj-program.sql
 │   ├── seed/
-│   │   ├── seed-pengaturan.sql
 │   │   └── backup-simdir-data.sql
-│   ├── fixes/
-│   │   └── fix-pengaturan-rls.sql
-│   └── archive/
-│       └── (29+ archived SQL files)
+│   └── fixes/
+│       ├── fix-pengaturan-rls.sql
+│       └── fix-integrasi-spj-program.sql
+│
+├── 📁 supabase/               # Migrasi database
+│   └── migrations/
 │
 ├── 📁 scripts/                # 🚀 Utility Scripts
+│   ├── migrate-sirekap-backup.js
 │   ├── setup-supabase-auth.js
 │   └── test-legacy-jwt.js
 │
 ├── 📁 config/                 # ⚙️ Configuration
 │   └── .env.local.example
 │
-├── 📁 examples/               # 💡 Code Examples
-│
+├── CONTEXT.md                 # Konteks & gambaran umum proyek
 ├── middleware.js              # Next.js Middleware
 ├── next.config.js             # Next.js Configuration
 ├── package.json               # Dependencies

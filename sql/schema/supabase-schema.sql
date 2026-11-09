@@ -231,11 +231,14 @@ CREATE POLICY "Activity log viewable by superadmin" ON activity_log
 -- ============================================
 
 -- Insert superadmin user
+-- Password diisi nilai acak supaya tidak ada password bawaan. Setelah setup, buat hash:
+--   node -e "console.log(require('bcryptjs').hashSync(process.argv[1], 10))" 'password-baru'
+-- lalu jalankan: UPDATE users SET password = '<hash>' WHERE username = 'adminiqbal';
 INSERT INTO users (username, email, password, full_name, role, is_active)
 VALUES (
     'adminiqbal', 
     'adminiqbal@usc.ac.id', 
-    'usc@_140451', 
+    gen_random_uuid()::text,
     'Admin Iqbal', 
     'super_admin',
     true

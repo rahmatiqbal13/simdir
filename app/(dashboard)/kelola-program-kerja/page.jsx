@@ -9,8 +9,7 @@ import { useUnitKerja } from '@/context/UnitKerjaContext'
 // sumber data tab. Tab yang benar-benar tampil diambil dari unit_kerja yang
 // kode-nya diawali "pui-" (lihat `puiTabs` di bawah), supaya kalau admin
 // mengubah/menghapus/menambah unit kerja PUI lewat Pengaturan > Unit Kerja,
-// tab di sini ikut berubah otomatis alih-alih diam-diam rusak (lihat juga
-// ProgramKerjaTvPanel.jsx yang punya masalah sama untuk panel TV internal).
+// tab di sini ikut berubah otomatis alih-alih diam-diam rusak.
 const PUI_ORDER = ['pui-olah', 'pui-dis', 'pui-seni', 'pui-ai']
 
 const STATUS_META = {

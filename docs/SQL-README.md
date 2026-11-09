@@ -1,30 +1,23 @@
 # SQL Files Documentation
 
-## File SQL di Root Directory (Aktif)
+## File SQL Aktif
 
 | File | Deskripsi | Kapan Digunakan |
 |------|-----------|-----------------|
-| `supabase-schema.sql` | Schema database utama (tabel, RLS, policies) | Setup awal database |
-| `seed-pengaturan.sql` | Data default untuk unit kerja dan users | Setup awal data |
-| `fix-pengaturan-rls.sql` | Fix RLS dan RPC functions untuk halaman pengaturan | Jika ada masalah RLS di users/unit_kerja |
-| `backup-simdir-data.sql` | Backup data penting | Backup/restore data |
+| `sql/schema/supabase-schema.sql` | Schema database utama (tabel, RLS, policies) | Setup awal database |
+| `sql/fixes/fix-pengaturan-rls.sql` | Fix RLS dan RPC functions untuk halaman pengaturan | Jika ada masalah RLS di users/unit_kerja |
+| `sql/seed/backup-simdir-data.sql` | Query untuk membackup data penting | Sebelum cleanup data |
 
-## File di sql-archive/ (History)
-
-29 file SQL lama sudah di-archive untuk referensi historis.
+Struktur lengkap ada di [`sql/README.md`](../sql/README.md). Migrasi database ada di `supabase/migrations/`.
 
 ## Penggunaan
 
 ### Setup Database Baru
 ```bash
-# 1. Jalankan schema
-psql -f supabase-schema.sql
-
-# 2. Jalankan seed data
-psql -f seed-pengaturan.sql
+psql -f sql/schema/supabase-schema.sql
 ```
 
 ### Fix Masalah RLS
 ```bash
-psql -f fix-pengaturan-rls.sql
+psql -f sql/fixes/fix-pengaturan-rls.sql
 ```

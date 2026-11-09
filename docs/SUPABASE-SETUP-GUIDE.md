@@ -19,12 +19,12 @@
    npm install @supabase/supabase-js
    ```
 
-2. Edit file `setup-supabase-auth.js`:
+2. Edit file `scripts/setup-supabase-auth.js`:
    - Ganti `YOUR_SERVICE_ROLE_KEY_HERE` dengan service_role key yang didapat
 
 3. Jalankan script:
    ```bash
-   node setup-supabase-auth.js
+   SETUP_ADMIN_PASSWORD='password-baru' node scripts/setup-supabase-auth.js
    ```
 
 ### Opsi B: Manual via Supabase Dashboard
@@ -35,7 +35,7 @@
 
    **User 1 - Super Admin:**
    - Email: adminiqbal@usc.ac.id
-   - Password: usc@_140451
+   - Password: (buat password yang kuat)
    - User Metadata: `{"username": "adminiqbal", "role": "super_admin"}`
 
    **User 2 - Admin Keuangan:**
@@ -83,7 +83,7 @@
 2. Buka http://localhost:3000/login
 3. Coba login dengan:
    - Username: adminiqbal
-   - Password: usc@_140451
+   - Password: (password yang Anda buat di Langkah 2)
 
 ## Troubleshooting
 
@@ -108,5 +108,5 @@ Jika Supabase setup masih bermasalah, aplikasi akan otomatis fallback ke mode lo
 
 Untuk menggunakan mode lokal:
 1. Buka halaman login
-2. Login dengan user default (adminiqbal / usc@_140451)
+2. Login dengan salah satu user dari `lib/local-users.js`
 3. Sistem akan otomatis menggunakan local storage

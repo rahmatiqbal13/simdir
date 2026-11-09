@@ -50,7 +50,6 @@ app/
 
 lib/
 ├── supabase/client.js                → Supabase client (browser) + mock fallback
-├── supabase/server.js                → Supabase client (server/SSR) + mock fallback
 └── supabase/mock-client.js           → Mock client untuk dev lokal (12 agenda dummy)
 
 supabase/
@@ -201,9 +200,9 @@ npm run dev
 
 1. **Semua styling menggunakan inline styles** — tidak ada Tailwind/CSS module. Jangan tambahkan className tanpa ada CSS yang mendefinisikannya.
 
-2. **Supabase client ada dua:**
+2. **Supabase client ada dua cara:**
    - `lib/supabase/client.js` → untuk komponen client (`'use client'`)
-   - `lib/supabase/server.js` → untuk server components / API routes
+   - `createClient` dari `@supabase/supabase-js` → dibuat langsung di API routes
 
 3. **Mock client otomatis aktif** jika `NEXT_PUBLIC_SUPABASE_URL` berisi `"your-project"` atau tidak ada. Tidak perlu ubah kode untuk switch antara mock dan production.
 

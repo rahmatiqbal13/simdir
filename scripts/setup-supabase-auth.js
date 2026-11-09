@@ -18,7 +18,7 @@ const users = [
   {
     id: '550e8400-e29b-41d4-a716-446655440000',
     email: 'adminiqbal@usc.ac.id',
-    password: 'usc@_140451',
+    password: process.env.SETUP_ADMIN_PASSWORD,
     username: 'adminiqbal',
     full_name: 'Admin Iqbal',
     role: 'super_admin'
@@ -69,6 +69,12 @@ async function setupAuth() {
     console.log('1. Buka Supabase Dashboard → Project Settings → API')
     console.log('2. Copy "service_role secret" (bukan anon key)')
     console.log('3. Ganti YOUR_SERVICE_ROLE_KEY_HERE di file ini\n')
+    process.exit(1)
+  }
+
+  if (!process.env.SETUP_ADMIN_PASSWORD) {
+    console.error('❌ Error: SETUP_ADMIN_PASSWORD belum diatur')
+    console.log("Contoh: SETUP_ADMIN_PASSWORD='password-baru' node scripts/setup-supabase-auth.js\n")
     process.exit(1)
   }
 
@@ -149,7 +155,7 @@ async function setupAuth() {
   console.log('\n📋 Summary:')
   console.log('- 4 users configured in Supabase Auth')
   console.log('- Run the SQL script to create database tables')
-  console.log('- Default login: adminiqbal / usc@_140451')
+  console.log('- Default login: adminiqbal / (nilai SETUP_ADMIN_PASSWORD)')
   console.log('\n📖 Next Steps:')
   console.log('1. Jalankan supabase-setup-complete.sql di SQL Editor')
   console.log('2. Update NEXT_PUBLIC_SUPABASE_URL di .env.local')

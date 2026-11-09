@@ -71,15 +71,8 @@ app/
 Jalankan di Supabase SQL Editor:
 
 1. **`sql/schema/supabase-schema.sql`** - Setup tabel, RLS, dan data awal
-2. **`sql/fixes/fix-login-rls.sql`** - Fix login error 500 (bypass RLS untuk auth)
 
-Lihat [`sql/README.md`](sql/README.md) untuk struktur SQL lengkap.
-
-### Default Login
-
-| Username | Password |
-|----------|----------|
-| `adminiqbal` | `usc@_140451` |
+Lihat [`sql/README.md`](../sql/README.md) untuk struktur SQL lengkap.
 
 ## Key Files
 
@@ -87,8 +80,6 @@ Lihat [`sql/README.md`](sql/README.md) untuk struktur SQL lengkap.
 |------|---------|
 | `middleware.js` | Route protection & RBAC |
 | `lib/supabase/client.js` | Browser Supabase client |
-| `lib/supabase/server.js` | Server Supabase client |
-| `lib/auth.js` | Client-side auth hook |
 | `lib/jwt-legacy.js` | Legacy JWT verification |
 | `context/AgendaContext.jsx` | Global agenda state |
 | `app/(public)/agenda/tv/page.jsx` | TV Display mode |
@@ -98,18 +89,16 @@ Lihat [`sql/README.md`](sql/README.md) untuk struktur SQL lengkap.
 ```
 simdir/
 ├── app/                    # Next.js App Router
-├── components/             # React Components
 ├── context/                # React Contexts
 ├── lib/                    # Utility Libraries
 ├── docs/                   # 📚 Documentation
 ├── sql/                    # 🗄️ Database SQL
 │   ├── schema/            # Database schema
-│   ├── seed/              # Seed data
-│   ├── fixes/             # Fix scripts
-│   └── archive/           # Archived SQL
+│   ├── seed/              # Backup scripts
+│   └── fixes/             # Fix scripts
+├── supabase/migrations/    # Database migrations
 ├── scripts/                # 🚀 Utility scripts
-├── config/                 # ⚙️ Configuration
-└── examples/               # 💡 Code examples
+└── config/                 # ⚙️ Configuration
 ```
 
 ## Common Commands
@@ -131,13 +120,13 @@ npm run build
 ## Troubleshooting
 
 ### Login Error 500
-Solusi: Pastikan `sql/fixes/fix-login-rls.sql` sudah dijalankan di Supabase.
+Solusi: Lihat [`ERROR-400-500-FIX.md`](ERROR-400-500-FIX.md).
 
 ### JWT Invalid
 Solusi: Cek `LEGACY_JWT_SECRET` di `.env.local` sudah sesuai dengan Supabase Dashboard.
 
 ### RLS Permission Denied
-Solusi: Jalankan `sql/fixes/fix-login-rls.sql` untuk membuat RPC functions.
+Solusi: Jalankan `sql/fixes/fix-pengaturan-rls.sql` untuk membuat RPC functions.
 
 ## Deployment
 
