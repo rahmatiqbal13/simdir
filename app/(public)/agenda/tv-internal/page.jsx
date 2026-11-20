@@ -10,12 +10,16 @@ import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, Tv
 const ROWS_PER_PAGE = 6
 const ROTATE_SEC = 15
 
-// Panel QR absen (tapabsen). Layar TV membuka /agenda/tv-internal?absen=<kiosk_key>;
-// kunci kiosk SENGAJA tidak disimpan di kode/env SIMDIR karena halaman ini publik
-// tanpa login — QR yang valid melewati geofence, jadi siapa pun yang bisa melihat
-// QR-nya bisa absen. Tanpa ?absen= panel tidak muncul. Absensi harus mengizinkan
-// domain SIMDIR lewat env KIOSK_FRAME_ANCESTORS.
+// Panel QR absen (tapabsen). Kunci kiosk diambil dari env
+// NEXT_PUBLIC_ABSENSI_KIOSK_KEY sehingga panel muncul otomatis di
+// /agenda/tv-internal; ?absen=<kiosk_key> di URL menimpanya. Env kosong dan
+// tanpa ?absen= → panel tidak muncul.
+// PERHATIAN: halaman ini publik tanpa login dan QR yang valid melewati
+// geofence — siapa pun yang membuka URL TV internal dari luar kantor bisa
+// memindai QR-nya. Jika URL bocor, reset kunci kiosk di Absensi lalu ganti env.
+// Absensi harus mengizinkan domain SIMDIR lewat env KIOSK_FRAME_ANCESTORS.
 const ABSENSI_URL = (process.env.NEXT_PUBLIC_ABSENSI_URL || 'https://tapabsen.vercel.app').replace(/\/+$/, '')
+const DEFAULT_KIOSK_KEY = process.env.NEXT_PUBLIC_ABSENSI_KIOSK_KEY || ''
 const KIOSK_KEY_RE = /^[A-Za-z0-9_-]{16,64}$/
 
 // Halaman TV internal — menampilkan SEMUA agenda (internal + publik), tanpa
@@ -40,7 +44,7 @@ export default function AgendaTVInternalPage() {
   // Dibaca dari URL di klien (bukan useSearchParams) agar halaman tetap statis.
   const [kioskKey, setKioskKey] = useState(null)
   useEffect(() => {
-    const k = new URLSearchParams(window.location.search).get('absen')
+    const k = new URLSearchParams(window.location.search).get('absen') || DEFAULT_KIOSK_KEY
     if (k && KIOSK_KEY_RE.test(k)) setKioskKey(k)
   }, [])
 
@@ -157,7 +161,7 @@ export default function AgendaTVInternalPage() {
         </div>
       </header>
 
-      {/* ── MAIN: Agenda | QR Absen (jika ?absen=) ── */}
+      {/* ── MAIN: Agenda | QR Absen (jika kunci kiosk ada) ── */}
       <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: kioskKey ? 'minmax(0,1fr) 460px' : '1fr', gap: 28, padding: '28px 48px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 22, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(0,1fr) 220px', gap: 22, padding: '18px 26px', background: p.head, fontFamily: 'var(--font-mono)', fontSize: 16, letterSpacing: '.08em', textTransform: 'uppercase', color: p.ink2 }}>
