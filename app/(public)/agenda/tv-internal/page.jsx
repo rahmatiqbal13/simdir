@@ -10,6 +10,14 @@ import { TV_DARK, TV_LIGHT, TV_STATUS_LABEL, tvStatusColor, TvStage, TvClock, Tv
 const ROWS_PER_PAGE = 6
 const ROTATE_SEC = 15
 
+// Panel QR absen (tapabsen). Layar TV membuka /agenda/tv-internal?absen=<kiosk_key>;
+// kunci kiosk SENGAJA tidak disimpan di kode/env SIMDIR karena halaman ini publik
+// tanpa login — QR yang valid melewati geofence, jadi siapa pun yang bisa melihat
+// QR-nya bisa absen. Tanpa ?absen= panel tidak muncul. Absensi harus mengizinkan
+// domain SIMDIR lewat env KIOSK_FRAME_ANCESTORS.
+const ABSENSI_URL = (process.env.NEXT_PUBLIC_ABSENSI_URL || 'https://tapabsen.vercel.app').replace(/\/+$/, '')
+const KIOSK_KEY_RE = /^[A-Za-z0-9_-]{16,64}$/
+
 // Halaman TV internal — menampilkan SEMUA agenda (internal + publik), tanpa
 // panel media/pamflet, tanpa login, dan tanpa entri menu (akses lewat URL
 // langsung). Lihat docs/superpowers/specs/2026-07-10-agenda-tv-public-internal-split-design.md
@@ -27,6 +35,13 @@ export default function AgendaTVInternalPage() {
       .then((res) => res.json())
       .then((data) => { if (data.logo_url) setLogoUrl(data.logo_url) })
       .catch(() => {})
+  }, [])
+
+  // Dibaca dari URL di klien (bukan useSearchParams) agar halaman tetap statis.
+  const [kioskKey, setKioskKey] = useState(null)
+  useEffect(() => {
+    const k = new URLSearchParams(window.location.search).get('absen')
+    if (k && KIOSK_KEY_RE.test(k)) setKioskKey(k)
   }, [])
 
   const [agenda, setAgenda]           = useState([])
@@ -142,8 +157,8 @@ export default function AgendaTVInternalPage() {
         </div>
       </header>
 
-      {/* ── MAIN: Agenda | Program Kerja PUI ── */}
-      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr', gap: 28, padding: '28px 48px' }}>
+      {/* ── MAIN: Agenda | QR Absen (jika ?absen=) ── */}
+      <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: kioskKey ? 'minmax(0,1fr) 460px' : '1fr', gap: 28, padding: '28px 48px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 22, overflow: 'hidden' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(0,1fr) 220px', gap: 22, padding: '18px 26px', background: p.head, fontFamily: 'var(--font-mono)', fontSize: 16, letterSpacing: '.08em', textTransform: 'uppercase', color: p.ink2 }}>
             <span>Tanggal</span><span>Kegiatan · Unit · Lokasi</span><span>Status</span>
@@ -209,6 +224,19 @@ export default function AgendaTVInternalPage() {
           </div>
         </div>
 
+        {kioskKey && (
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, background: p.panel, borderRadius: 22, overflow: 'hidden' }}>
+            <div style={{ padding: '18px 26px', background: p.head, fontFamily: 'var(--font-mono)', fontSize: 16, letterSpacing: '.08em', textTransform: 'uppercase', color: p.ink2 }}>
+              Absen Kehadiran · Scan QR
+            </div>
+            <iframe
+              src={`${ABSENSI_URL}/kiosk/${encodeURIComponent(kioskKey)}?embed=1`}
+              title="QR absen"
+              referrerPolicy="no-referrer"
+              style={{ flex: 1, width: '100%', border: 0, display: 'block', background: '#17154A' }}
+            />
+          </div>
+        )}
       </div>
     </TvStage>
   )
